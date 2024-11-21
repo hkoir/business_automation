@@ -1,0 +1,326 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    }
+
+table {
+        border-collapse: collapse;
+        width: 100%;
+    
+    }
+    
+    th, td {
+        border: 1px solid black; /* Set border color for individual cells */
+        vertical-align: middle;
+        padding: 0px;
+    }
+    
+    th {
+        background-color: rgb(118, 242, 10);
+        
+    }
+    
+    table thead th {
+    white-space: normal;
+    }
+    
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+
+
+<div class="container-fluid main-content">
+    <div class="row">    
+        <h4>Manage Customers</h4>         
+            <!-- Form for adding a new category -->
+            <div class="col-12 col-md-3">
+                <div class="card shadow" style="padding:10px;background-color:aliceblue;">
+                    <div class="card-body">
+                        <h6 class="card-title text-center"><strong>Manager Customer</strong> </h6>
+                        <form method="post" enctype="multipart/form-data" action="{% url 'customer:create_customer' %}" id="add_customer">
+                            {% csrf_token %}
+                            {{ form.as_p }}
+                            <button type="submit" name="customer_submit" class="btn btn-primary">Submit</button>
+                        </form>
+                     </div>
+                </div>           
+            </div>
+        <div class="col">        
+            <!-- Table for displaying existing categories -->
+            <h4>Available Customer</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-center p-2">Name</th>
+                        <th class="text-center p-2">phone</th>
+                        <th class="text-center p-2">email</th>
+                        <th class="text-center p-2">Created_at</th>
+                    
+                        <th class="text-center p-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in page_obj %}
+                        <tr>
+                            <td class="text-center p-1">{{ customer.name }}</td>
+                            <td class="text-center p-1" style="white-space: nowrap;">{{ customer.phone }}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{customer.email}}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{customer.created_at}}</td>
+                           
+                            <td class="text-center">
+                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#updateCustomerModal"
+                                data-id="{{ customer.id }}"
+                                data-name="{{ customer.name }}"
+                                data-email="{{ customer.email }}"
+                                data-phone="{{ customer.phone }}">
+                                Update
+                            </button>                                                
+
+                            <button type="button" class="btn btn-danger btn-sm delete-button text-center" 
+                            data-bs-toggle="modal" data-bs-target="#deleteCustomerModal" 
+                            data-customer-id="{{ customer.id }}" 
+                            data-customer-name="{{ customer.name }}">
+                        Delete
+                    </button>
+                    
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1">&laquo; first</a>
+                        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                    {% endif %}
+
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}">next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>      
+
+<div style="height:2000px"></div>
+
+
+
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+<!-- Update  Modal -->
+<div class="modal fade" id="updateCustomerModal" tabindex="-1" aria-labelledby="updateCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="updateCustomerForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" id="customer_id" name="customer_id">
+                <input type="hidden" name="action" value="update">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateCustomerModalLabel">Update Customer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="phone" name="phone" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteCustomerModal" tabindex="-1" aria-labelledby="deleteCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="deleteCustomerForm">
+                {% csrf_token %}
+                <input type="hidden" name="customer_id" id="delete_customer_id" value="">
+                <input type="hidden" name="action" value="delete">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCustomerModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete <strong id="customerToDeleteName"></strong>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="exitWithoutSavingBtn" data-bs-dismiss="modal">No Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveChangesBtn"> Yes Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+         
+
+
+
+
+<script>
+  
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                const modalInstance = new bootstrap.Modal(messageModal);
+                modalInstance.show();
+
+                // Optional: Close the modal on hidden event for cleanup
+                messageModal.addEventListener('hidden.bs.modal', function () {
+                    modalInstance.dispose(); // Reset modal instance if needed
+                });
+            }
+        }
+    });
+
+
+
+
+// update //////////////////////////////////////////////
+
+// update modal
+document.addEventListener('DOMContentLoaded', function() {
+    var updateModal = document.getElementById('updateCustomerModal');
+
+    if (updateModal) {
+        updateModal.addEventListener('show.bs.modal', function(event) {
+            var button = event.relatedTarget;
+            var customerId = button.getAttribute('data-id');
+            var customerName = button.getAttribute('data-name');
+            var customerEmail = button.getAttribute('data-email');
+            var customerPhone = button.getAttribute('data-phone');
+
+            var modal = updateModal;
+            modal.querySelector('#customer_id').value = customerId;
+            modal.querySelector('#name').value = customerName; // Correct input ID for name
+            modal.querySelector('#email').value = customerEmail; // Correct input ID for email
+            modal.querySelector('#phone').value = customerPhone; // Correct input ID for phone
+        });
+    }
+});
+
+
+// delete modal//////////////////////////////////////////////////
+
+$(document).ready(function () {
+    $('#deleteCustomerModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget); 
+        var customerId = button.data('customer-id'); 
+        var customerName = button.data('customer-name'); 
+        var modal = $(this);
+        modal.find('#customerToDeleteName').text(customerName); 
+        modal.find('#delete_customer_id').val(customerId); 
+    });
+
+    $('#deleteCustomerForm').on('submit', function (event) {
+        event.preventDefault(); 
+        var form = $(this);
+        
+        $.ajax({
+            type: "POST",
+            url: window.location.href, 
+            data: form.serialize(),
+            success: function () {
+                window.location.reload();
+            },
+            error: function (xhr, status, error) {
+                console.error("An error occurred: " + error);
+            }
+        });
+    });
+});
+
+
+
+</script>
+
+
+
+
+
+{% endblock %}

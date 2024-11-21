@@ -1,0 +1,284 @@
+{% extends 'base.html' %}  
+{% load custom_filters %} 
+{% block content %}
+
+<style>
+
+
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; 
+    }
+
+table {
+        border-collapse: collapse;
+        width: 100%;
+    
+    }
+    
+    th, td {
+      
+        vertical-align: middle;
+        padding: 0px;
+    }
+    
+    th {
+        background-color: rgb(118, 242, 10);
+        
+    }
+    
+    table thead th {
+    white-space: normal;
+    }
+
+    .table td{
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .table th{    
+        text-align: center;
+    }
+    
+    
+    .select2-container {
+        width: 60% !important; 
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; 
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+  
+
+ 
+    </style>
+
+
+
+<div class="container-fluid main-content" style="margin-top: 0px;">
+    <div class="row" style="width:1800px">
+        <h4>Dispatch Items for Purchase Order: {{ purchase_order.order_id }}</h4>
+            <div class="col">              
+                <div class="container fluid">
+                    <div class="row">                        
+                        <div class="col-12 col-md-4">
+                            <table class="table table-striped">
+                                <thead>
+                                    <h5 style="color:green;font-weight: bolder;">Summary</h5>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Product Name</th>
+                                        <th>Order Quantity</th>
+                                        <th>Dispatch Quantity</th>
+                                        <th>Good Quantity</th>
+                                        <th>Bad Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product_name, totals in product_wise_totals.items %}
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ product_name }}</td>
+                                            <td>{{ totals.order_quantity }}</td>
+                                            <td>{{ totals.dispatch_quantity }}</td>
+                                            <td>{{ totals.good_quantity }}</td>
+                                            <td>{{ totals.bad_quantity }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                
+                            </table>
+                        </div>
+                        <div class="col-12 col-md-4"></div>
+                        <div class="col-12 col-md-4"></div>
+                    </div>
+                </div>
+               
+            </div>
+
+
+        <div class="col mt-4">          
+  
+           
+               
+            
+                <table class="table table-striped">
+                    <thead>
+                      
+                        <!-- Column headers -->
+                        <tr>
+                            <th rowspan="2">#</th>
+                            <th rowspan="2">Item Name</th>
+                            <th rowspan="2">Item ID</th>
+                            <th rowspan="2" style="color:rgb(21, 0, 128);font-weight: bold;">Order Qty</th>  
+
+                            <th rowspan="2" style="color:green;font-weight: bold;">Dispatch Qty</th>
+                            <th rowspan="2" style="color:rgb(0, 4, 128);font-weight: bold;">Committed Delivery</th>
+                            <th rowspan="2"style="color:green;font-weight: bold;">Actual Delivery</th>
+
+                            <th rowspan="2">Dispatch ID</th>
+                            <th rowspan="2">Delivery Status</th>                            
+                            <!-- Quality Control Group Heading -->
+                            <th colspan="2" style="color:red;font-weight: bold;">Quality Control</th>
+                    
+                            <th rowspan="2">Next Action</th>
+                            <th rowspan="2">Cancel</th>
+                        </tr>
+                        <!-- Sub-headers for Quality Control -->
+                        <tr>
+                            <th>Good Quantity</th>
+                            <th>Bad Quantity</th>
+                        </tr>
+                    </thead>
+                    
+                    <tbody>
+                        {% for shipment, dispatch_items in shipments.items %}
+                      <h6> Shipment ID:{{shipment.shipment_id}} : status: {{shipment.status}}</h6>
+                            {% for dispatch_item in dispatch_items %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+
+                                    <td>{{ dispatch_item.dispatch_item.product.name }}</td>
+                                    <td>{{ dispatch_item.dispatch_item.order_item_id }}</td>
+                                    <td>{{ dispatch_item.dispatch_item.quantity }}</td>
+
+                                    <td>{{ dispatch_item.dispatch_quantity }}</td>
+                                    <td>{{ dispatch_item.delivery_date }}</td>
+                                    {% if dispatch_item.status == 'REACHED' %}
+                                    <td>{{ dispatch_item.updated_at }}</td>
+                                    {% else %}
+                                    <td style="color:red;font-weight: bold;">not Arrived yet</td>
+                                    {% endif %}
+
+                                    <td>{{ dispatch_item.dispatch_id }}</td>
+                                    <td>{{ dispatch_item.get_status_display }}</td>                                   
+
+                                    <td>{{ qc_quantities|get_item:dispatch_item.id|get_item:'good_quantity'|default:0 }}</td>
+                                    <td>{{ qc_quantities|get_item:dispatch_item.id|get_item:'bad_quantity'|default:0 }}</td>
+                                    
+                                <td>
+                                    <form action="{% url 'logistics:update_dispatch_status' dispatch_item.id %}" method="post">
+                                        {% csrf_token %}
+                                        <div class="container">
+                                            <div class="row">
+                                                <div class="col-8">
+                                                    <select name="new_status" class="form-select">
+                                                        {% if dispatch_item.status == 'IN_PROCESS' %}
+                                                            <option value="ON_BOARD">On Board</option>
+                                                        {% elif dispatch_item.status == 'ON_BOARD' %}
+                                                        <option value="IN_TRANSIT">In Transit</option>
+                                                        {% elif dispatch_item.status == 'IN_TRANSIT' %}
+                                                        <option value="CUSTOM_CLEARANCE_IN_PROCESS">Custom Clearance In Process</option>                                                          
+                                                        {% elif dispatch_item.status == "CUSTOM_CLEARANCE_IN_PROCESS" %}
+                                                        <option value="REACHED">Reached</option>                                                            
+                                                        {% elif dispatch_item.status == 'REACHED' %}
+                                                            <option value="OBI">OBI</option>
+                                                        {% elif dispatch_item.status == 'OBI' %}
+                                                            <option value="DELIVERED">Delivered</option>                                                      
+                                                        {% else %}
+                                                            <option disabled selected>No action needed</option>
+                                                        {% endif %}
+                                                    </select>
+                                                </div>
+                                                <div class="col-4">
+                                                    <button type="submit" class="btn btn-primary btn-sm mt-2">Update</button>
+                                                </div>
+                                            </div>
+                                        </div>                       
+                                    </form>
+                                </td>
+                                
+                                <td>
+                                    <a href="{% url 'logistics:cancel_dispatch_item' dispatch_item.id %}" class="btn btn-sm btn-danger">Cancel</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                    
+                </table>
+       
+            
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<div style="height:2000px"></div>
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+<script>
+  
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                const modalInstance = new bootstrap.Modal(messageModal);
+                modalInstance.show();
+
+                // Optional: Close the modal on hidden event for cleanup
+                messageModal.addEventListener('hidden.bs.modal', function () {
+                    modalInstance.dispose(); // Reset modal instance if needed
+                });
+            }
+        }
+    });
+
+
+
+</script>
+
+
+
+
+
+{% endblock %}

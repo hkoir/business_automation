@@ -1,0 +1,32 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-4 col-md-3">   
+            <div class="card">     
+            <a href="{% url 'product:create_category' %}" class="btn btn-primary">Create Category</a> 
+        </div>
+        </div>
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'product:create_product' %}" class="btn btn-primary">Create product</a> 
+            </div> 
+        </div>
+
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'reporting:product_list' %}" class="btn btn-primary">Product details</a> 
+            </div> 
+        </div>
+       
+       
+    </div>
+</div>
+   
+
+{% endblock %}

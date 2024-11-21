@@ -1,0 +1,171 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    }
+
+table {
+        border-collapse: collapse;
+        width: 100%;
+    
+    }
+    
+    th, td {
+        border: 1px solid black; 
+        vertical-align: middle;
+        padding: 0px;
+    }
+    
+    th {
+        background-color: rgb(118, 242, 10);
+        
+    }
+    
+    table thead th {
+    white-space: normal;
+    }
+
+    .table td,th{
+        text-align: center;
+    }
+    .table td{
+        white-space: nowrap;
+    }
+    
+    .select2-container {
+        width: 60% !important; 
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; 
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+<div class="container-fluid main-content">
+    <div class="row">
+        <div class="col">
+
+            <h2>Invoice List</h2>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Invoice Number</th>
+                        <th>Sale Order</th>
+                        <th>Shipment ID</th>
+                        <th>Amount Due</th>
+                        <th>Amount Paid</th>
+                        <th>Tax Rate</th>
+                        <th>Issued Date</th>
+                        <th>Actions</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                        <tr>
+                            <td>{{ invoice.invoice_number }}</td>
+                            <td>{{ invoice.sale_shipment.sales_order }}</td>
+                            <td>{{ invoice.sale_shipment.shipment_id }}</td>
+                            <td>{{ invoice.amount_due }}</td>
+                            <td>{{ invoice.total_paid }}</td>
+                            <td>{{ invoice.tax_rate }}%</td>
+                            <td>{{ invoice.issued_date|date:"Y-m-d H:i" }}</td>
+                                        
+                            {% if invoice.is_fully_paid %}
+                            <td><i class="fas fa-check" style="color:green;font-weight: bold;">Payment clear</i></td>
+                            {%else %}
+                            <td style="white-space: nowrap;">
+                                <a href="{% url 'finance:create_sale_payment' invoice_id=invoice.id %}" class="btn btn-sm btn-primary">
+                                    Add Payment
+                                </a>
+                            </td>
+                            {% endif %}
+            
+                            <td style="white-space: nowrap;">
+                                <a href="{% url 'finance:sale_invoice_detail' invoice.id %}" class="btn btn-sm btn-primary">
+                                    invoice details
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7">No invoices available.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+        </div>
+    </div>
+
+</div>
+
+<div style="height:1000px"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+
+{% endblock %}

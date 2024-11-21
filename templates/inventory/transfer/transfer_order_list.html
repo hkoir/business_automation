@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+   
+
+<div class="container-fluid main-content">
+    <div class="row">    
+        
+        <div class="col">        
+            <!-- Table for displaying existing categories -->
+            <h4>Transfer Order list</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        
+                        <th class="text-center p-2">Transfer Number</th>                      
+                         <th class="text-center p-2">Status</th>
+                        <th class="text-center p-2">Action</th>
+
+                        
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transfer_order in transfer_orders %}
+                        <tr>
+                            <td class="text-center p-1">{{  transfer_order.order_number }}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{  transfer_order.order_status }}</td>
+                            
+                            <td class="text-center">
+                               
+                                <a href="{% url 'inventory:transfer_order_detail'  transfer_order.id %}" class="btn btn-primary">
+                                    Transferred product list
+                           
+                            </td>
+                          
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>        
+              
+    </div>
+</div>   
+{% endblock %}

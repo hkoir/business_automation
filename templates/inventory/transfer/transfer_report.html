@@ -1,0 +1,81 @@
+
+{% extends 'base.html' %}
+
+{% load custom_filters %}
+{% block content %}
+
+
+
+<style>
+
+    .table th,td{
+        text-align: center;        
+    }
+
+    .table td{
+        white-space:nowrap
+    }
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+</style>
+       
+
+   
+<div class="container-fluid main-content">
+    <div class="row">
+        <div class="col">
+            <h2>Warehouse Transfer Report</h2>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity Transferred</th>
+                        <th>Source Warehouse</th>
+                        <th>Target Warehouse</th>
+                        <th>Transfer date</th>
+                        
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transfer in transfer_data %}
+                    <tr>
+                        <td>{{ transfer.product_name }}</td>
+                        <td>{{ transfer.quantity_transferred }}</td>
+                        <td>{{ transfer.source_warehouse }}</td>
+                        <td>{{ transfer.target_warehouse }}</td>
+                        <td>{{ transfer.updated_at }}</td>
+
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No transfer data available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+ 
+{% endblock %}

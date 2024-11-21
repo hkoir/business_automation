@@ -1,0 +1,234 @@
+{% extends 'base.html' %}  
+
+{% load custom_filters %}
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    }
+
+    
+    .table th, td {
+
+        /* border: 1px solid black;  */
+        vertical-align: middle;
+        padding: 0px;
+        text-align: center;
+        font-size: 14px;
+        padding:10px;
+    }
+
+    .table td{
+        white-space: nowrap;
+    }
+       
+    
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+<div class="container main-content" style="margin-left: 50px;">
+    <h4 class="text-center" style="color:blue;font-weight: bold;">DOPS Inventory Summary</h4>
+    <div class="row">
+
+        <h4 class="text-center" style="margin-top: 20px; color: rgb(242, 59, 8);font-weight: bold;">
+            Current Total Stock Value: {{ grand_total_stock_value|add_commas }}<br>
+           
+            <span style="font-size: 14px;">
+                <a href="{% url 'inventory:inventory_executive_sum' %}">Stock value</a>:
+                <a href="{% url 'inventory:inventory_list' %}">Product in warehouse</a>:
+                <a href="{% url 'inventory:inventory_aggregate_list' %}">Stocked Prodcut</a>
+            </span>
+            
+        
+        </h4>
+
+    
+
+
+        <!-- Bar Chart (Left) -->
+        <div class="col-md-8" style="margin-bottom: 20px;">
+            <div>
+                <canvas id="barChart" width="400" height="200"></canvas>
+                <div id="warehouseNames"></div>
+            </div>
+        </div>
+
+        <!-- Pie Chart (Right) -->
+        <div class="col-md-4">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="product-chart">
+                            <h4 class="text-center">Warehouse Stock</h4>
+                            <canvas id="warehousePieChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+       
+    </div>
+</div>
+
+
+
+<div style="height:1000px"></div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
+
+<script>
+
+const chartData = JSON.parse('{{ chart_data_json|escapejs }}');
+
+// Bar Chart
+const labels = chartData.map(data => data.warehouse);
+const stockValues = chartData.map(data => data.stock_value);
+
+const ctx = document.getElementById('barChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Stock Value (in currency)',
+            data: stockValues,
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.7)', // Teal
+                'rgba(255, 99, 132, 0.7)', // Soft Red
+                'rgba(255, 206, 86, 0.7)', // Warm Yellow
+                'rgba(54, 162, 235, 0.7)', // Sky Blue
+                'rgba(153, 102, 255, 0.7)', // Lavender Purple
+                'rgba(255, 159, 64, 0.7)', // Vibrant Orange
+                'rgba(101, 189, 44, 0.7)'  // Fresh Green
+            ],
+            
+            borderColor: [
+                'rgba(75, 192, 192, 1)', // Teal
+                'rgba(255, 99, 132, 1)', // Soft Red
+                'rgba(255, 206, 86, 1)', // Warm Yellow
+                'rgba(54, 162, 235, 1)', // Sky Blue
+                'rgba(153, 102, 255, 1)', // Lavender Purple
+                'rgba(255, 159, 64, 1)', // Vibrant Orange
+                'rgba(101, 189, 44, 1)'  // Fresh Green
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+const pieChartLabels = labels;  // Warehouse names
+const pieChartValues = stockValues;  // Corresponding stock values
+
+const pieChartCtx = document.getElementById('warehousePieChart').getContext('2d');
+new Chart(pieChartCtx, {
+    type: 'pie',
+    data: {
+        labels: pieChartLabels,
+        datasets: [{
+            data: pieChartValues,
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.7)', // Teal
+                'rgba(255, 99, 132, 0.7)', // Soft Red
+                'rgba(255, 206, 86, 0.7)', // Warm Yellow
+                'rgba(54, 162, 235, 0.7)', // Sky Blue
+                'rgba(153, 102, 255, 0.7)', // Lavender Purple
+                'rgba(255, 159, 64, 0.7)', // Vibrant Orange
+                'rgba(101, 189, 44, 0.7)'  // Fresh Green
+            ],
+            borderColor: [
+                'rgba(75, 192, 192, 1)', // Teal
+                'rgba(255, 99, 132, 1)', // Soft Red
+                'rgba(255, 206, 86, 1)', // Warm Yellow
+                'rgba(54, 162, 235, 1)', // Sky Blue
+                'rgba(153, 102, 255, 1)', // Lavender Purple
+                'rgba(255, 159, 64, 1)', // Vibrant Orange
+                'rgba(101, 189, 44, 1)'  // Fresh Green
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            datalabels: {
+                formatter: (value, context) => {
+                    let total = context.chart.getDatasetMeta(0).total;
+                    let percentage = ((value / total) * 100).toFixed(2);
+                    return percentage + '%';  // Display percentage inside the pie chart
+                },
+                color: '#fff',  // Text color
+                font: {
+                    weight: 'bold',  // Make the text bold
+                    size: 14  // Adjust text size
+                },
+                align: 'center',
+                anchor: 'center'
+            }
+        }
+    }
+});
+
+</script>
+
+<script>
+
+     // Show Django message modal if there are messages
+     document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                const modalInstance = new bootstrap.Modal(messageModal);
+                modalInstance.show();
+            }
+        }
+    });
+    
+
+</script>
+
+
+
+{% endblock %}
+
+
+

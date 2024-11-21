@@ -1,0 +1,150 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+
+
+
+<style>
+
+  html, body {
+     margin: 0;
+     padding: 0;
+     overflow-x: hidden; 
+     }
+ 
+ table {
+         border-collapse: collapse;
+         width: 100%;
+     
+     }
+     
+     th, td {
+   
+         vertical-align: middle;
+         padding: 0px;
+     }
+     
+     th {
+         background-color: rgb(118, 242, 10);
+         
+     }
+     
+     table thead th {
+     white-space: normal;
+     }
+
+     .table th,td{
+      text-align: center;
+     }
+     
+     .select2-container {
+         width: 60% !important; 
+     }
+     
+     .select2-container .select2-selection--single {
+         width: 100% !important; 
+     }
+     
+     .select2-dropdown {
+         width: auto !important; 
+     }
+     
+     .select2-search__field {
+         width: 80% !important; 
+     }
+     
+     .main-content {   
+         overflow-y: auto;
+         margin-left:0px;
+         position: absolute;
+         width: 100%;
+         left: 0;
+             }
+     </style>
+ 
+  <h2>Supplier Performance List</h2>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Purchase Order</th>
+        <th>Vendor</th>
+        <th>Location</th>
+        <th>Date</th>
+
+        <th>Delivery Rating</th>
+        <th>Quality Rating</th>
+        <th>On Time Delivery</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for performance in page_obj %}
+        <tr>
+          <td style="white-space: nowrap;">{{ performance.purchase_order.order_id }}</td>
+          <td>{{ performance.supplier }}</td>
+          <td>{{ performance.location }}</td>
+
+          <td>{{ performance.date }}</td>
+          <td>{{ performance.delivery_rating }}</td>
+          <td>{{ performance.quality_rating }}</td>
+          <td>{{ performance.on_time_delivery|yesno:"Yes,No" }}</td>
+          <td>
+            <a href="{% url 'supplier:update_performance' performance.id %}" class="btn btn-warning btn-sm">Edit</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary">Previous</a>
+    {% endif %}
+    
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary">Next</a>
+    {% endif %}
+  </div>
+
+  <a href="{% url 'supplier:create_performance' %}" class="btn btn-primary mt-3">Add New Performance</a>
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="messagesContainer">
+              {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+              {% endfor %}
+          </div>
+      </div>
+  </div>
+</div>
+
+
+
+<script>
+  // Show Django message modal if there are messages
+  document.addEventListener("DOMContentLoaded", function() {
+      const messageModal = document.getElementById('messageModal');
+      if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+          new bootstrap.Modal(messageModal).show();
+      }
+  });
+
+</script>
+
+
+  {% endblock %}

@@ -1,0 +1,323 @@
+from django.db import models
+from django.db.models import Sum
+from supplier.models import Supplier
+from product.models import Product,Component
+
+from django.utils import timezone
+from django.contrib.auth.models import User
+from simple_history.models import HistoricalRecords
+import uuid
+from django.apps import apps
+from django.core.exceptions import ValidationError
+
+from django.db.models import Sum
+import logging
+logger = logging.getLogger(__name__)
+
+
+
+class PurchaseRequestOrder(models.Model):
+    order_id = models.CharField(max_length=50,null=True,blank=True)
+    department = models.CharField(max_length=50,null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_request_user')
+    order_date = models.DateField(null=True, blank=True)
+    STATUS_CHOICES = [
+    ('CREATED', 'Created'), 
+     ('IN_PROCESS', 'In Process'),
+    ('IN_TRANSIT', 'In Transit'),
+    ('DELIVERED', 'Delivered'),
+    ('PARTIAL_DELIVERED', 'Partial Delivered'),
+    ('CANCELLED','Cancelled'),
+        ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
+
+    STATUS_CHOICES = [
+    ('SUBMITTED', 'Submitted'),
+     ('REVIEWED', 'Reviewed'),
+    ('APPROVED', 'Approved'),   
+    ('CANCELLED','Cancelled'),
+        ]
+    approval_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
+    requester = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='requester_orders')
+    reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewer_orders')
+    approver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approver_orders')
+    
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2,null=True, blank=True)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    history=HistoricalRecords()
+    remarks=models.TextField(null=True,blank=True)
+   
+    approval_data = models.JSONField(default=dict,null=True,blank=True)
+
+    requester_approval_status = models.CharField(max_length=20, null=True, blank=True)
+    reviewer_approval_status = models.CharField(max_length=20, null=True, blank=True)
+    approver_approval_status = models.CharField(max_length=20, null=True, blank=True)
+
+    Requester_remarks=models.TextField(null=True,blank=True)
+    Reviewer_remarks=models.TextField(null=True,blank=True)
+    Approver_remarks=models.TextField(null=True,blank=True)
+    
+
+    class Meta:
+        permissions = [
+            ("can_request", "can request"),
+            ("can_review", "Can review"),
+            ("can_approve", "Can approve"),
+        ]
+
+    
+    def save(self, *args, **kwargs):
+        if not self.requester:
+            self.requester = User.objects.filter(groups__name='Requester').first()
+        if not self.reviewer:
+            self.reviewer = User.objects.filter(groups__name='Reviewer').first()
+        if not self.approver:
+            self.approver = User.objects.filter(groups__name='Approver').first()
+
+        if not self.order_id:
+            self.order_id= f"PRID-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+
+
+
+    @property
+    def is_fully_delivered(self):  
+        total_delivered = self.purchase_order_request_order.all().aggregate(
+            total_dispatched=Sum('purchase_order_item__order_dispatch_item__dispatch_quantity')  # Adjust related names
+        )['total_dispatched'] or 0
+
+        total_ordered = self.purchase_request_order.all().aggregate(
+            total_ordered=Sum('quantity')  
+        )['total_ordered'] or 0
+
+        return total_delivered >= total_ordered
+
+    def __str__(self):
+        product_details = ", ".join(
+            f"{item.product.name} (Qty: {item.quantity})"
+            for item in self.purchase_request_order.all()
+        )
+        return f"purchase request order={self.order_id}; products: {product_details}"
+       
+
+class PurchaseRequestItem(models.Model):
+    item_request_id = models.CharField(max_length=20,null=True,blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_request_item_user')
+    purchase_request_order=models.ForeignKey(PurchaseRequestOrder,related_name='purchase_request_order',on_delete=models.CASCADE)
+    product = models.ForeignKey(Product,related_name='purchase_request_item', on_delete=models.CASCADE)   
+    quantity = models.PositiveIntegerField() 
+    priority = models.CharField(max_length=20, choices=[('LOW', 'Low'), ('MEDIUM', 'Medium'), ('HIGH', 'High')])
+    total_price = models.DecimalField(max_digits=15,decimal_places=2, null=True,blank=True)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    history=HistoricalRecords()
+
+    def save(self,*args,**kwargs):
+        if not self.item_request_id:
+            self.item_request_id= f"RIID-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args,*kwargs)
+
+    def __str__(self):
+        return f" {self.item_request_id}:{self.product.name}:{self.quantity}nos"
+
+
+
+
+class PurchaseOrder(models.Model):
+    order_id = models.CharField(max_length=20)
+    purchase_request_order = models.ForeignKey(PurchaseRequestOrder, 
+        on_delete=models.CASCADE, null=True, blank=True,related_name='purchase_order_request_order')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_order_user')
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchase_supplier')
+    order_date = models.DateField(null=True, blank=True)
+    ORDER_STATUS_CHOICES = [
+    ('PENDING', 'Pending'),
+    ('IN_PROCESS', 'In Process'),
+    ('DELIVERED', 'Delivered'),
+    ('CANCELLED', 'Cancelled'),
+        ]
+    status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='IN_PROCESS',null=True,blank=True)   
+    APPROVAL_STATUS_CHOICES = [
+    ('SUBMITTED', 'Submitted'),
+     ('REVIEWED', 'Reviewed'),
+    ('APPROVED', 'Approved'),   
+    ('CANCELLED','Cancelled'),
+        ]
+    approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2,null=True, blank=True)
+
+    requester = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_requester')
+    reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_reviewer')
+    approver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_approvar')
+    
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    history=HistoricalRecords()   
+    remarks=models.TextField(null=True,blank=True)
+
+    approval_data = models.JSONField(default=dict,null=True,blank=True)
+    requester_approval_status = models.CharField(max_length=20, null=True, blank=True)
+    reviewer_approval_status = models.CharField(max_length=20, null=True, blank=True)
+    approver_approval_status = models.CharField(max_length=20, null=True, blank=True)
+
+    Requester_remarks=models.TextField(null=True,blank=True)
+    Reviewer_remarks=models.TextField(null=True,blank=True)
+    Approver_remarks=models.TextField(null=True,blank=True)
+    
+
+    class Meta:
+        permissions = [
+            ("can_request", "can request"),
+            ("can_review", "Can review"),
+            ("can_approve", "Can approve"),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.requester:
+            self.requester = User.objects.filter(groups__name='Requester').first()
+        if not self.reviewer:
+            self.reviewer = User.objects.filter(groups__name='Reviewer').first()
+        if not self.approver:
+            self.approver = User.objects.filter(groups__name='Approver').first()
+
+        if not self.order_id:
+            self.order_id= f"PROID-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+
+        
+    def __str__(self):
+        return f" purchase_order:{self.order_id}"
+    
+    @property
+    def is_full_delivered(self):  
+        total_delivered = self.purchase_shipment.all().aggregate(
+            total_dispatched=Sum('shipment_dispatch_item__dispatch_quantity')
+        )['total_dispatched'] or 0
+        
+        total_ordered = self.purchase_order_item.all().aggregate(
+            total_ordered=Sum('quantity')
+        )['total_ordered'] or 0
+
+        return total_delivered >= total_ordered
+
+
+
+class PurchaseOrderItem(models.Model):
+    order_item_id = models.ForeignKey(PurchaseRequestItem,on_delete=models.CASCADE,related_name='order_request_item',null=True,blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_order_item_user')
+    purchase_order = models.ForeignKey(PurchaseOrder, related_name='purchase_order_item', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='purchases', null=True, blank=True)
+    quantity = models.PositiveIntegerField(null=True, blank=True)  # Total quantity ordered
+    total_price = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    prepared_by = models.ForeignKey(User, related_name='prepared_purchases', on_delete=models.CASCADE, null=True, blank=True)
+    approved_by = models.ForeignKey(User, related_name='approved_purchases', on_delete=models.CASCADE, null=True, blank=True)
+    status = models.CharField(
+    max_length=30,
+    choices=[
+        ('IN_PROCESS', 'In Process'),
+        ('ON_BOARD', 'On Board'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('REACHED', 'Reached'),
+        ('IN_CUSTOM', 'In Custom'),     
+        ('OBI', 'OBI'),
+        ('DELIVERED', 'Delivered'),     
+        ('CANCELLED', 'Cancelled'),
+    ],
+    null=True,
+    blank=True,
+    default='IN_PROCESS'
+)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateField(auto_now=True)
+    remarks = models.TextField(null=True, blank=True)
+    history = HistoricalRecords()
+
+  
+
+    @property
+    def quantity_dispatch(self):
+        related_items = self.related_item_dispatch.all()  # Get all related dispatch items
+        logger.info(f"Related dispatch items: {related_items}")
+        total_dispatch = self.related_item_dispatch.aggregate(total_dispatched=Sum('dispatch_quantity'))['total_dispatched'] or 0
+        return total_dispatch
+
+    @property
+    def remaining_to_dispatch(self):
+        return (self.quantity or 0) - self.quantity_dispatch
+
+    def __str__(self):
+        return f"{self.quantity} nos {self.product.name}"
+    
+from django.apps import apps
+
+
+
+class QualityControl(models.Model):
+    purchase_dispatch_item = models.ForeignKey('logistics.PurchaseDispatchItem', on_delete=models.CASCADE,
+         related_name='quality_control',null=True,blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='quality_control_user')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='qc_product', null=True, blank=True)
+    total_quantity = models.PositiveIntegerField(null=True, blank=True)
+    good_quantity = models.PositiveIntegerField(null=True, blank=True)
+    bad_quantity = models.PositiveIntegerField(null=True, blank=True)
+    inspection_date = models.DateField(null=True, blank=True)
+    comments = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
+  
+
+    def save(self):
+        PurchaseDispatchItem = apps.get_model('logistics', 'PurchaseDispatchItem')
+        return PurchaseDispatchItem.objects.get(id=self.purchase_dispatch_item.id) if self.purchase_dispatch_item else None
+     
+
+    def save(self,*args,**kwargs):
+        self.total_quantity = self.purchase_dispatch_item.dispatch_quantity
+        if not self.product:
+             self.product = self.purchase_dispatch_item.dispatch_item.product
+
+        super().save(*args,**kwargs)
+
+    def __str__(self):
+        return f" QC{self.product.name},total qty: {self.total_quantity} good qty={self.good_quantity}, bad qty={self.bad_quantity}"
+
+
+
+
+class ReceiveGoods(models.Model):
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='received_goods')
+    quality_control = models.ForeignKey(QualityControl, on_delete=models.CASCADE, related_name='qc_goods')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)  
+    warehouse = models.ForeignKey('inventory.warehouse', on_delete=models.CASCADE, related_name='received_goods_warehouse',null=True, blank=True)
+    location = models.ForeignKey('inventory.location', on_delete=models.CASCADE, null=True, blank=True,related_name='received_goods_location')
+    quantity_received = models.PositiveIntegerField(null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='received_goods')
+
+    RECEIVE_STATUS_CHOICES = [
+        ('RECEIVED', 'RECEIVED'),
+        ('PENDING', 'PENDING'),
+    ]
+    receive_status = models.CharField(max_length=20, null=True, blank=True, choices=RECEIVE_STATUS_CHOICES, default='PENDING')
+    received_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateField(auto_now=True)
+    remarks = models.TextField(null=True, blank=True)
+    history=HistoricalRecords()
+
+    def get_warehouse(self):
+        Warehouse = apps.get_model('inventory', 'Warehouse')
+        return Warehouse.objects.get(id=self.warehouse.id) if self.warehouse else None
+
+    def get_location(self):
+        Location = apps.get_model('inventory', 'Location')
+        return Location.objects.get(id=self.location.id) if self.location else None
+
+    def save(self,*args,**kwargs):
+       self.product = self.quality_control.product.name
+       self.quantity_received = self.quality_control.good_quantity
+       super().save(*args,**kwargs)
+
+    def __str__(self):
+        return f"{self.quantity_received} of {self.product.name} received at {self.warehouse.name}"

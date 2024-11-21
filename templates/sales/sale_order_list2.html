@@ -1,0 +1,184 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    }
+
+table {
+        border-collapse: collapse;
+        width: 100%;
+    
+    }
+    
+    th, td {
+        border: 1px solid black; /* Set border color for individual cells */
+        vertical-align: middle;
+        padding: 0px;
+    }
+    
+    th {
+        background-color: rgb(118, 242, 10);
+        
+    }
+    
+    table thead th {
+    white-space: normal;
+    }
+    
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+
+
+<div class="container-fluid main-content">
+    <div class="row">    
+        
+        <div class="col">       
+
+            <h4> Placed sale orders</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                   
+                        <th class="text-center p-2">SaleOrder Number</th>
+                        <th class="text-center p-2">Request Order Number</th>
+                        <th class="text-center p-2">Total amount</th>                       
+                        <th class="text-center p-2">Created at</th>                    
+                        <th class="text-center p-2">Status</th>
+                        <th class="text-center p-2">Prepared by</th>
+                        <th class="text-center p-2">Action</th>
+                        <th class="text-center p-2">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in sale_orders%}
+                        <tr>
+                         
+                            <td class="text-center p-1" style="white-space: nowrap;">{{ order.order_id }}</td>
+                            <td class="text-center p-1" style="white-space: nowrap;">{{ order.sale_request_order.order_id }}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount}}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{order.created_at}}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{order.status}}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{order.user}}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">
+                                <a href="{% url 'logistics:create_sale_shipment' order.id %}">Create Shipment</a>
+                            </td>
+                           
+                            <td class="text-center p-2" style="white-space: nowrap;">
+                                <a href="{% url 'finance:create_sale_invoice' order.id %}">Create Invoice</a>
+                            </td>
+                            
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1">&laquo; first</a>
+                        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                    {% endif %}
+
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}">next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>      
+
+<div style="height:2000px"></div>
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+<script>
+  
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                const modalInstance = new bootstrap.Modal(messageModal);
+                modalInstance.show();
+
+                // Optional: Close the modal on hidden event for cleanup
+                messageModal.addEventListener('hidden.bs.modal', function () {
+                    modalInstance.dispose(); // Reset modal instance if needed
+                });
+            }
+        }
+    });
+
+
+
+</script>
+
+
+
+
+
+{% endblock %}

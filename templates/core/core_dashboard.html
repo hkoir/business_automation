@@ -1,0 +1,63 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-4 col-md-3">   
+            <div class="card">     
+                <a href="{% url 'core:view_employee' %}" class="btn btn-primary">View employee</a> 
+        </div>
+        </div>
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'core:create_employee' %}" class="btn btn-primary">Manage employee</a> 
+            </div> 
+        </div>
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'core:create_company' %}" class="btn btn-primary">Manage company</a> 
+            </div> 
+        </div>
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'core:create_location' %}" class="btn btn-primary">Manage location</a> 
+            </div> 
+        </div>
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'core:view_attendance' %}" class="btn btn-primary">View attendance</a> 
+            </div> 
+        </div>
+
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'core:attendance_input' %}" class="btn btn-primary">Attendance Input</a> 
+            </div> 
+        </div>
+
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'core:create_salary' %}" class="btn btn-primary">Prepare salary sheet</a> 
+            </div> 
+        </div>
+
+
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'core:view_employee_changes' %}" class="btn btn-primary">View history</a> 
+            </div> 
+        </div>
+
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'core:employee_list' %}" class="btn btn-primary">Employee List</a> 
+            </div> 
+        </div>
+
+
+    </div>
+</div>
+
+    {% endblock %}

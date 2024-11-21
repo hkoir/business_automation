@@ -1,0 +1,123 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    background-color: aliceblue;
+    }
+.table td,th{
+    white-space: nowrap;
+    text-align: center;
+}
+    
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+
+
+
+<div class="container-fluid main-content">
+    <div class="row">
+        <div class="col-12">
+                   
+        </div>
+        <div class="col-12">
+            <h2 style="margin-top:20px">Product List</h2>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Catelogue</th>
+                        <th>Product Name</th>
+                        <th>Category</th>
+                        <th>Unit price</th>
+                        <th>Action</th>
+                        <th>Action</th>
+                        <th>Action</th>
+                        <th>Action</th>
+                     
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in page_obj %}
+                    <tr>
+                        <td><a href="{% url 'product:product_data' product.id %}">Catelogue</a></td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.category.name }}</td>
+                        <td>{{ product.unit_price }}</td>
+                        <td>
+                            <a href="{% url 'product:update_product' product.id %}">Update product</a>
+                        </td>
+                      
+                        <td>
+                            <a href="{% url 'product:delete_product' product.id %}">Delete product</a>
+                        </td>
+
+                        <td>
+
+                            <a href="{% url 'reporting:product_report' product.id %}">View product Report</a>
+                        </td>
+
+                        <td>
+                            <a href="{% url 'inventory:inventory_list' %}">warehouse Report</a>
+                        </td>
+                    </tr>
+                   
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if request.GET.days %}&days={{ request.GET.days }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">&laquo; first</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.days %}&days={{ request.GET.days }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">previous</a>
+                    {% endif %}
+            
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+            
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.days %}&days={{ request.GET.days }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.days %}&days={{ request.GET.days }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<div style="height:1000px"></div>
+
+
+{% endblock %}

@@ -1,0 +1,356 @@
+{% extends 'base.html' %}  
+
+{% load custom_filters %}
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    }
+
+    
+    .table th, td {
+
+        /* border: 1px solid black;  */
+        vertical-align: middle;
+        padding: 0px;
+        text-align: center;
+        font-size: 14px;
+        padding:10px;
+    }
+
+    .table td{
+        white-space: nowrap;
+    }
+       
+    
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+
+
+<div class="container-fluid main-content">
+    <div class="row">
+        <h4 class="text-center" style="color:blue;font-weight: bold;">DOPS Inventor Summary<br>
+            <span style="font-size: 14px;">
+            <a href="{% url 'inventory:inventory_executive_sum' %}">Stock value</a>:
+            <a href="{% url 'inventory:inventory_list' %}">Product in warehouse</a>:
+            <a href="{% url 'inventory:inventory_aggregate_list' %}">Stocked Product</a>
+        </span>
+        </h4>
+
+        <div class="col-12" style="margin-bottom: 20px;">
+            <div class="col-12">
+                <div>
+                    <canvas id="barChart" width="400" height="100"></canvas>
+                    <div id="warehouseNames"></div>
+                </div>
+            </div>
+        </div>
+
+        <hr style="height:5px">
+
+       
+       
+
+        {% if grouped_data %}
+        <div class="col-12 mt-4">
+            <div class="container-fluid">               
+
+                <h4 style="color:blue;font-weight: bold;">Current Total Stock Value: {{ grand_total_stock_value|add_commas }}</h4>
+                
+                {% for warehouse, products, warehouse_total_stock_value in grouped_data %}
+                <div class="row mt-4">
+                    <div class="col">
+                        <h6 style="font-weight: bold; color:green">Warehouse: {{ warehouse }}</h6>
+                        
+                        <div>
+                            <h5 style="color: blue;">Stock Value: {{ warehouse_total_stock_value|add_commas }}</h5>
+                            
+                        </div>
+                        
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Total Purchase</th>
+                                    <th>Total Manufacture</th>
+                                    <th>Total Sold</th>
+                                    <th>Total Transfer In</th>
+                                    <th>Total Transfer Out</th>
+                                    <th>Total Replacement</th>
+                                    <th>Total Available</th>
+                                    <th>Total stock value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if products %}
+                                {% for product in products %}
+                                <tr>
+                                    <td>{{ product.product }}</td>
+                                    <td>{{ product.total_purchase|default:"0" }}</td>
+                                    <td>{{ product.total_manufacture|default:"0" }}</td>
+                                    <td>{{ product.total_sold|default:"0" }}</td>
+                                    <td>{{ product.total_transfer_in|default:"0" }}</td>
+                                    <td>{{ product.total_transfer_out|default:"0" }}</td>
+                                    <td>{{ product.total_replacement|default:"0" }}</td>
+                                    <td>{{ product.total_available|default:"0" }}</td>
+                                    <td>{{ product.total_stock_value|default:"0"|add_commas }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center">No products available for this warehouse.</td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center">No products found for this warehouse.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 mt-4">
+            <p class="text-center">No inventory data available.</p>
+        </div>
+        {% endif %}       
+
+    </div>
+
+
+         <!-- Pagination Controls -->
+         <div class="pagination">
+            <span class="step-links">
+                {% if product_wise_data.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ product_wise_data.previous_page_number }}">previous</a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ product_wise_data.number }} of {{ product_wise_data.paginator.num_pages }}.
+                </span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ product_wise_data.next_page_number }}">next</a>
+                <a href="?page={{ product_wise_data.paginator.num_pages }}">last &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+
+
+</div>
+
+
+
+<div style="height:1000px"></div>
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div style="height:1200px"></div>
+
+
+
+
+<script>
+    // Parse the JSON data passed from the view
+    const chartData = JSON.parse('{{ warehouse_json|escapejs }}');
+// Initialize arrays for each dataset
+const totalPurchase = [];
+    const totalManufacture = [];
+    const totalSold = [];
+    const totalAvailable = [];
+    const totalTransferIn = [];
+    const totalTransferOut = [];
+    const totalReplacement = [];
+    const totalStock = [];
+
+    // Populate arrays for each dataset
+    chartData.labels.forEach((label, index) => {
+        totalPurchase.push(chartData.total_purchase[index] || 0);
+        totalManufacture.push(chartData.total_manufacture[index] || 0);
+        totalSold.push(chartData.total_sold[index] || 0);
+        totalAvailable.push(chartData.total_available[index] || 0);
+        totalTransferIn.push(chartData.total_transfer_in[index] || 0);
+        totalTransferOut.push(chartData.total_transfer_out[index] || 0);
+        totalReplacement.push(chartData.total_replacement[index] || 0);
+        totalStock.push(chartData.total_stock[index] || 0);
+    });
+
+    // Calculate the max y-axis value
+    const maxYValue = Math.max(
+        ...totalPurchase,
+        ...totalSold,
+        ...totalAvailable,
+        ...totalManufacture,
+        ...totalTransferIn,
+        ...totalTransferOut,
+        ...totalReplacement,
+        ...totalStock,
+    ) * 1.4;
+
+
+    // Bar chart
+    const ctxBar = document.getElementById('barChart').getContext('2d');
+    const barChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [
+
+                {
+                    label: 'Total Stock',
+                    data: totalStock,
+                     backgroundColor: 'rgba(76, 175, 80, 0.5)',  // Green
+                    borderColor: 'rgba(76, 175, 80, 1)',        // Dark Green
+                    borderWidth: 1
+                },                
+
+
+                {
+                    label: 'Total Purchase',
+                    data: totalPurchase,
+                    backgroundColor: 'rgba(33, 150, 243, 0.5)', // Blue
+                    borderColor: 'rgba(33, 150, 243, 1)',       // Dark Blue
+                    borderWidth: 1
+                },
+                {
+                    label: 'Total Manufacture',
+                    data: totalManufacture,
+                    backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
+                    borderColor: 'rgba(255, 193, 7, 1)',        // Dark Amber
+                    borderWidth: 1
+                },
+                {
+                    label: 'Total Transfer In',
+                    data: totalTransferIn,
+                    backgroundColor: 'rgba(0, 188, 212, 0.5)', // Teal
+                    borderColor: 'rgba(0, 188, 212, 1)',       // Dark Teal
+                    borderWidth: 1
+                },
+                {
+                    label: 'Total Available',
+                    data: totalAvailable,
+                    backgroundColor: 'rgba(233, 30, 99, 0.5)',  // Pink
+                    borderColor: 'rgba(233, 30, 99, 1)',        // Dark Pink
+                    borderWidth: 1
+                },
+                {
+                    label: 'Total Sold',
+                    data: totalSold,
+                    backgroundColor: 'rgba(255, 87, 34, 0.5)',  // Deep Orange
+                    borderColor: 'rgba(255, 87, 34, 1)',        // Dark Deep Orange
+                    borderWidth: 1
+                },
+                
+               
+                {
+                    label: 'Total Transfer Out',
+                    data: totalTransferOut,
+                    backgroundColor: 'rgba(255, 152, 0, 0.5)',  // Orange
+                    borderColor: 'rgba(255, 152, 0, 1)',        // Dark Orange
+                    borderWidth: 1
+                },
+                {
+                    label: 'Total Replacement',
+                    data: totalReplacement,
+                    backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
+                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
+                    borderWidth: 1
+                },
+              
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: maxYValue
+                }
+            }
+        }
+    });
+
+    
+</script>
+
+
+
+
+<script>
+
+     // Show Django message modal if there are messages
+     document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                const modalInstance = new bootstrap.Modal(messageModal);
+                modalInstance.show();
+            }
+        }
+    });
+    
+
+</script>
+
+
+
+{% endblock %}
+
+
+

@@ -1,0 +1,300 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    }
+
+
+.table,th,td{
+    text-align: center;
+    white-space: nowrap;
+}
+
+    
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+
+
+<div class="container-fluid main-content">
+    <div class="row">    
+        <h4 class="text-center" style="color:green;margin-top:10px"><strong>DOPS Inventory management system</strong></h6>  
+            
+
+        <div class="col-12">                
+            <form method="GET" action="{% url 'reporting:warehouse_report' %}">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Start Date: {{ form.start_date }}
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            End Date: {{ form.end_date }}
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Days: {{ form.days }}
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Warehouse Name: {{ form.warehouse_name }}
+                        </div> 
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Product Name: {{ form.product_name }}
+                        </div> 
+                        <div class="col-md-3 col-sm-6 mt-2">
+                            <button type="submit" class="btn btn-primary">Generate Data</button> 
+                            <h6>  Data for
+                                {% if days %}
+                                    the last {{ days }} days
+                                {% elif start_date and end_date %}
+                                    from: {{ start_date }} to {{ end_date }}
+                                {% endif %} </h6>                     
+                        
+                        </div>
+                    </div>
+                </div>                    
+            </form>
+           
+        </div>
+
+        <div class="col-12">   
+            <div class="container-fluid">
+                <div class="row" style="width:1200px">   
+                    <div class="col-8" style="margin-top:20px">     
+                        {% for warehouse in warehouse_data %}
+                            <h4 style="color:blue">WH: {{ warehouse.warehouse_name }}</h4>
+                            <canvas id="barChart-{{ forloop.counter }}" width="600" height="300"></canvas>                
+                            <hr>
+                        {% endfor %}
+                    </div>   
+                    <div class="col-4" style="margin-top:20px">  
+                        {% for warehouse in warehouse_data %}
+                            <h4 style="color:blue">WH: {{ warehouse.warehouse_name }}</h4>               
+                            <canvas style="margin-right: 0px;" id="doughnutChart-{{ forloop.counter }}" width="400" height="200"></canvas>
+                            <hr>
+                        {% endfor %}
+                    </div>              
+
+                </div>
+            </div>   
+            
+            
+        </div>
+
+        <div class="col-12">                   
+              
+                {% for warehouse in warehouse_data %}
+                    <h6 style="color:blue;margin-top: 40px;">Warehouse: {{ warehouse.warehouse_name }}</h6>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Total Available</th>
+                                <th>Total Purchased</th>
+                                <th>Total Sold</th>
+                                <th>Total refund</th>
+                                <th>Transfers IN</th>
+                                <th>Transfers OUT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in warehouse.products %}
+                                <tr>
+                                    <td>{{ product.product_name }}</td>
+                                    <td>{{ product.total_available }}</td>
+                                    <td>{{ product.total_purchased }}</td>
+                                    <td>{{ product.total_sold }}</td>
+                                    <td>{{ product.total_replacement }}</td>
+                                    <td>{{ product.total_incoming }}</td>
+                                    <td>{{ product.total_outgoing }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No products available in this warehouse.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% empty %}
+                    <p>No warehouses available.</p>
+                {% endfor %}   
+    
+            </div>
+
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if request.GET.days %}&days={{ request.GET.days }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">&laquo; first</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.days %}&days={{ request.GET.days }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">previous</a>
+                    {% endif %}
+            
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+            
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.days %}&days={{ request.GET.days }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.days %}&days={{ request.GET.days }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+            
+    </div>
+</div>
+
+
+<div style="height:2000px"></div>
+
+<script>
+    const warehouseData = JSON.parse('{{ warehouse_json|escapejs }}');
+    
+    warehouseData.forEach((warehouse, index) => {
+        const ctxBar = document.getElementById(`barChart-${index + 1}`).getContext('2d');
+        const ctxDoughnut = document.getElementById(`doughnutChart-${index + 1}`).getContext('2d');
+
+        const productNames = warehouse.products.map(product => product.product_name);
+        const totalAvailable = warehouse.products.map(product => product.total_available);
+        const totalPurchased = warehouse.products.map(product => product.total_purchased);
+        const totalSold = warehouse.products.map(product => product.total_sold);
+        const totalIncoming = warehouse.products.map(product => product.total_incoming);
+        const totalOutgoing = warehouse.products.map(product => product.total_outgoing);
+        const totalReplacement = warehouse.products.map(product => product.total_replacement);
+        console.log(totalReplacement);
+
+        // Bar Chart
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: productNames,
+                datasets: [
+                    {
+                        label: 'Available',
+                        data: totalAvailable,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Purchased',
+                        data: totalPurchased,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Sold',
+                        data: totalSold,
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Replacement',
+                        data: totalReplacement,
+                        backgroundColor: 'rgba(255, 0, 10, 0.6)',
+                        borderColor: 'rgba(255, 0, 10, 1)', // Ensure proper color definition
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Incoming Transfers',
+                        data: totalIncoming,
+                        backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Outgoing Transfers',
+                        data: totalOutgoing,
+                        backgroundColor: 'rgba(255, 206, 86, 0.6)',
+                        borderColor: 'rgba(255, 206, 86, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: Math.max(...[...totalAvailable, ...totalPurchased, ...totalSold,...totalReplacement ,...totalIncoming, ...totalOutgoing]) * 1.2,
+                    }
+                },
+                responsive: true,
+            }
+        });
+
+      
+
+        // Doughnut Chart
+        new Chart(ctxDoughnut, {
+            type: 'doughnut',
+            data: {
+                labels: ['Available', 'Purchased', 'Sold','Replacement','Incoming Transfers', 'Outgoing Transfers'],
+                datasets: [{
+                    data: [
+                        totalAvailable.reduce((a, b) => a + b, 0),
+                        totalPurchased.reduce((a, b) => a + b, 0),
+                        totalSold.reduce((a, b) => a + b, 0),
+                        totalReplacement.reduce((a, b) => a + b, 0),
+                        totalIncoming.reduce((a, b) => a + b, 0),
+                        totalOutgoing.reduce((a, b) => a + b, 0),
+                      
+                    ],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(255, 10, 0, 0.6)',
+                        'rgba(255, 200, 120, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 10, 0, 1)',
+                        'rgba(255, 206, 86, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+            }
+        });
+    });
+</script>
+
+
+
+
+
+
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+ <style>
+     
+        @media (min-width: 768px) {
+            .custom-col {
+                width: 75%; /* Medium screens */
+                max-width: 75%;
+            }
+        }
+        @media (min-width: 992px) {
+            .custom-col {
+                width: 80%; /* Large screens */
+                max-width: 80%;
+                margin-left:200px;
+            }
+        }
+
+
+
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .notice-board {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+        }
+
+        .notice-board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .notice-board-header h5 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .btn-close {
+            color: white;
+            font-size: 18px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .btn-close:hover {
+            opacity: 0.8;
+        }
+
+        .notice-board-body {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            
+        }
+
+        .list-group-item {
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+            padding: 10px;
+            border: 1px solid #007bff;
+            border-radius: 8px;
+        }
+
+        .list-group-item:hover {
+            background-color: #e9ecef;
+            transform: scale(1.02);
+        }
+
+        .notice-title {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .notice-date {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .notice-image {
+            display: block;
+            margin: 10px auto;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .no-attachment {
+            color: #dc3545;
+            font-size: 14px;
+        }
+
+       
+  
+        .main-content {   
+           overflow-y: auto;
+           margin-left:0px;
+           position: absolute;
+           width: 100%;
+           left: 0;
+               }
+
+
+
+    </style>
+
+    <div class="container-fluid main-content">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8">
+                <div class="notice-board">
+                    <div class="notice-board-header">
+                        <h5><i class="fas fa-bell"></i> Notice Board</h5>
+                        <button type="button" class="btn-close text-white custom_buttom" aria-label="Close" onclick="closeNoticeBoard()"></button>
+                    </div>
+                    
+                    <div class="notice-board-body">
+                        <ul class="list-group">
+                            {% for notice in notices %}
+                                <li class="list-group-item">
+                                    <span class="notice-date">Date: {{ notice.created_at }}</span><br>
+                                    <span class="notice-title">{{ notice.title }}</span><br>
+                                    <p>{{ notice.content }}</p>
+                                    <p class="text-center">
+                                        {% if notice.notice_attachment %}
+                                            <a href="{{ notice.notice_attachment.url }}" target="_blank">
+                                                <img src="{{ notice.notice_attachment.url }}" alt="Notice Image" class="notice-image" width="100">
+                                            </a>
+                                        {% else %}
+                                            <span class="no-attachment">No attachment available</span>
+                                        {% endif %}
+                                    </p>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="height: 800px"></div>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+   
+    <script>
+        function closeNoticeBoard() {
+            document.querySelector('.notice-board').style.display = 'none';
+            window.location.href = '/';
+        }
+    </script>
+
+
+
+{% endblock %}

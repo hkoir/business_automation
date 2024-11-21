@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+
+
+    html, body {
+       margin: 0;
+       padding: 0;
+       overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+       }
+   
+       .table td{
+        white-space: nowrap;
+        text-align: center;
+       }
+       .table th{
+  
+        text-align: center;
+       }
+   
+       
+       .select2-container {
+           width: 60% !important; /* Ensure the container is 100% wide */
+       }
+       
+       .select2-container .select2-selection--single {
+           width: 100% !important; /* Ensure the selection area is also 100% wide */
+       }
+       
+       .select2-dropdown {
+           width: auto !important; 
+       }
+       
+       .select2-search__field {
+           width: 80% !important; 
+       }
+       
+       .main-content {   
+           overflow-y: auto;
+           margin-left:0px;
+           position: absolute;
+           width: 100%;
+           left: 0;
+               }
+       </style>
+
+
+
+
+<div class="container-fluid main-content">
+    <div class="row">
+        <div class="col">
+            <h4 class="text-center mt-4">Shipment Details</h4>
+
+            <!-- Check if purchase orders are available -->
+            {% if purchase_order %}
+                <!-- Purchase Order and Supplier Info -->
+                <div class="purchase-order-section mb-3">
+                    <h5>Purchase Order: {{ purchase_order.order_id }}</h5>
+                    <p>Supplier: {{ purchase_order.supplier.name }}</p>
+                    
+                    <!-- Shipment Info -->
+                    {% with shipment=purchase_order.purchase_shipment.first %}
+                        <div class="shipment-info">
+                            {% if shipment %}
+                                <p>Shipment ID: {{ shipment.shipment_id }}</p>
+                                <p>Tracking Number: {{ shipment.tracking_number }}</p>
+                                <p>Estimated Delivery: {{ shipment.estimated_delivery }}</p>
+                            {% else %}
+                                <p>No Shipment Tracking Available</p>
+                            {% endif %}
+                        </div>
+                    {% endwith %}
+                </div>
+
+                <!-- Dispatch Items Table -->
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Quantity Dispatch</th>
+                            <th>Status</th>
+                            <th>Quantity Pending</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in purchase_order.purchase_order_item.all %}
+                            <tr>
+                                <td>{{ item.product.name }}</td>
+                                <td>{{ item.quantity }}</td>
+
+                                <td>
+                                    {% for dispatch_item in item.order_dispatch_item.all %}
+                                        {% with dispatch_schedule=dispatch_item.purchase_dispatch_schedule %}
+                                            {% if dispatch_schedule %}
+                                                <p>{{ dispatch_item.dispatch_quantity }}</p>
+                                            {% else %}
+                                                <p>No Dispatch Schedule Available</p>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% empty %}
+                                        <p>No Dispatch Items Found</p>
+                                    {% endfor %}
+                                </td>
+
+                                <td>stt</td>
+                                <td>lll</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <hr>
+            {% else %}
+                <p class="text-center mt-4">No purchase order found for the entered order number.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+<div style="height:1200px"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+
+
+{% endblock %}

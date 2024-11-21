@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+
+
+{% block content %}
+
+<style>
+
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+
+}
+
+th, td {
+    border: 1px solid black; /* Set border color for individual cells */
+    text-align: center;
+    padding: 10px;
+}
+
+th {
+    background-color: black;
+    color:white;
+}
+
+table thead th {
+white-space: normal;
+}
+
+  
+.main-content {   
+           overflow-y: auto;
+           margin-left:0px;
+           position: absolute;
+           width: 100%;
+           left: 0;
+               }
+
+</style>
+
+
+
+
+
+
+<h4 class="text-center">Employee Database</h4>
+
+
+
+
+<div class="container-fluid">
+    <div class="row row-cols-2 row-cols-md-6 p-2">
+        
+        {% for employee in employee_records %}
+        <div class="col">
+            <div class="card shadow" style="background-color: aliceblue; width:200px">
+                <div class="d-flex justify-content-center" style="margin-top: 10px">
+                    {% if employee.employee_photo_ID %}
+                        <img src="{{ employee.employee_photo_ID.url }}" class="card-img-top rounded-circle" alt="{{ employee.name }}" style="width:40px;height:40px;">
+                    {% endif %}
+                </div>
+                <div class="card-body" style="white-space: nowrap;">
+                    <p class="card-title">                        
+                        {{ employee.name }}<br>
+                        {{ employee.position }}<br>
+                        {{ employee.joining_date }}<br>
+                        {{ employee.department }}<br>
+                        {% if employee.user_profile.phone %}
+                        <span style="font-size: 12px;">Phone:{{ employee.user_profile.phone_number }}</span><br>
+                        {% else %}
+                        <span style="font-size: 12px;">Phone:+88-01743800705</span><br>
+                        {% endif %}
+                        {% if employee.user_profile.email %}
+                        <span style="font-size: 12px;">email:{{ employee.user_profile.email }}</span><br>
+                        {% else %}
+                        <span style="font-size: 10px;">email:mymeplusTech@gmail.com</span><br>
+                        {% endif %}
+                    </p>
+                  
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    
+        
+    </div>
+
+
+    <!-- Pagination -->
+    <div class="pagination" style="padding: 10px;">
+        <span class="step-links">
+            {% if employee_records.has_previous %}
+                <a href="?page=1">&laquo; First</a>
+                <a href="?page={{ employee_records.previous_page_number }}">Previous</a>
+            {% endif %}
+    
+            <span class="current">
+                Page {{ employee_records.number }} of {{ employee_records.paginator.num_pages }}.
+            </span>
+    
+            {% if employee_records.has_next %}
+                <a href="?page={{ employee_records.next_page_number }}">Next</a>
+                <a href="?page={{ employee_records.paginator.num_pages }}">Last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+
+
+</div>
+
+
+
+
+
+
+<div style="height:600px"></div>
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+
+
+{% endblock %}

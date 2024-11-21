@@ -1,0 +1,170 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    }
+
+table {
+        border-collapse: collapse;
+        width: 100%;
+    
+    }
+    
+    th, td {
+        border: 1px solid black; /* Set border color for individual cells */
+        vertical-align: middle;
+        padding: 0px;
+    }
+    
+    th {
+        background-color: rgb(118, 242, 10);
+        
+    }
+    
+    table thead th {
+    white-space: normal;
+    }
+    
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+<h2>Quality Control Inspection for {{ sale_dispatch_item.dispatch_item.product.name }}</h2>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h5>Order ID: {{ sale_dispatch_item.dispatch_item.sale_order.order_id }}</h5>
+        <p><strong>Product:</strong> {{ sale_dispatch_item.dispatch_item.product.name }}</p>
+        <p><strong>Customer:</strong> {{ sale_dispatch_item.dispatch_item.sale_order.customer.name }}</p>
+        <p><strong>Total Quantity:</strong> {{ sale_dispatch_item.dispatch_item.quantity }}</p>
+    </div>
+</div>
+
+
+
+<form method="post" class="mt-4">
+    {% csrf_token %}
+    <table class="table table-bordered">
+        <tr>
+            <th>Warehouse</th>
+            <td>{{ form.warehouse }}</td>
+        </tr>
+        <tr>
+            <th>Location</th>
+            <td>{{ form.location }}</td>
+        </tr>
+        <tr>
+            <th>Total Quantity</th>
+            <td>{{ form.total_quantity }}</td>
+        </tr>
+        <tr>
+            <th>Good Quantity</th>
+            <td>{{ form.good_quantity }}</td>
+        </tr>
+        <tr>
+            <th>Bad Quantity</th>
+            <td>{{ form.bad_quantity }}</td>
+        </tr>
+        <tr>
+            <th>Inspection Date</th>
+            <td>{{ form.inspection_date }}</td>
+        </tr>
+        <tr>
+            <th>Comments</th>
+            <td>{{ form.comments }}</td>
+        </tr>
+    </table>
+    <button type="submit" class="btn btn-success">Save QC Results</button>
+    <a href="{% url 'sales:qc_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+</form>
+
+
+
+<div style="height:2000px"></div>
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+<script>
+  
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                const modalInstance = new bootstrap.Modal(messageModal);
+                modalInstance.show();
+
+                // Optional: Close the modal on hidden event for cleanup
+                messageModal.addEventListener('hidden.bs.modal', function () {
+                    modalInstance.dispose(); // Reset modal instance if needed
+                });
+            }
+        }
+    });
+
+
+
+</script>
+
+
+
+
+
+{% endblock %}

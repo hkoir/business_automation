@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+
+
+    html, body {
+       margin: 0;
+       padding: 0;
+       overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+       }
+   
+       .table td,th{
+        white-space: nowrap;
+       }
+   
+       
+       .select2-container {
+           width: 60% !important; /* Ensure the container is 100% wide */
+       }
+       
+       .select2-container .select2-selection--single {
+           width: 100% !important; /* Ensure the selection area is also 100% wide */
+       }
+       
+       .select2-dropdown {
+           width: auto !important; 
+       }
+       
+       .select2-search__field {
+           width: 80% !important; 
+       }
+       
+       .main-content {   
+           overflow-y: auto;
+           margin-left:0px;
+           position: absolute;
+           width: 100%;
+           left: 0;
+               }
+       </style>
+
+
+<h2>Shipment Detail for {{ shipment.tracking_number }}</h2>
+
+<table class="table table-striped">
+    <tbody>
+        <tr>
+            <th>Carrier</th>
+            <td>{{ shipment.carrier }}</td>
+        </tr>
+        <tr>
+            <th>Status</th>
+            <td>{{ shipment.get_status_display }}</td>
+        </tr>
+        <tr>
+            <th>Estimated Delivery</th>
+            <td>{{ shipment.estimated_delivery }}</td>
+        </tr>
+        <tr>
+            <th>Created At</th>
+            <td>{{ shipment.created_at }}</td>
+        </tr>
+        <tr>
+            <th>Updated At</th>
+            <td>{{ shipment.updated_at }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Tracking Updates</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Update Time</th>
+            <th>Status Update</th>
+            <th>Remarks</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for update in tracking_updates %}
+            <tr>
+                <td>{{ update.update_time }}</td>
+                <td>{{ update.status_update }}</td>
+                <td>{{ update.remarks }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="3">No tracking updates available.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'shipment:update_sale_shipment_tracking' shipment.id %}">Create Shipment Tracking</a>
+
+
+
+<a href="{% url 'logistics:sale_shipment_list' %}" class="btn btn-sm btn-primary">Shipment List</a>
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+
+
+{% endblock %}

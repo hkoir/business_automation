@@ -1,0 +1,164 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    }
+
+table {
+        border-collapse: collapse;
+        width: 100%;
+    
+    }
+    
+    th, td {
+        border: 1px solid black; /* Set border color for individual cells */
+        vertical-align: middle;
+        padding: 0px;
+    }
+    
+    th {
+        background-color: rgb(118, 242, 10);
+        
+    }
+    
+    table thead th {
+    white-space: normal;
+    }
+    
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+
+<div class="container-fluid main-content">
+    <div class="row">         
+        <!-- Form for adding a new category -->
+        <div class="col-12 col-md-4">
+            <div class="card shadow-lg" style="padding:10px;background-color:aliceblue;">
+                <div class="card-body">
+                    <h6 class="card-title text-center"><strong>Add Location</strong> </h6>
+                    <form method="post" enctype="multipart/form-data" action="{% url 'customer:create_location' %}" id="add_customer">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" name="location_submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>           
+        </div>
+        <div class="col">        
+            <!-- Table for displaying existing categories -->
+            <h4>Available Customer's Location</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-center p-2">Name</th>
+                        <th class="text-center p-2">Customer</th>
+                        <th class="text-center p-2">City</th>
+                        <th class="text-center p-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for location in page_obj %}
+                        <tr>
+                            <td class="text-center p-1">{{ location.name }}</td>
+                            <td class="text-center p-1">{{ location.customer.name }}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{location.city}}</td>
+                            <td class="text-center">
+                                <!-- Update Button Form -->
+                                <a href="{% url 'customer:create_location'%}" class="btn btn-primary btn-sm text-center">Add</a>
+                                <a href="{% url 'customer:update_location' location.id %}" class="btn btn-primary btn-sm text-center">Update</a>
+                            
+                                <!-- Delete Button that links to confirmation page -->
+                                <a href="{% url 'customer:delete_location' location.id %}" class="btn btn-danger btn-sm text-center">Delete</a>
+                            </td>
+                            
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1">&laquo; first</a>
+                        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                    {% endif %}
+
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}">next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>      
+
+<div style="height:2000px"></div>
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+
+
+
+
+{% endblock %}

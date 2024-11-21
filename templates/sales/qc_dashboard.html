@@ -1,0 +1,169 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<style>
+
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+    }
+
+table {
+        border-collapse: collapse;
+        width: 100%;
+    
+    }
+    
+    th, td {
+        border: 1px solid black; /* Set border color for individual cells */
+        vertical-align: middle;
+        padding: 0px;
+    }
+    
+    th {
+        background-color: rgb(118, 242, 10);
+        
+    }
+    
+    table thead th {
+    white-space: normal;
+    }
+    
+    .select2-container {
+        width: 60% !important; /* Ensure the container is 100% wide */
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; /* Ensure the selection area is also 100% wide */
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+
+
+<h2>Quality Control Dashboard</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Order ID</th>
+            <th>Product</th>
+            <th>Customer</th>
+            <th>Quantity</th>
+
+
+            <th>Status</th>
+            <th>Inspection</th>
+          
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in pending_items %}
+        <tr>
+            <td>{{ item.dispatch_item.sale_order.order_id }}</td>
+            <td>{{ item.dispatch_item.product.name }}</td>
+            <td>{{ item.dispatch_item.sale_order.customer.name }}</td>
+            <td>{{ item.dispatch_quantity }}</td>
+
+            <td>{{ item.status }}</td>
+
+            
+               
+            <td>
+                {% if item.status == 'DISPATCHED' %}
+                    <a href="{% url 'sales:qc_inspect_item' item.id %}" class="btn btn-primary">Inspect</a>
+                {% else %}
+                    <span>Goods not Ready</span>
+                {% endif %}
+            </td>
+    
+           
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7">No items pending for quality control inspection.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+
+<div style="height:2000px"></div>
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+<script>
+  
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                const modalInstance = new bootstrap.Modal(messageModal);
+                modalInstance.show();
+
+                // Optional: Close the modal on hidden event for cleanup
+                messageModal.addEventListener('hidden.bs.modal', function () {
+                    modalInstance.dispose(); // Reset modal instance if needed
+                });
+            }
+        }
+    });
+
+
+
+</script>
+
+
+
+
+
+{% endblock %}

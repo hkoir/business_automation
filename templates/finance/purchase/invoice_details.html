@@ -1,0 +1,160 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+<style>
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; 
+    }
+
+table {
+        border-collapse: collapse;
+        width: 100%;
+    
+    }
+    
+    th, td {
+
+        vertical-align: middle;
+        padding: 0px;
+    }
+    
+    th {
+        background-color: rgb(118, 242, 10);
+        
+    }
+    
+    table thead th {
+    white-space: normal;
+    }
+
+
+    
+    .select2-container {
+        width: 60% !important; 
+    }
+    
+    .select2-container .select2-selection--single {
+        width: 100% !important; 
+    }
+    
+    .select2-dropdown {
+        width: auto !important; 
+    }
+    
+    .select2-search__field {
+        width: 80% !important; 
+    }
+    
+    .main-content {   
+        overflow-y: auto;
+        margin-left:0px;
+        position: absolute;
+        width: 100%;
+        left: 0;
+            }
+    </style>
+
+
+<h2>Invoice Details - {{ invoice.invoice_number }}</h2>
+
+<table class="table table-striped">
+    <tr>
+        <th>Invoice Number</th>
+        <td>{{ invoice.invoice_number }}</td>
+    </tr>
+    <tr>
+        <th>Purchase Order ID</th>
+        <td>{{ invoice.purchase_shipment.purchase_order.order_id }}</td>
+    </tr>
+    <tr>
+        <th>Amount Due</th>
+        <td>{{ invoice.amount_due }}</td>
+    </tr>
+    <tr>
+        <th>Tax Rate</th>
+        <td>{{ invoice.tax_rate }}%</td>
+    </tr>
+    <tr>
+        <th>Issued Date</th>
+        <td>{{ invoice.issued_date }}</td>
+    </tr>
+</table>
+
+
+
+<h4>Payment History: 
+    {% if invoice.is_fully_paid %}
+    <i class="fas fa-check" style="color:green;font-weight: bold;">payment clear</i>
+    {% else %}
+    <a href="{% url 'finance:create_purchase_payment' invoice.id %}" class="btn btn-sm btn-primary">Make Payment</a>
+
+    {% endif %}
+</h4>
+
+{% if payments %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Payment ID</th>
+                <th>Amount</th>
+                <th>Payment Date</th>
+                <th>Payment Method</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payment in payments %}
+                <tr>
+                    <td>{{ payment.payment_id }}</td>
+                    <td>{{ payment.amount }}</td>
+                    <td>{{ payment.payment_date }}</td>
+                    <td>{{ payment.payment_method }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No payments have been made yet.</p>
+{% endif %}
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+
+
+{% endblock %}

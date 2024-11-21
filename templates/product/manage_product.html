@@ -1,0 +1,150 @@
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+
+
+    html, body {
+       margin: 0;
+       padding: 0;
+       overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+       }
+   
+       .table td,th{
+        white-space: nowrap;
+       }
+   
+       
+       .select2-container {
+           width: 60% !important; /* Ensure the container is 100% wide */
+       }
+       
+       .select2-container .select2-selection--single {
+           width: 100% !important; /* Ensure the selection area is also 100% wide */
+       }
+       
+       .select2-dropdown {
+           width: auto !important; 
+       }
+       
+       .select2-search__field {
+           width: 80% !important; 
+       }
+       
+       .main-content {   
+           overflow-y: auto;
+           margin-left:0px;
+           position: absolute;
+           width: 100%;
+           left: 0;
+               }
+       </style>
+
+<div class="container-fluid main-content">
+    <div class="row">
+        <div class="col-12 col-md-4">
+            <div class="card shadow-lg p-1" style="background-color: aliceblue;">
+                <h3 class="text-center" style="color:blue;">
+                    {% if instance %} Update Product {% else %} Add Product {% endif %}
+                </h3>
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">
+                        {% if instance %} Update {% else %} Add {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="col-12 col-md-8">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-center p-2">Name</th>
+                        <th class="text-center p-2">Category</th>
+                        <th class="text-center p-2">SKU</th>
+                        <th class="text-center p-2">Unit Price</th>
+                        <th class="text-center p-2">Created at</th>                       
+                        <th class="text-center p-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in page_obj %}
+                        <tr>
+                            <td class="text-center p-1">{{ data.name }}</td>
+                            <td class="text-center p-1">{{ data.category.name }}</td>  
+                            <td class="text-center p-1">{{ data.sku }}</td>  
+                            <td class="text-center p-1">{{ data.unit_price}}</td>                          
+                            <td class="text-center p-2" style="white-space: nowrap;">{{data.created_at}}</td>
+                            <td class="text-center">
+                                <a href="{% url 'product:create_product' %}" class="btn btn-sm btn-info">Add</a>
+                                <a href="{% url 'product:update_product' data.id %}" class="btn btn-sm btn-info">Edit</a>
+                                <button type="button" class="btn btn-sm btn-danger" data-toggle="modal" data-target="#deleteModal" 
+                                    data-id="{{ data.id }}" 
+                                    data-name="{{ data.name }}">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No locations available.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Delete Confirmation Modal -->
+            <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            Are you sure you want to delete <strong id="locationName"></strong>?
+                        </div>
+                        <div class="modal-footer">
+                            <form method="POST" id="deleteForm">
+                                {% csrf_token %}
+                                <input type="hidden" name="delete_id" id="deleteId" value="">
+                                <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="height:50px"></div>
+</div>
+
+
+<div style="height:1000px"></div>
+
+
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script> 
+<script>
+    $(document).ready(function() {
+        $('#deleteModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var locationId = button.data('id');
+            var locationName = button.data('name');
+
+            $('#locationName').text(locationName);
+            $('#deleteId').val(locationId);  // Set the hidden input value
+        });
+    });
+</script>
+
+
+
+{% endblock %}

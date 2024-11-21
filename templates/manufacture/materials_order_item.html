@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+
+
+    html, body {
+       margin: 0;
+       padding: 0;
+       overflow-x: hidden; /* Prevents the body from horizontally scrolling */
+       }
+   
+       .table td{
+        white-space: nowrap;
+        text-align: center;
+       }
+       .table th{
+  
+        text-align: center;
+       }
+   
+       
+       .select2-container {
+           width: 60% !important; /* Ensure the container is 100% wide */
+       }
+       
+       .select2-container .select2-selection--single {
+           width: 100% !important; /* Ensure the selection area is also 100% wide */
+       }
+       
+       .select2-dropdown {
+           width: auto !important; 
+       }
+       
+       .select2-search__field {
+           width: 80% !important; 
+       }
+       
+       .main-content {   
+           overflow-y: auto;
+           margin-left:0px;
+           position: absolute;
+           width: 100%;
+           left: 0;
+               }
+       </style>
+       
+       
+       <div class="container-fluid main-content">
+    <div class="row">
+        <div class="col">
+         
+
+            <div class="container mt-4">
+                <h1 class="mb-4">Materials Order Items</h1>
+        
+                <!-- Search Form -->
+                <form method="get" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-4">
+                            {{ form.order_number.label_tag }}
+                            {{ form.order_number }}
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary mt-4">Search</button>
+                        </div>
+                    </div>
+                </form>
+        
+                <!-- Display Results -->
+                {% if materials_orders %}
+                    <div class="accordion" id="materialsOrdersAccordion">
+                        {% for order in materials_orders %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ order.id }}">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ order.id }}" aria-expanded="true" aria-controls="collapse{{ order.id }}">
+                                        Order Number: {{ order.order_id }} - {{ order.order_date }}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ order.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading{{ order.id }}" data-bs-parent="#materialsOrdersAccordion">
+                                    <div class="accordion-body">
+                                        <h5>Requested Items</h5>
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Quantity</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in order.material_request_order_for_item.all %}
+                                                    <tr>
+                                                        <td>{{ item.product.name }}</td>
+                                                        <td>{{ item.quantity }}</td>
+                                                        <td>{{ item.status }}</td>
+                                                    </tr>
+                                                {% empty %}
+                                                    <tr>
+                                                        <td colspan="3" class="text-center">No requested items found.</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+        
+                                        <h5 class="mt-4">Delivery Items</h5>
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Quantity Delivered</th>
+                                                    <th>Warehouse</th>
+                                                    <th>Location</th>
+                                                    <th>Delivery Date</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for delivery in order.materials_request_delivery.all %}
+                                                    <tr>
+                                                        <td>{{ delivery.product.name }}</td>
+                                                        <td>{{ delivery.quantity }}</td>
+                                                        <td>{{ delivery.warehouse.name }}</td>
+                                                        <td>{{ delivery.location.name }}</td>
+                                                        <td>{{ delivery.delivery_date }}</td>
+                                                    </tr>
+                                                {% empty %}
+                                                    <tr>
+                                                        <td colspan="5" class="text-center">No delivery items found.</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">No orders found. Please refine your search.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div style="height:1200px"></div>
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+
+
+{% endblock %}
