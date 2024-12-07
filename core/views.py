@@ -1,42 +1,65 @@
-from django.shortcuts import render
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from core.models import Employee
-from core.forms import AddEmployeeForm
 import uuid
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
+from openpyxl import Workbook
+from io import BytesIO
+from django.http import HttpResponse
 
-from.models import Location,Company
-from.forms import AddCompanyForm,AddLocationForm,UpdateLocationForm
+from reportlab.lib.utils import ImageReader
+from reportlab.lib.pagesizes import A4,letter
+from reportlab.pdfgen import canvas
+from django.utils import timezone
+import os
+from django.conf import settings
+from datetime import datetime,timedelta
 
+from.forms import EditAttendanceForm,MonthYearForm,AttendanceForm,AddCompanyForm,AddLocationForm,UpdateLocationForm,NoticeForm
+from .models import EmployeeRecordChange,MonthlySalaryReport,AttendanceModel,Notice,Location,Company
 
+from utils import CommonFilterForm
+from core.models import Employee
+from core.forms import AddEmployeeForm
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
-
-
+@login_required
 def home(request):
     return render(request,'core/home.html')
-
+@login_required
 def core_dashboard(request):
     return render(request,'core/core_dashboard.html')
 
 
 
+
 @login_required
 def view_employee(request):
+    employee_name = None
     employee_records = Employee.objects.all()
-    paginator = Paginator(employee_records, 10) 
+
+    form=CommonFilterForm(request.GET or None)
+
+    if form.is_valid():
+        employee_name = form.cleaned_data['employee_name']
+        if employee_name:
+            employee_records=employee_records.filter(name=employee_name)
+
+    paginator = Paginator(employee_records, 10)
     page_number = request.GET.get('page')
-    try:
-        employee_records = paginator.page(page_number)
-    except PageNotAnInteger:
-        employee_records = paginator.page(1)
-    except EmptyPage:
-       employee_records = paginator.page(paginator.num_pages)
-    return render(request, 'core/view_employee.html', {'employee_records': employee_records})
+    page_obj = paginator.get_page(page_number)
+    
+    form=CommonFilterForm()
+    return render(request, 'core/view_employee.html', 
+    {
+        'employee_records': employee_records,
+        'form':form,
+        'page_obj':page_obj
+    })
 
 
 
@@ -51,6 +74,22 @@ def add_employee(request):
     else:     
         form = AddEmployeeForm()
     return render(request, 'core/add_employee_form.html', {'form': form})
+
+
+
+
+def add_employee2(request):
+    if request.method == 'POST':
+        form = AddEmployeeForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.instance.tenant = request.tenant  # Automatically sets the tenant
+            form.instance.employee_code = f"EID-{uuid.uuid4().hex[:8].upper()}"
+            form.save()
+            return redirect('core:view_employee2')
+    else:
+        form = AddEmployeeForm()
+    return render(request, 'core/add_employee_form.html', {'form': form})
+
 
 
 @login_required
@@ -98,8 +137,8 @@ def manage_employee(request, id=None):
         messages.success(request, message_text)
         return redirect('core:view_employee')
 
-    datas = Employee.objects.all()
-    paginator = Paginator(datas, 10)
+    datas = Employee.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -111,9 +150,80 @@ def manage_employee(request, id=None):
     })
 
 
+
 def employee_list(request):
     employees = Employee.objects.all()
-    return render(request,'core/employee/employee_list.html', {'employees': employees})
+    history = employees.all()
+    days=None
+    start_date=None
+    end_date =None
+    name = None
+
+    history_records = []
+    for employee in employees:
+        history = employee.history.all()  # Get all history records for the employee
+        
+        for record in history:
+            changes = []
+            # Access each field's old and new value
+            for field in employee._meta.fields:
+                field_name = field.name
+                old_value = getattr(record, f"pre_{field_name}", None)  # pre_ stores old value
+                new_value = getattr(record, field_name, None)  # current field stores new value
+
+                if old_value != new_value:  # If the value changed
+                    changes.append({
+                        'field': field_name,
+                        'old_value': old_value,
+                        'new_value': new_value,
+                    })
+
+            history_records.append({
+                'employee': employee.name,
+                'date': record.history_date,
+                'user': record.history_user or 'System',
+                'type': record.history_type,
+                'changes': changes,  # List of changes (old vs new)
+            })
+
+   
+    form= CommonFilterForm(request.GET or None)
+
+    if form.is_valid():
+        start_date = form.cleaned_data.get('start_date')
+        end_date = form.cleaned_data.get('end_date')
+        days = form.cleaned_data.get('days')
+        name = form.cleaned_data.get('employee_name')
+
+        if name:
+            employees = employees.filter(id=name.id)
+        
+        if start_date and end_date:
+             employees =  employees.filter(created_at__range=(start_date, end_date))
+        elif days:
+            end_date = timezone.now()
+            start_date = end_date - timedelta(days=days)
+            employees=  employees.filter(created_at__range=(start_date, end_date))
+
+    paginator = Paginator(employees, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    form = CommonFilterForm()
+
+
+    return render(request,'core/employee_list.html', 
+        {
+        'employees': employees,
+        'page_obj':page_obj,
+        'form':form,
+         'days':days,
+         'start_date':start_date,
+         'end_date':end_date,
+         'name':name,
+         'history_records':history_records
+
+        })
 
 
 
@@ -179,12 +289,9 @@ def manage_location(request, id=None):
     })
 
 
-from .models import EmployeeRecordChange,MonthlySalaryReport,AttendanceModel
-from openpyxl import Workbook
-from io import BytesIO
-from django.http import HttpResponse
 
 @login_required
+@receiver(pre_save, sender=Employee)
 def log_employee_changes(sender, instance, **kwargs):
     if instance.pk:
         old_instance = Employee.objects.get(pk=instance.pk)
@@ -205,16 +312,17 @@ def log_employee_changes(sender, instance, **kwargs):
 @login_required
 def view_employee_changes(request): 
     changes = EmployeeRecordChange.objects.all()
-    return render(request, 'core/employee/employee_change_record.html', {'changes': changes})
+    history =  changes.all()
+    return render(request, 'core/employee_change_record.html', {'changes': changes,'history':history})
 
 
 @login_required
 def view_employee_changes_single(request, employee_id): 
     employee = get_object_or_404(Employee, pk=employee_id)
     changes_single = EmployeeRecordChange.objects.filter(employee=employee)
-    return render(request, 'core/employee/employee_change_record.html', {'changes_single': changes_single})
+    history =  changes_single.all()
+    return render(request, 'core/employee_change_record.html', {'changes_single': changes_single,'history':history})
 
-from.forms import EditAttendanceForm,MonthYearForm,AttendanceForm
 
 
 
@@ -249,13 +357,13 @@ def attendance_input(request):
             print(form.errors)  
     else:
         form = AttendanceForm()    
-    return render(request, 'core/employee/attendance_form.html', {'form': form})
+    return render(request, 'core/attendance_form.html', {'form': form})
 
 
 @login_required
 def view_attendance(request):
     attendance_records = AttendanceModel.objects.all()
-    return render(request, 'core/employee/view_attendance.html', {'attendance_records': attendance_records})
+    return render(request, 'core/view_attendance.html', {'attendance_records': attendance_records})
 
 
 @login_required
@@ -269,7 +377,7 @@ def update_attendance(request, employee_id):
             return redirect('core:view_attendance')  
     else:
         form =  EditAttendanceForm(instance=employee)
-    return render(request, 'core/employee/attendance_form.html', {'form': form,'employee':employee})
+    return render(request, 'core/attendance_form.html', {'form': form,'employee':employee})
 
 
 
@@ -302,7 +410,7 @@ def create_salary(request):
         form = MonthYearForm()      
     salary = MonthlySalaryReport.objects.filter(month = month, year =year)
     context = {'form': form, 'salary': salary,'month':month, 'year':year}
-    return render(request, 'core/employee/create_monthly_salary.html', context)
+    return render(request, 'core/create_monthly_salary.html', context)
 
 
 
@@ -339,11 +447,6 @@ def download_salary(request):
     return response
 
 
-
-from reportlab.lib.utils import ImageReader
-from reportlab.lib.pagesizes import A4,letter
-from reportlab.pdfgen import canvas
-from django.utils import timezone
 
 
 @login_required
@@ -400,9 +503,7 @@ def generate_pay_slip(request, employee_id):
     pdf_canvas.save()    
     return response
 
-import os
-from django.conf import settings
-from datetime import datetime
+
 
 @login_required
 def generate_salary_certificate(request, employee_id):  
@@ -552,11 +653,6 @@ def generate_experience_certificate(request, employee_id):
     pdf_canvas.save()    
     return response
 
-
-
-
-from.forms import NoticeForm
-from.models import Notice
 
 
 

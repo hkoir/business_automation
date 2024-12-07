@@ -3,11 +3,9 @@ from django.contrib import admin
 from.models import PurchaseRequestOrder,PurchaseRequestItem,PurchaseOrder,PurchaseOrderItem,ReceiveGoods,QualityControl
 
 
-from django.shortcuts import render, redirect
-from django.http import HttpResponseRedirect
-from .forms import AssignRolesForm
+
 from .models import PurchaseRequestOrder
-from utils import assign_roles
+
 
 
 admin.site.register(PurchaseOrderItem)

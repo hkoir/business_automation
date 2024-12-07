@@ -6,11 +6,8 @@ import uuid
 
 
 from logistics.models import PurchaseShipment,SaleShipment
-from purchase.models import PurchaseOrder
-from sales.models import SaleOrder
-from purchase.models import PurchaseOrder 
 from django.db.models import Sum
-
+from decimal import Decimal
 
 
 
@@ -22,15 +19,16 @@ class PurchaseInvoice(models.Model):
     status = models.CharField(max_length=20,null=True,blank=True,
             choices=[
                 ('SUBMITTED','Submitted'),
-                 ('FULLY_PAID','Fully Paid'),
-                 ('PARTIALLY_PAID','Partially Paid')
+                ('FULLY_PAID','Fully Paid'),
+                ('PARTIALLY_PAID','Partially Paid'),
+                ('CANCELLED','Cancelled')
             ])
     
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)
     issued_date = models.DateTimeField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+ 
 
    
     def save(self, *args, **kwargs):
@@ -56,6 +54,12 @@ class PurchaseInvoice(models.Model):
 
 
 
+class PurchaseInvoiceAttachment(models.Model):
+    purchase_invoice = models.ForeignKey(PurchaseInvoice, related_name='purchase_invoice_attachment', on_delete=models.CASCADE)
+    file = models.ImageField(upload_to='purchase_invoice/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 
 class PurchasePayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_payment_user')
@@ -77,7 +81,7 @@ class PurchasePayment(models.Model):
             ])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     def save(self, *args, **kwargs):
         if not self.payment_id:
@@ -87,16 +91,26 @@ class PurchasePayment(models.Model):
     def __str__(self):
         return f"Payment of {self.amount} for Purchase Order {self.purchase_invoice.invoice_number}"
     
+    # @property
+    # def is_fully_paid(self):
+    #     total_invoice = self.purchase_invoice.aggregate(Sum('amount_due'))['amount_due__sum'] or Decimal(0)
+    #     tolerance = Decimal('0.01')  
+    #     return abs(total_invoice - self.amount) <= tolerance 
+        
     @property
     def is_fully_paid(self):
-        total_invoice = self.purchase_invoice.aggregate(Sum('amount_due'))['amount_due__sum'] or Decimal(0)
-        tolerance = Decimal('0.01')  
-        return abs(total_invoice - self.amount) <= tolerance 
+        total_paid = self.purchase_invoice.purchase_payment_invoice.aggregate(Sum('amount'))['amount__sum'] or Decimal(0)
+        tolerance = Decimal('0.01')  # Small tolerance for floating-point calculations
+        return abs(total_paid - self.purchase_invoice.amount_due) <= tolerance
 
-
+class PurchasePaymentAttachment(models.Model):
+    purchase_invoice = models.ForeignKey(PurchaseInvoice, related_name='purchase_payment_attachment', on_delete=models.CASCADE)
+    file = models.ImageField(upload_to='purchase_payment/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 ############ sales ##############################################################
-from decimal import Decimal
+
 
 class SaleInvoice(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_invoice_user')
@@ -108,12 +122,13 @@ class SaleInvoice(models.Model):
     status = models.CharField(max_length=20,null=True,blank=True,
             choices=[
                 ('SUBMITTED','Submitted'),
-                 ('FULLY_PAID','Fully Paid'),
-                 ('PARTIALLY_PAID','Partially Paid')
+                ('FULLY_PAID','Fully Paid'),
+                ('PARTIALLY_PAID','Partially Paid'),
+                ('CANCELLED','Cancelled')
             ])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
 
     @property
@@ -137,6 +152,13 @@ class SaleInvoice(models.Model):
         return self.invoice_number
 
 
+class SaleInvoiceAttachment(models.Model):
+    sale_invoice = models.ForeignKey(SaleInvoice, related_name='sale_invoice_attachment', on_delete=models.CASCADE)
+    file = models.ImageField(upload_to='sale_invoice/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class SalePayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_payment_user')
     sale_invoice = models.ForeignKey(SaleInvoice, related_name='sale_payment_invoice', on_delete=models.CASCADE, null=True, blank=True) 
@@ -157,7 +179,7 @@ class SalePayment(models.Model):
             ])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+  
 
     def save(self, *args, **kwargs):
         if not self.payment_id:
@@ -171,6 +193,13 @@ class SalePayment(models.Model):
     
     @property
     def is_fully_paid(self):
-        total_invoice = self.sale_invoice.aggregate(Sum('amount_due'))['amount_due__sum'] or Decimal(0)
-        tolerance = Decimal('0.01')  
-        return abs(total_invoice - self.amount) <= tolerance 
+        # Sum all payments for this invoice
+        total_paid = self.sale_invoice.sale_payment_invoice.aggregate(Sum('amount'))['amount__sum'] or Decimal(0)
+        tolerance = Decimal('0.01')  # To account for rounding issues
+        return abs(self.sale_invoice.amount_due - total_paid) <= tolerance
+    
+class SalePaymentAttachment(models.Model):
+    sale_invoice = models.ForeignKey(SaleInvoice, related_name='sale_payment_attachement', on_delete=models.CASCADE)
+    file = models.ImageField(upload_to='sale_payment/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

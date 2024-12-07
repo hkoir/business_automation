@@ -13,7 +13,7 @@ class Category(models.Model):
     description = models.TextField(blank=True, null=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     class Meta:
             ordering = ['created_at']
@@ -43,6 +43,7 @@ class Product(models.Model):
         default='finished product')
     brand = models.CharField(max_length=255, blank=True, null=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    UOM = models.CharField(max_length=15,null=True,blank=True)
     barcode = models.CharField(max_length=50, unique=True, blank=True, null=True)
     weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     dimensions = models.CharField(max_length=100, blank=True, null=True)
@@ -51,10 +52,11 @@ class Product(models.Model):
     warranty = models.DurationField(blank=True, null=True)  
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
-    reorder_level = models.PositiveIntegerField(default=10)
+    reorder_level = models.PositiveIntegerField(default=10,null=True,blank=True)
+    lead_time = models.PositiveIntegerField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     class Meta:
             ordering = ['created_at']
@@ -77,7 +79,7 @@ class Component(models.Model):
     unit_price =models.DecimalField(max_digits=15,decimal_places=2,null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     class Meta:
         ordering = ['-created_at']
@@ -109,3 +111,10 @@ class BOM(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+
+
+
+
+

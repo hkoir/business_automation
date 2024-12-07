@@ -4,12 +4,11 @@ from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
 import uuid
 from django.core.exceptions import ValidationError
-from sales.models import SaleOrderItem,SaleOrder
-from purchase.models import PurchaseOrder,PurchaseOrderItem
-
 from django.db.models import Sum,F,ExpressionWrapper,DecimalField
 
-
+from inventory.models import Warehouse,Location
+from sales.models import SaleOrderItem,SaleOrder
+from purchase.models import PurchaseOrder,PurchaseOrderItem
 
 #######################################################################################################
 
@@ -34,7 +33,7 @@ class PurchaseShipment(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')   
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     @property
     def total_amount(self):
@@ -47,7 +46,6 @@ class PurchaseShipment(models.Model):
                 )
             )
         )['total'] or 0
-
         return total
 
     @property
@@ -60,8 +58,7 @@ class PurchaseShipment(models.Model):
             total_ordered=Sum('quantity')
         )['total_ordered'] or 0  
 
-        return total_shipped >= total_ordered
-    
+        return total_shipped >= total_ordered    
     @property
     def is_fully_invoiced(self):
         total_invoiced = self.shipment_invoices.aggregate(total_invoiced=Sum('amount_due'))['total_invoiced'] or 0        
@@ -70,7 +67,6 @@ class PurchaseShipment(models.Model):
 
     def update_shipment_status(self):       
         dispatch_items = self.shipment_dispatch_item.all() 
-
         all_delivered = dispatch_items.filter(status='DELIVERED').count() == dispatch_items.count()
         any_in_process = dispatch_items.filter(status='IN_PROCESS').exists()
         any_in_transit = dispatch_items.filter(status__in=['IN_TRANSIT', 'ON_BOARD']).exists()
@@ -84,16 +80,14 @@ class PurchaseShipment(models.Model):
         else:
             self.status = 'PENDING'
 
-        self.save()
-
-       
+        self.save()       
     def save(self, *args, **kwargs):
         if not self.shipment_id:
             self.shipment_id = f"SID-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
-
+        
     def __str__(self):
-        return f"{self.shipment_id} - {self.status}"
+        return self.shipment_id
 
 
 
@@ -104,8 +98,7 @@ class PurchaseDispatchItem(models.Model):
     )
     dispatch_item = models.ForeignKey(PurchaseOrderItem,on_delete=models.CASCADE,
         related_name='order_dispatch_item',null=True, blank=True
-    )
-    
+    )    
     dispatch_quantity = models.PositiveIntegerField(null=True, blank=True)
     dispatch_date = models.DateField(null=True, blank=True) 
     delivery_date = models.DateField(null=True, blank=True)
@@ -120,8 +113,7 @@ class PurchaseDispatchItem(models.Model):
         ('DELIVERED', 'Delivered'),     
         ('CANCELLED', 'Cancelled'),
     ],
-    )
-  
+    )  
     user = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -139,11 +131,8 @@ class PurchaseDispatchItem(models.Model):
         if not self.dispatch_id:
             self.dispatch_id = f"DIID-{uuid.uuid4().hex[:8].upper()}"
         self.clean()
-        super().save(*args, **kwargs)     
-
-          
+        super().save(*args, **kwargs)             
      
-
     def __str__(self):
         return f"{self.dispatch_quantity} of {self.dispatch_item.product.name} dispatched"
 
@@ -161,18 +150,21 @@ class SaleShipment(models.Model):
     estimated_delivery = models.DateField()
     STATUS_CHOICES = [
     ('PENDING', 'Pending'),
+     ('IN_PROCESS', 'In Process'),
     ('IN_TRANSIT', 'In Transit'),
+     ('REACHED', 'REACHED'),
     ('DELIVERED', 'Delivered'),
+    ('PARTIAL_DELIVERED', 'Partial Delivered'),
     ('CANCELLED', 'Cancelled'),
-]
+        ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+  
     
     @property
     def total_amount(self):
-        shipment_items = self.shipment_dispatch.all()        
+        shipment_items = self.sale_shipment_dispatch.all()        
         total = shipment_items.aggregate(
             total=Sum(
                 ExpressionWrapper(
@@ -198,8 +190,7 @@ class SaleShipment(models.Model):
             total_ordered=Sum('quantity')
         )['total_ordered'] or 0  
         return total_shipped >= total_ordered
-
-    
+        
     def update_shipment_status(self):       
         dispatch_items = self.sale_shipment_dispatch.all() 
         all_delivered = dispatch_items.filter(status='DELIVERED').count() == dispatch_items.count()
@@ -216,7 +207,6 @@ class SaleShipment(models.Model):
             self.status = 'PENDING'
 
         self.save()
-
     def save(self, *args, **kwargs):
         if not self.shipment_id:
             self.shipment_id = f"SSID-{uuid.uuid4().hex[:8].upper()}"
@@ -225,10 +215,8 @@ class SaleShipment(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f" shipment ID:{self.shipment_id}: tracking:{self.tracking_number}:status: {self.status}"
+        return self.shipment_id
 
-
-from inventory.models import Warehouse,Location
 
 class SaleDispatchItem(models.Model):
     dispatch_id=models.CharField(max_length=20,null=True,blank=True)
@@ -237,8 +225,7 @@ class SaleDispatchItem(models.Model):
     )
     dispatch_item = models.ForeignKey(SaleOrderItem,on_delete=models.CASCADE,
         related_name='sale_dispatch_item',null=True, blank=True
-    )
-    
+    )    
     dispatch_quantity = models.PositiveIntegerField(null=True, blank=True)
     warehouse = models.ForeignKey(Warehouse,on_delete=models.CASCADE,related_name='dispatch_warehouse',null=True,blank=True)
     location = models.ForeignKey(Location,on_delete=models.CASCADE,related_name='dispatch_location',null=True,blank=True)
@@ -251,8 +238,7 @@ class SaleDispatchItem(models.Model):
         ('DELIVERED', 'Delivered'),      
         ('CANCELLED', 'Cancelled'),
     ],
-    )
-  
+    )  
     user = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

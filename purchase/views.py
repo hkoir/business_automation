@@ -2,29 +2,23 @@ from django.shortcuts import render,redirect,get_object_or_404
 from django.db import transaction
 from django.utils import timezone
 from django.contrib import messages
-from.models import PurchaseOrder,PurchaseOrderItem,PurchaseRequestOrder,PurchaseRequestItem
-from product.models import Product
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from .forms import PurchaseRequestForm
-from .models import PurchaseRequestOrder, PurchaseRequestItem, Product
 from django.db.models import Sum,Q
 from django.urls import reverse
-from.forms import PurchaseOrderForm,PurchaseRequestForm
+import uuid
+import logging
+from django.contrib.auth.decorators import login_required,permission_required
+logger = logging.getLogger(__name__)
+from django.http import HttpResponseForbidden
+
+from.forms import PurchaseStatusForm,QualityControlForm,PurchaseOrderSearchForm,PurchaseOrderForm,PurchaseRequestForm
+from.models import PurchaseOrder,PurchaseOrderItem,PurchaseRequestOrder,PurchaseRequestItem
+from product.models import Product
+from logistics.models import PurchaseDispatchItem
 from supplier.models import Supplier
 from inventory.models import Warehouse,Location
 from purchase.models import PurchaseOrder,PurchaseOrderItem,PurchaseRequestOrder
-import uuid
-import logging
-
-from django.contrib.auth.decorators import login_required,permission_required
-from .forms import QualityControlForm,PurchaseOrderSearchForm
-logger = logging.getLogger(__name__)
-
-from logistics.models import PurchaseDispatchItem
-from django.http import HttpResponseForbidden
-from.forms import PurchaseStatusForm
-
+from utils import CommonFilterForm
+from django.core.paginator import Paginator
 
 
 def purchase_dashboard(request):
@@ -141,12 +135,29 @@ def confirm_purchase_request(request):
     return render(request, 'purchase/confirm_purchase_request.html', {'basket': basket})
 
 
+
+
 def purchase_request_order_list(request):
+    request_order =None
     purchase_request_orders = PurchaseRequestOrder.objects.all().order_by("-created_at")
 
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        request_order = form.cleaned_data['purchase_request_order_id']
+        if request_order:
+            purchase_request_orders = purchase_request_orders.filter(order_id=request_order)
+       
+    
     is_requester = request.user.groups.filter(name="Requester").exists()
     is_reviewer = request.user.groups.filter(name="Reviewer").exists()
     is_approver = request.user.groups.filter(name="Approver").exists()
+
+
+    paginator = Paginator(purchase_request_orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    form=CommonFilterForm()
 
     return render (request, 'purchase/purchase_request_order_list.html',                   
         {'purchase_request_orders':purchase_request_orders,
@@ -154,7 +165,10 @@ def purchase_request_order_list(request):
          'is_requester':is_requester,
          'is_reviewer':is_reviewer,
          'is_approver': is_approver,
-         'user':request.user
+         'user':request.user,
+         'form':form,
+         'page_obj':page_obj,
+         'request_order':request_order
          })
 
 
@@ -181,7 +195,6 @@ def process_purchase_request(request, order_id):
             reviewer_approval_status = form.cleaned_data['approval_status']
             approver_approval_status = form.cleaned_data['approval_status']
 
-            # Determine role based on group
             if request.user.groups.filter(name="Requester").exists():
                 if approval_status not in ["SUBMITTED", "CANCELLED"]:
                     messages.error(request, "Requester can only submit or cancel.")
@@ -201,8 +214,7 @@ def process_purchase_request(request, order_id):
             else:
                 messages.error(request, "You do not have permission to process this order.")
                 return redirect('purchase:purchase_request_order_list')
-            
-        # check database approval status
+
         if request.user.groups.filter(name="Requester").exists():
             if order.requester_approval_status in ["SUBMITTED", "CANCELLED"]:
                 messages.error(request, "Already completed.")
@@ -241,10 +253,8 @@ def process_purchase_request(request, order_id):
                     'remarks': remarks,
                     'date': timezone.now().isoformat(),
                     'approval_status':approval_status
-                }
-           
+                }           
         order.save()
-
         messages.success(request, f"Order {order.id} successfully updated.")
         return redirect('purchase:purchase_request_order_list')
     else:
@@ -305,7 +315,6 @@ def create_purchase_order(request, request_id):
                     (item for item in basket if item['id'] == product_obj.id),
                     None
                 )
-
                 total_amount = float(quantity) * float(product_obj.unit_price)
 
                 if product_in_basket:
@@ -326,8 +335,6 @@ def create_purchase_order(request, request_id):
                         'total_amount': total_amount,
                         'purchase_request_order_id': purchase_request_order_id,
                     })
-
-                # Save basket to session
                 request.session['basket'] = basket
                 request.session.modified = True
                 messages.success(request, f"Added '{product_obj.name}' to the purchase basket")
@@ -349,7 +356,6 @@ def create_purchase_order(request, request_id):
                 request.session['basket'] = [
                     item for item in request.session['basket'] if item['id'] != product_id 
                 ]
-
             request.session.modified = True
             messages.success(request, "Purchase basket updated successfully.")
             return redirect('purchase:create_purchase_order', request_instance.id)
@@ -364,8 +370,6 @@ def create_purchase_order(request, request_id):
     form = PurchaseOrderForm(request_instance=request_instance)
     basket = request.session.get('basket', [])
     return render(request, 'purchase/create_purchase_order.html', {'form': form, 'basket': basket})
-
-
 
 
 def confirm_purchase_order(request):
@@ -422,21 +426,48 @@ def confirm_purchase_order(request):
     return render(request, 'purchase/confirm_purchase_order.html', {'basket': basket})
 
 
-
-
 def purchase_order_list(request):
-    purchase_orders = PurchaseOrder.objects.all().order_by("-created_at")   
+    order_id =None
+    form_submitted = False
+    purchase_orders = PurchaseOrder.objects.all().order_by("-created_at")     
+
+    form=CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        form_submitted = True
+        order_id = form.cleaned_data['purchase_order_id'] 
+        if order_id:            
+            purchase_orders = purchase_orders.filter(order_id = order_id)
+            
+
     is_requester = request.user.groups.filter(name="Requester").exists()
     is_reviewer = request.user.groups.filter(name="Reviewer").exists()
     is_approver = request.user.groups.filter(name="Approver").exists()
+    
 
-     
+       
+    for order in purchase_orders:
+        order.has_payment_attachment = (
+            order.purchase_shipment.first()
+            and order.purchase_shipment.first().shipment_invoices.first()
+            and order.purchase_shipment.first().shipment_invoices.first().purchase_payment_invoice.exists()
+        )
+
+    paginator = Paginator(purchase_orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+
+    form = CommonFilterForm()
     return render (request, 'purchase/purchase_order_list.html',
     {'purchase_orders':purchase_orders,   
     'user': request.user,
     'is_request':is_requester,
     'is_reviewer':is_reviewer,
-    'is_approver':is_approver
+    'is_approver':is_approver,
+    'form':form,
+    'page_obj':page_obj,
+    'order_id':order_id,
+    'form_submitted':form_submitted
      }
      
     )
@@ -451,7 +482,6 @@ def purchase_order_items(request,order_id):
 @login_required
 def process_purchase_order(request, order_id):
     order = get_object_or_404(PurchaseOrder, id=order_id)    
-
     if request.method == 'POST':
         form = PurchaseStatusForm(request.POST)
         if form.is_valid():
@@ -465,7 +495,6 @@ def process_purchase_order(request, order_id):
             reviewer_approval_status = form.cleaned_data['approval_status']
             approver_approval_status = form.cleaned_data['approval_status']
 
-            # Determine role based on group
             if request.user.groups.filter(name="Requester").exists():
                 if approval_status not in ["SUBMITTED", "CANCELLED"]:
                     messages.error(request, "Requester can only submit or cancel.")
@@ -485,8 +514,7 @@ def process_purchase_order(request, order_id):
             else:
                 messages.error(request, "You do not have permission to process this order.")
                 return redirect('purchase:purchase_order_list')
-            
-        # check database approval status
+
         if request.user.groups.filter(name="Requester").exists():
             if order.requester_approval_status in ["SUBMITTED", "CANCELLED"]:
                 messages.error(request, "Already completed.")
@@ -528,7 +556,6 @@ def process_purchase_order(request, order_id):
                 }
            
         order.save()
-
         messages.success(request, f"Order {order.id} successfully updated.")
         return redirect('purchase:purchase_order_list')
     else:
@@ -556,11 +583,13 @@ def qc_dashboard(request, purchase_order_id=None):
 def qc_inspect_item(request, item_id):
     purchase_dispatch_item = get_object_or_404(PurchaseDispatchItem, id=item_id)
     purchase_shipment = purchase_dispatch_item.purchase_shipment
+    purchase_order = purchase_shipment.purchase_order
+    purchase_request_order = purchase_order.purchase_request_order
 
     if not purchase_shipment:
         messages.error(request, "No shipment found for this order item.")
         return redirect('purchase:qc_dashboard')  
-    if not purchase_dispatch_item.status == 'REACHED':
+    if not purchase_dispatch_item.status in ['REACHED','OBI']:
         messages.error(request, "Goods not arrived yet found for this order item.")
         return redirect('purchase:qc_dashboard')  
     
@@ -578,7 +607,7 @@ def qc_inspect_item(request, item_id):
             qc_entry.save()
 
             purchase_dispatch_item.status = 'OBI'
-            purchase_dispatch_item.save()
+            purchase_dispatch_item.save()          
                  
             messages.success(request, "Quality control inspection recorded successfully.")
             return redirect('purchase:qc_dashboard')
@@ -587,7 +616,6 @@ def qc_inspect_item(request, item_id):
     else:
         form = QualityControlForm(initial={'total_quantity': purchase_dispatch_item.dispatch_quantity})    
     return render(request, 'purchase/qc_inspect_item.html', {'form': form, 'purchase_order_item': purchase_dispatch_item})
-
 
 
 
@@ -608,8 +636,6 @@ def purchase_order_item(request):
     })
 
 
-
-
 def purchase_order_item_dispatch(request, order_id):
     purchase_order = get_object_or_404(
         PurchaseOrder.objects.prefetch_related(
@@ -625,10 +651,8 @@ def purchase_order_item_dispatch(request, order_id):
 
 @login_required
 def update_purchase_order_status(request, order_id):
-    purchase_order = get_object_or_404(PurchaseOrder, id=order_id)
- 
+    purchase_order = get_object_or_404(PurchaseOrder, id=order_id) 
     all_items = purchase_order.purchase_order_item.all()
-
     all_delivered = True
     for item in all_items:
         total_dispatched_quantity = item.dispatch_item.aggregate(
@@ -644,9 +668,9 @@ def update_purchase_order_status(request, order_id):
         purchase_order.save()
 
         shipment = purchase_order.purchase_shipment.first()
-        if shipment:  # Ensure shipment exists
+        if shipment: 
             shipment.status = 'REACHED'
-            shipment.save()  # Save shipment status update
+            shipment.save()  
 
         messages.success(request, "All items have been delivered. Purchase order status updated to DELIVERED.")
     else:

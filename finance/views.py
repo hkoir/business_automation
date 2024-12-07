@@ -2,15 +2,30 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Sum, F
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+from reportlab.lib.styles import getSampleStyleSheet
+from django.http import HttpResponse
+from django.utils import timezone
+from num2words import num2words
 
-from logistics.models import PurchaseShipment,SaleShipment
+from customer.models import Customer
+from core.models import Employee,Company
+from supplier.models import Supplier
+from logistics.models import PurchaseShipment,SaleShipment,SaleDispatchItem,PurchaseDispatchItem
 from sales.models import SaleOrder
 from purchase.models import PurchaseOrder
 from .models import PurchaseInvoice,SaleInvoice, PurchasePayment,SalePayment
 from .forms import PurchaseInvoiceForm, PurchasePaymentForm,SaleInvoiceForm,SalePaymentForm
 
-from django.db.models import Sum
+from utils import CommonFilterForm
+from django.core.paginator import Paginator
 
+from .models import PurchaseInvoice, PurchaseInvoiceAttachment
+from .forms import PurchaseInvoiceAttachmentForm,PurchasePaymentAttachmentForm,SaleInvoiceAttachmentForm,SalePaymentAttachmentForm
 
 
 @login_required
@@ -54,12 +69,26 @@ def create_purchase_invoice(request, order_id):
 
 
 
+def add_purchase_invoice_attachment(request, invoice_id):
+    invoice = get_object_or_404(PurchaseInvoice, id=invoice_id)    
+    if request.method == 'POST':
+        form = PurchaseInvoiceAttachmentForm(request.POST, request.FILES)
+        if form.is_valid():
+            attachment = form.save(commit=False)
+            attachment.purchase_invoice = invoice  
+            attachment.save()
+            return redirect('purchase:purchase_order_list')
+    else:
+        form = PurchaseInvoiceAttachmentForm()
+
+    return render(request, 'finance/attachmenet/add_invoice_attachment.html', {'form': form, 'invoice': invoice})
+
+
 
 @login_required
 def create_purchase_payment(request, invoice_id):
     invoice = get_object_or_404(PurchaseInvoice, id=invoice_id)
-    
-    # Allow payment if the invoice is SUBMITTED or PARTIALLY_PAID
+
     if invoice.status not in ["SUBMITTED", "PARTIALLY_PAID"]:
         messages.error(request, "Cannot create a payment: Invoice is not submitted or partially paid.")
         return redirect('purchase:purchase_order_list')
@@ -73,21 +102,16 @@ def create_purchase_payment(request, invoice_id):
             payment.purchase_invoice = invoice
             payment.user = request.user
 
-            # Ensure payment amount does not exceed remaining balance
             if payment.amount > remaining_balance:
                 messages.error(request, f"Payment cannot exceed the remaining balance of {remaining_balance}.")
                 return redirect('finance:create_purchase_payment', invoice_id=invoice.id)
-
-            # Update payment status based on amount
+            
             if payment.amount < remaining_balance:
                 payment.status = "PARTIALLY_PAID"
             else:
                 payment.status = "FULLY_PAID"
-            
-            # Save the payment
-            payment.save()
 
-            # Update invoice status based on total payments made
+            payment.save()
             if invoice.is_fully_paid:
                 invoice.status = "FULLY_PAID"
             elif invoice.remaining_balance > 0:
@@ -96,22 +120,227 @@ def create_purchase_payment(request, invoice_id):
 
             messages.success(request, "Payment created successfully.")
             return redirect('finance:purchase_invoice_list')
-    else:
-        form = PurchasePaymentForm(initial={'purchase_invoice': invoice})
+    else:       
+        form = PurchasePaymentForm(initial={
+            'purchase_invoice': invoice,  
+            'amount': remaining_balance
+        })
 
     return render(request, 'finance/purchase/create_payment.html', {
         'form': form,
-        'invoice': invoice,
+        'purchase_invoice': invoice.invoice_number,
         'remaining_balance': remaining_balance
     })
+
+
+
+def add_purchase_payment_attachment(request, invoice_id):
+    invoice = get_object_or_404(PurchaseInvoice, id=invoice_id)    
+    if request.method == 'POST':
+        form = PurchasePaymentAttachmentForm(request.POST, request.FILES)
+        if form.is_valid():
+            attachment = form.save(commit=False)
+            attachment.purchase_invoice = invoice  
+            attachment.save()
+            return redirect('purchase:purchase_order_list')
+    else:
+        form = PurchasePaymentAttachmentForm()
+    return render(request, 'finance/attachmenet/add_invoice_attachment.html', {'form': form, 'invoice': invoice})
+
+
+
+def generate_purchase_invoice(purchase_order):
+    valid_shipments = PurchaseShipment.objects.filter(purchase_order=purchase_order, status='DELIVERED')
+    valid_dispatch_items = PurchaseDispatchItem.objects.filter(purchase_shipment__in=valid_shipments, status='DELIVERED')
+
+    product_data = valid_dispatch_items.values('dispatch_item__product__name', 'dispatch_item__product__unit_price').annotate(
+        total_quantity=Sum('dispatch_quantity'),
+        total_amount=Sum(F('dispatch_quantity') * F('dispatch_item__product__unit_price'))
+    )
+
+    product_summary = [
+        {
+            "product_name": item['dispatch_item__product__name'],
+            "unit_price": item['dispatch_item__product__unit_price'],
+            "quantity": item['total_quantity'],
+            "amount": item['total_amount']
+        }
+        for item in product_data
+    ]
+
+    grand_total = sum(item['amount'] for item in product_summary)
+
+    return {
+        "purchase_order": purchase_order,
+        "valid_shipments": valid_shipments,
+        "valid_dispatch_items": valid_dispatch_items,
+        "product_summary": product_summary,
+        "grand_total": grand_total
+    }
+
+
+
+
+def generate_purchase_invoice_pdf(purchase_order,mode="download"):      
+    supplier = purchase_order.supplier
+    supplier_info = Supplier.objects.filter(id=purchase_order.supplier_id).first()
+    supplier_name = supplier_info.name
+    supplier_phone = supplier_info.phone
+    supplier_email = supplier_info.email
+    supplier_website = supplier_info.website
+    supplier_address = supplier_info.supplier_locations.first().address
+    supplier_logo_path = supplier_info.logo.path if supplier_info.logo else 'D:/SCM/dscm/media/default_logo.png'
+    
+    company_name=None
+    company_address =None
+    company_email =None
+    company_phone =None 
+    company_website =None  
+    logo_path=None
+
+    cfo_employee = Employee.objects.filter(position='CFO').first()    
+    HQ_entity = cfo_employee.hq_employee_name.first()
+    if  HQ_entity:
+        location = HQ_entity.company_locations.first()
+        company_name = HQ_entity.name
+        company_address = location.address
+        company_email = location.email
+        company_phone = location.phone
+        company_website = HQ_entity.website
+        company_logo_path = HQ_entity.logo.path if HQ_entity.logo else 'D:/SCM/dscm/media/default_logo.png'
+
+    invoice_data = generate_purchase_invoice(purchase_order)
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+
+    styles = getSampleStyleSheet()
+    title_style = styles['Title']
+    normal_style = styles['Normal']
+
+ 
+    if supplier_logo_path:
+        logo_width, logo_height = 60, 60
+        c.drawImage(supplier_logo_path, 50, 730, width=logo_width, height=logo_height)
+   
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(130, 750, f'{supplier_name}')
+    c.setFont("Helvetica", 10)
+    c.drawString(130, 735, f' Address:{supplier_address}')
+    c.drawString(130, 720, f' Phone: {supplier_phone} | Email: {supplier_email}')
+    c.drawString(130, 705, f"Website: {supplier_website}")
+
+    # Customer Info
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, 670, "Customer Information:")
+    c.setFont("Helvetica", 10)
+    c.drawString(50, 655, f"Customer: {company_name}")
+    c.drawString(50, 640, f"Phone: {company_name}")
+    c.drawString(50, 625, f"Website: {company_website}")
+
+
+    PO_updated_at_date = purchase_order.updated_at.strftime("%Y-%m-%d")
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, 600, f"PO: {purchase_order.order_id} | Date: {PO_updated_at_date}")
+    shipment_id = purchase_order.purchase_shipment.first().shipment_id if purchase_order.purchase_shipment.exists() else "N/A"
+    c.drawString(50, 585, f"Shipment ID: {shipment_id}")
+    c.drawString(50, 570, f"Invoice Date: {timezone.now().date()}")
+
+    c.line(30, 550, 580, 550)
+    y_position = 530
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(30, y_position, "Product Name")
+    c.drawString(200, y_position, "Unit Price")
+    c.drawString(350, y_position, "Quantity")
+    c.drawString(450, y_position, "Amount")
+    y_position -= 10
+    c.line(30, y_position, 580, y_position)
+
+    y_position -= 20
+    c.setFont("Helvetica", 10)
+    for item in invoice_data['product_summary']:
+        if y_position < 100: 
+            c.showPage()
+            y_position = 750  
+
+        c.drawString(30, y_position, item["product_name"])
+        c.drawString(200, y_position, f"${item['unit_price']:.2f}")
+        c.drawString(350, y_position, str(item['quantity']))
+        c.drawString(450, y_position, f"${item['amount']:.2f}")
+        y_position -= 20
+
+
+    y_position -= 30
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(350, y_position, "Grand Total:")
+    c.drawString(450, y_position, f"${invoice_data['grand_total']:.2f}")
+
+    y_position -= 20
+    c.setFont("Helvetica", 10)
+    grand_total = num2words(invoice_data['grand_total'], to='currency', lang='en').replace("euro", "Taka").replace("cents", "paisa").capitalize()
+    c.drawString(50, y_position, f"Amount in Words: {grand_total}")
+    
+    
+    y_position -= 60
+    c.setFont("Helvetica", 12)
+    c.drawString(50, y_position, "Authorized Signature: ___________________")
+    y_position -= 20
+    c.drawString(50, y_position, f"Name: {cfo_employee.name if cfo_employee else '...............'}")
+    y_position -= 20
+    c.drawString(50, y_position, f"Designation: {cfo_employee.position if cfo_employee else '...............'}")
+
+    y_position -= 40
+    c.setFont("Helvetica", 9)
+    c.setFillColor('gray')
+    c.drawString(50, y_position, "Note: Signature not mandatory due to computerized authorization.")
+    c.drawString(50, y_position - 15, "For inquiries, contact: support@mymeplus.com | Phone: 01743800705")
+    c.showPage()
+    c.save()
+    pdf = buffer.getvalue()
+    buffer.close()
+
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    if mode == 'preview':
+        response['Content-Disposition'] = f'inline; filename="invoice_{purchase_order.id}.pdf"'
+    else:  # Default to download
+        response['Content-Disposition'] = f'attachment; filename="invoice_{purchase_order.id}.pdf"'
+    return response
+
+
+
+def download_purchase_invoice(request, purchase_order_id):
+    purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)   
+    mode = request.GET.get('mode', 'download')     
+    return generate_purchase_invoice_pdf(purchase_order,mode=mode)
 
 
 
 
 @login_required
 def purchase_invoice_list(request):
-    invoices = PurchaseInvoice.objects.annotate(total_paid=Sum('purchase_payment_invoice__amount'))
-    return render(request, 'finance/purchase/invoice_list.html', {'invoices': invoices})
+    invoice_number = None
+    invoice_list = PurchaseInvoice.objects.all().order_by('-created_at')
+    invoices = invoice_list.annotate(total_paid=Sum('purchase_payment_invoice__amount'))
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        invoice_number = form.cleaned_data['purchase_invoice_id']
+        if invoice_number:
+            invoices = invoices.filter(invoice_number = invoice_number)
+
+    paginator = Paginator(invoices, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    form=CommonFilterForm()
+
+    return render(request, 'finance/purchase/invoice_list.html',
+     {
+      'invoices': invoices,
+      'page_obj':page_obj,
+      'form':form,
+      'invoice_number':invoice_number
+
+    })
 
 
 def purchase_invoice_detail(request, invoice_id):
@@ -124,12 +353,13 @@ def purchase_invoice_detail(request, invoice_id):
 
 
 
-# ###########################sale invoices #################################################################
+# ########################### sale invoices #################################################################
 
 @login_required
 def create_sale_invoice(request, order_id):
-    sale_shipment = get_object_or_404(SaleShipment, id=order_id)
-    if sale_shipment.sale_shipment_invoices.filter(status__in=['SUBMITTED', 'FULLY_PAID', 'PARTIALLY_PAID']).exists():
+    sale_shipment = get_object_or_404(SaleShipment, id=order_id)   
+    
+    if sale_shipment.is_fully_invoiced:
         messages.error(request, "All invoices for this shipment have already been submitted or paid.")
         return redirect('sales:sale_order_list')
 
@@ -158,13 +388,31 @@ def create_sale_invoice(request, order_id):
 
 
 
+
+def add_sale_invoice_attachment(request, invoice_id):
+    invoice = get_object_or_404(SaleInvoice, id=invoice_id)    
+    if request.method == 'POST':
+        form = SaleInvoiceAttachmentForm(request.POST, request.FILES)
+        if form.is_valid():
+            attachment = form.save(commit=False)
+            attachment.sale_invoice = invoice  
+            attachment.save()
+            return redirect('purchase:purchase_order_list')
+    else:
+        form = SaleInvoiceAttachmentForm()
+    return render(request, 'finance/attachmenet/add_invoice_attachment.html', {'form': form, 'invoice': invoice})
+
+
+
 @login_required
 def create_sale_payment(request, invoice_id):
     invoice = get_object_or_404(SaleInvoice, id=invoice_id)
+    invoice_amount = invoice.amount_due
 
-    if invoice.status != "SUBMITTED":
-        messages.error(request, "Cannot create a payment: Invoice is not submitted yet.")
-        return redirect('sales:sale_order_list')
+    if invoice.sale_payment_invoice.first():
+        if invoice.sale_payment_invoice.first().is_fully_paid:
+            messages.error(request, "All payment already paid")
+            return redirect('sales:sale_order_list')
 
     remaining_balance = invoice.remaining_balance
 
@@ -178,7 +426,7 @@ def create_sale_payment(request, invoice_id):
             if payment.amount > remaining_balance:
                 messages.error(request, f"Payment cannot exceed the remaining balance of {remaining_balance}.")
                 return redirect('sales:create_sale_payment', invoice_id=invoice.id)
-
+                     
             if payment.amount < remaining_balance:
                 payment.status = "PARTIALLY_PAID"
             else:
@@ -192,7 +440,10 @@ def create_sale_payment(request, invoice_id):
             messages.success(request, "Payment created successfully.")
             return redirect('sales:sale_invoice_list')
     else:
-        form = SalePaymentForm(initial={'sale_invoice': invoice})
+         form = SalePaymentForm(initial={
+            'sale_invoice': invoice,
+            'amount': remaining_balance
+        })
 
     return render(request, 'finance/sales/create_payment.html', {
         'form': form,
@@ -201,11 +452,216 @@ def create_sale_payment(request, invoice_id):
     })
 
 
-@login_required
-def sale_invoice_list(request):
-    invoices = SaleInvoice.objects.annotate(total_paid=Sum('sale_payment_invoice__amount'))
-    return render(request, 'finance/sales/invoice_list.html', {'invoices': invoices})
+
+def add_sale_payment_attachment(request, invoice_id):
+    invoice = get_object_or_404(SaleInvoice, id=invoice_id)    
+    if request.method == 'POST':
+        form = SalePaymentAttachmentForm(request.POST, request.FILES)
+        if form.is_valid():
+            attachment = form.save(commit=False)
+            attachment.sale_invoice = invoice  
+            attachment.save()
+            return redirect('purchase:purchase_order_list')
+    else:
+        form =SalePaymentAttachmentForm()
+    return render(request, 'finance/attachmenet/add_invoice_attachment.html', {'form': form, 'invoice': invoice})
+
+
+
+def generate_sale_invoice(sale_order):
+    valid_shipments = SaleShipment.objects.filter(sales_order=sale_order, status='DELIVERED')
+    valid_dispatch_items = SaleDispatchItem.objects.filter(sale_shipment__in=valid_shipments, status='DELIVERED')
+
+    product_data = valid_dispatch_items.values('dispatch_item__product__name', 'dispatch_item__product__unit_price').annotate(
+        total_quantity=Sum('dispatch_quantity'),
+        total_amount=Sum(F('dispatch_quantity') * F('dispatch_item__product__unit_price'))
+    )
+
+    product_summary = [
+        {
+            "product_name": item['dispatch_item__product__name'],
+            "unit_price": item['dispatch_item__product__unit_price'],
+            "quantity": item['total_quantity'],
+            "amount": item['total_amount']
+        }
+        for item in product_data
+    ]
+
+    grand_total = sum(item['amount'] for item in product_summary)
+
+    return {
+        "sale_order": sale_order,
+        "valid_shipments": valid_shipments,
+        "valid_dispatch_items": valid_dispatch_items,
+        "product_summary": product_summary,
+        "grand_total": grand_total
+    }
+
+
+
+def generate_sale_invoice_pdf(sale_order, mode="download"):       
+    customer = sale_order.customer
+    customer_info = Customer.objects.filter(id=sale_order.customer_id).first()
+    customer_name = customer_info.name
+    customer_phone = customer_info.phone
+    customer_email = customer_info.email
+    customer_website = customer_info.website
+    customer_address = customer_info.customer_locations.first().address
+    customer_logo_path = customer_info.logo.path if customer_info.logo else 'D:/SCM/dscm/media/default_logo.png'
+    
+    company_name=None
+    company_address =None
+    company_email =None
+    company_phone =None 
+    company_website =None  
+    logo_path=None
+
+    cfo_employee = Employee.objects.filter(position='CFO').first()    
+    HQ_entity = cfo_employee.hq_employee_name.first()
+    if  HQ_entity:
+        location = HQ_entity.company_locations.first()
+        company_name = HQ_entity.name
+        company_address = location.address
+        company_email = location.email
+        company_phone = location.phone
+        company_website = HQ_entity.website
+        company_logo_path = HQ_entity.logo.path if HQ_entity.logo else 'D:/SCM/dscm/media/default_logo.png'
+
+    invoice_data = generate_sale_invoice(sale_order)
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+
+    styles = getSampleStyleSheet()
+    title_style = styles['Title']
+    normal_style = styles['Normal']
+
+ 
+    if company_logo_path:
+        logo_width, logo_height = 60, 60
+        c.drawImage(company_logo_path, 50, 710, width=logo_width, height=logo_height)
+   
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(130, 750, f'{company_name}')
+    c.setFont("Helvetica", 10)
+    c.drawString(130, 735, f' Address:{company_address}')
+    c.drawString(130, 720, f' Phone: {company_phone} | Email: {company_email}')
+    c.drawString(130, 705, f"Website: {company_website}")
+
+    # Customer Info
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, 670, "Customer Information:")
+    c.setFont("Helvetica", 10)
+    c.drawString(50, 655, f"Customer: {customer_name}")
+    c.drawString(50, 640, f"Phone: {customer_phone}")
+    c.drawString(50, 625, f"Website: {customer_website}")
+
+
+    PO_updated_at_date = sale_order.updated_at.strftime("%Y-%m-%d")
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, 600, f"PO: {sale_order.order_id} | Date: {PO_updated_at_date}")
+    shipment_id = sale_order.sale_shipment.first().shipment_id if sale_order.sale_shipment.exists() else "N/A"
+    c.drawString(50, 585, f"Shipment ID: {shipment_id}")
+    c.drawString(50, 570, f"Invoice Date: {timezone.now().date()}")
+
+    c.line(30, 550, 580, 550)
+    y_position = 530
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(30, y_position, "Product Name")
+    c.drawString(200, y_position, "Unit Price")
+    c.drawString(350, y_position, "Quantity")
+    c.drawString(450, y_position, "Amount")
+    y_position -= 10
+    c.line(30, y_position, 580, y_position)
+
+    y_position -= 20
+    c.setFont("Helvetica", 10)
+    for item in invoice_data['product_summary']:
+        if y_position < 100: 
+            c.showPage()
+            y_position = 750  
+
+        c.drawString(30, y_position, item["product_name"])
+        c.drawString(200, y_position, f"${item['unit_price']:.2f}")
+        c.drawString(350, y_position, str(item['quantity']))
+        c.drawString(450, y_position, f"${item['amount']:.2f}")
+        y_position -= 20
+
+
+    y_position -= 30
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(350, y_position, "Grand Total:")
+    c.drawString(450, y_position, f"${invoice_data['grand_total']:.2f}")
+
+    y_position -= 20
+    c.setFont("Helvetica", 10)
+    grand_total = num2words(invoice_data['grand_total'], to='currency', lang='en').replace("euro", "Taka").replace("cents", "paisa").capitalize()
+    c.drawString(50, y_position, f"Amount in Words: {grand_total}")    
+    
+    y_position -= 60
+    c.setFont("Helvetica", 12)
+    c.drawString(50, y_position, "Authorized Signature: ___________________")
+    y_position -= 20
+    c.drawString(50, y_position, f"Name: {cfo_employee.name if cfo_employee else '...............'}")
+    y_position -= 20
+    c.drawString(50, y_position, f"Designation: {cfo_employee.position if cfo_employee else '...............'}")
+
+    y_position -= 40
+    c.setFont("Helvetica", 9)
+    c.setFillColor('gray')
+    c.drawString(50, y_position, "Note: Signature not mandatory due to computerized authorization.")
+    c.drawString(50, y_position - 15, "For inquiries, contact: support@mymeplus.com | Phone: 01743800705")
   
+    c.showPage()
+    c.save()
+
+    pdf = buffer.getvalue()
+    buffer.close() 
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    if mode == 'preview':
+        response['Content-Disposition'] = f'inline; filename="invoice_{sale_order.id}.pdf"'
+    else:  # Default to download
+        response['Content-Disposition'] = f'attachment; filename="invoice_{sale_order.id}.pdf"'
+    return response
+  
+
+
+
+def download_sale_invoice(request, sale_order_id):
+    sale_order = get_object_or_404(SaleOrder, id=sale_order_id)       
+    mode = request.GET.get('mode', 'download') 
+    return generate_sale_invoice_pdf(sale_order, mode=mode)
+
+
+
+
+@login_required
+def sale_invoice_list(request):  
+    invoice_number = None
+    invoice_list = SaleInvoice.objects.all().order_by('-created_at')
+    invoices = invoice_list.annotate(total_paid=Sum('sale_payment_invoice__amount'))
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        invoice_number = form.cleaned_data['sale_invoice_id']
+        if invoice_number:
+            invoices = invoices.filter(invoice_number = invoice_number)
+
+    paginator = Paginator(invoices, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    form=CommonFilterForm()
+
+    return render(request, 'finance/sales/invoice_list.html',
+     {
+      'invoices': invoices,
+      'page_obj':page_obj,
+      'form':form,
+      'invoice_number':invoice_number
+
+    })
+
    
 
 def sale_invoice_detail(request, invoice_id):

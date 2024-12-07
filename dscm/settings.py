@@ -11,15 +11,27 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
+
+
+
+SHARED_APPS = [
+    'django_tenants',  # Multi-tenancy app
     'django.contrib.contenttypes',
+    'django.contrib.auth',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'accounts',
-    'core',
+    'core', 
+    'clients',
+    'django_crontab',
+    'django_celery_beat',
+]
+
+TENANT_APPS = [
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'django.contrib.sessions',  
     'logistics',
     'manufacture',
     'product',
@@ -32,22 +44,38 @@ INSTALLED_APPS = [
     'reporting',
     'customer',
     'django_extensions',
-    'repairreturn'
-
-
+    'repairreturn',
+    'operations',
+    'django.contrib.admin',
+  
 ]
 
+INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
+
+TENANT_MODEL = "clients.Client"  
+TENANT_DOMAIN_MODEL = "clients.Domain"  
+DATABASE_ROUTERS = ("django_tenants.routers.TenantSyncRouter",)
+PUBLIC_SCHEMA_NAME = 'public'
+
+
+
+
+
 MIDDLEWARE = [
+    'django_tenants.middleware.TenantMiddleware',
+    # 'clients.middleware.TenantStatusMiddleware', 
+    'clients.middleware.TenantValidationMiddleware',      
+    'clients.middleware.RestrictPublicTenantAdminMiddleware',  # Custom middleware    
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',  # This needs to be before MessageMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',  # This should be after SessionMiddleware
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
-
 ]
+
+
 
 ROOT_URLCONF = 'dscm.urls'
 
@@ -58,11 +86,12 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.debug',
+                'django.template.context_processors.debug',               
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'accounts.context_processors.user_info',
+                'accounts.context_processors.notifications_context',
             ],
         },
     },
@@ -71,15 +100,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'dscm.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django_tenants.postgresql_backend',
+        'NAME': 'scmdatabase',  # your PostgreSQL database name
+        'USER': 'postgres',      # the user you created for PostgreSQL
+        'PASSWORD': 'Arafat_123',  # the password for your PostgreSQL user
+        'HOST': 'localhost',    # default for local database
+        'PORT': '5432',         # default PostgreSQL port
     }
 }
+
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 
 
@@ -168,40 +207,37 @@ LOGGING = {
 }
 
 
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the broker
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
-
-import os
-
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "staticfiles")]
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media/")
 
 
 LOGIN_REDIRECT_URL = "/"
 LOGIN_URL = 'accounts:login'
-
-
 # LOGIN_URL = "/accounts/login/"
+
+
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
 
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     # Add other backends if you have any
@@ -213,4 +249,6 @@ AUTHENTICATION_BACKENDS = [
 # EMAIL_PORT = 587
 # EMAIL_USE_TLS = True
 # EMAIL_HOST_USER = 'your_email@gmail.com'  
-# EMAIL_HOST_PASSWORD = 'your_password'       
+# EMAIL_HOST_PASSWORD = 'your_password'      
+
+DEFAULT_FROM_EMAIL = 'noreply@ddealshop.com'  # Default sender email

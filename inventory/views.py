@@ -29,12 +29,15 @@ from operator import itemgetter
 import logging
 logger = logging.getLogger(__name__)
 
-from utils import update_purchase_order,update_purchase_request_order,update_shipment_status
+
 from utils import update_sale_shipment_status,update_sale_order,update_sale_request_order
 from utils import get_warehouse_stock,calculate_stock_value,calculate_stock_value2
+from utils import update_purchase_order,update_purchase_request_order,update_shipment_status
 
-
-
+from utils import CommonFilterForm
+from reporting.forms import SummaryReportChartForm
+from django.utils import timezone
+from datetime import timedelta
 
 
 
@@ -150,11 +153,11 @@ def complete_quality_control(request, qc_id):
                 raise ValueError(f"Failed to update stock for {quality_control.product.name} in {warehouse.name}")
          
             purchase_dispatch_item.status = 'DELIVERED'
-            purchase_dispatch_item.save()
+            purchase_dispatch_item.save()   
 
             update_purchase_order(purchase_order.id)
             update_shipment_status(purchase_shipment.id)
-            update_purchase_request_order(purchase_request_order.id)
+            update_purchase_request_order(purchase_request_order.id)        
 
             messages.success(request, "Quality control completed and product added to inventory.")
             return redirect('purchase:qc_dashboard')
@@ -170,58 +173,57 @@ def complete_quality_control(request, qc_id):
 
 
 
-@login_required
-def complete_sale_quality_control(request, qc_id):
-    quality_control = get_object_or_404(SaleQualityControl, id=qc_id)
+# @login_required
+# def complete_sale_quality_control(request, qc_id):
+#     quality_control = get_object_or_404(SaleQualityControl, id=qc_id)
 
-    total_quantity = quality_control.total_quantity
-    good_quantity = quality_control.good_quantity
-    bad_quantity = quality_control.bad_quantity
-    sale_order_item = quality_control.sale_dispatch_item
+#     total_quantity = quality_control.total_quantity
+#     good_quantity = quality_control.good_quantity
+#     bad_quantity = quality_control.bad_quantity
 
-    sale_dispatch_item = quality_control.sale_dispatch_item
-    sale_shipment =  sale_dispatch_item.sale_shipment
-    sale_order = sale_shipment.sale_order
-    sale_request_order = sale_order.sale_request
+#     sale_order_item = quality_control.sale_dispatch_item
+#     sale_dispatch_item = quality_control.sale_dispatch_item
+#     sale_shipment =  sale_dispatch_item.sale_shipment
+#     sale_order = sale_shipment.sale_order
+#     sale_request_order = sale_order.sale_request
 
-    if request.method == 'POST':
-        selected_warehouse_id = request.POST.get('warehouse')
-        selected_warehouse = Warehouse.objects.get(id=selected_warehouse_id) if selected_warehouse_id else None
+#     if request.method == 'POST':
+#         selected_warehouse_id = request.POST.get('warehouse')
+#         selected_warehouse = Warehouse.objects.get(id=selected_warehouse_id) if selected_warehouse_id else None
 
-        form = QualityControlCompletionForm(request.POST, warehouse=selected_warehouse)
-        if form.is_valid():
-            warehouse = form.cleaned_data['warehouse']
-            location = form.cleaned_data['location']
+#         form = QualityControlCompletionForm(request.POST, warehouse=selected_warehouse)
+#         if form.is_valid():
+#             warehouse = form.cleaned_data['warehouse']
+#             location = form.cleaned_data['location']
            
-            inventory_transaction = InventoryTransaction.objects.create(
-                user=request.user,
-                warehouse=warehouse,
-                location=location,
-                product=quality_control.product,
-                transaction_type='OUTBOUND', 
-                quantity=good_quantity,
-                sales_order=sale_order_item.dispatch_item.sale_order
-            )
-            if not inventory_transaction.update_inventory():
-                raise ValueError(f"Failed to update stock for {quality_control.product.name} in {warehouse.name}")
+#             inventory_transaction = InventoryTransaction.objects.create(
+#                 user=request.user,
+#                 warehouse=warehouse,
+#                 location=location,
+#                 product=quality_control.product,
+#                 transaction_type='OUTBOUND', 
+#                 quantity=good_quantity,
+#                 sales_order=sale_order_item.dispatch_item.sale_order
+#             )
+#             if not inventory_transaction.update_inventory():
+#                 raise ValueError(f"Failed to update stock for {quality_control.product.name} in {warehouse.name}")
 
-            sale_order_item.status = 'COMPLETED'
-            sale_order_item.save()
-            update_sale_order(sale_order.id)
-            update_sale_shipment_status(sale_shipment.id)
-            update_sale_request_order(sale_request_order.id)
 
-            messages.success(request, "Quality control completed and product deducted from warehouse.")
-            return redirect('sales:qc_dashboard')
-        else:
-            print("Form errors:", form.errors)
-    else:
-        form = QualityControlCompletionForm()
+#             update_sale_order(sale_order.id)
+#             update_sale_shipment_status(sale_shipment.id)
+#             update_sale_request_order(sale_request_order.id)
 
-    return render(request, 'inventory/complete_quality_control.html', {
-        'form': form,
-        'quality_control': quality_control,
-    })
+#             messages.success(request, "Quality control completed and product deducted from warehouse.")
+#             return redirect('sales:qc_dashboard')
+#         else:
+#             print("Form errors:", form.errors)
+#     else:
+#         form = QualityControlCompletionForm()
+
+#     return render(request, 'inventory/complete_quality_control.html', {
+#         'form': form,
+#         'quality_control': quality_control,
+#     })
 
 
 
@@ -251,7 +253,7 @@ def complete_manufacture_quality_control(request, qc_id):
 
             if InventoryTransaction.objects.filter(
                 manufacture_order=materials_request_order,
-                transaction_type='MANUFACTURE',
+                transaction_type='MANUFACTURE_IN',
                 product=quality_control.product,
             ).exists():
                 messages.error(request, "This transaction has already been recorded.")
@@ -262,7 +264,7 @@ def complete_manufacture_quality_control(request, qc_id):
                 warehouse=warehouse,
                 location=location,
                 product=quality_control.product,
-                transaction_type='MANUFACTURE',
+                transaction_type='MANUFACTURE_IN',
                 quantity=good_quantity,
                 manufacture_order=materials_request_order,
             )
@@ -438,15 +440,26 @@ def confirm_transfer(request):
 
 
 def transfer_order_list(request):
+    transfer_order=None
+    
     transfer_orders = TransferOrder.objects.all().order_by('-created_at') 
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        transfer_order = form.cleaned_data['transfer_id']
+        if transfer_order:
+            transfer_orders = transfer_orders.filter(order_number = transfer_order)
 
     paginator = Paginator(transfer_orders,10)  
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    form=CommonFilterForm()
+
     return render(request, 'inventory/transfer/transfer_order_list.html', {
         'transfer_orders': transfer_orders,  
-        'page_obj':page_obj
+        'page_obj':page_obj,
+        'form':form,
+        'transfer_order':transfer_order
         
     })
 
@@ -462,41 +475,46 @@ def transfer_order_detail(request,transfer_order_id):
 
 
 
-def warehouse_transfer_report(request):    
-    transfers = TransferItem.objects.values(
-        'source_warehouse__name',
-        'target_warehouse__name',
-        'product__name',
-        'updated_at'
-    ).annotate(
-        total_quantity=Sum('quantity')  
-    )
-
-    transfer_data = []
-    for transfer in transfers:
-        transfer_data.append({
-            'source_warehouse': transfer['source_warehouse__name'],
-            'target_warehouse': transfer['target_warehouse__name'],
-            'product_name': transfer['product__name'],
-            'quantity_transferred': transfer['total_quantity'],
-            'updated_at': transfer['updated_at'],
-        })
-
-    return render(request, 'inventory/transfer/transfer_report.html', {
-        'transfer_data': transfer_data,
-    })
-
-
-
-
-
 def inventory_list(request):
     products = Product.objects.all()
+    warehouses = Warehouse.objects.all()
     data = []
     grand_total_stock_value = 0
+    days = None
+    start_date = None
+    end_date = None
+    date_filter = {}
+    warehouse_name=None
+    product_name=None
+
+    form = SummaryReportChartForm(request.GET or None)
+
+    if form.is_valid():
+        start_date = form.cleaned_data.get('start_date')
+        end_date = form.cleaned_data.get('end_date')
+        days = form.cleaned_data.get('days')
+        warehouse_name = form.cleaned_data.get('warehouse_name')
+        product_name = form.cleaned_data.get('product_name')
+
+        if product_name:
+            products = products.filter(id=product_name.id)
+        if warehouse_name:
+            warehouses = warehouses.filter(id=warehouse_name.id)
+
+        if start_date and end_date:
+            date_filter = {'created_at__range': (start_date, end_date)}
+        elif days:
+            end_date = timezone.now()
+            start_date = end_date - timedelta(days=days)
+            date_filter = {'created_at__range': (start_date, end_date)}
+        else:
+            date_filter = {}
 
     for product in products:
-        inventories = product.product_inventories.all()
+        inventories = product.product_inventories.filter(**date_filter)  
+        if warehouse_name:
+            inventories = inventories.filter(warehouse=warehouse_name)  
+
         for inventory in inventories:
             stock_data = calculate_stock_value(product, inventory.warehouse)
 
@@ -510,22 +528,26 @@ def inventory_list(request):
                 'warehouse': inventory.warehouse,
                 'total_purchase': stock_data['total_purchase'],
                 'total_manufacture': stock_data['total_manufacture'],
-                'total_sold': stock_data['total_sold'],
-                'total_replacement': stock_data['total_replacement'],
+                'total_existing_in': stock_data['total_existing_in'],
                 'total_transfer_in': stock_data['total_transfer_in'],
+                'total_sold': stock_data['total_sold'],
+                'total_replacement_out': stock_data['total_replacement_out'],
+                'total_operations_out': stock_data['total_operations_out'],
                 'total_transfer_out': stock_data['total_transfer_out'],
                 'total_available': total_available,
                 'total_stock': stock_data['total_stock'],
-                'total_stock_value': total_stock_value
+                'total_stock_value': total_stock_value,
             })
 
     chart_data = {
-        'labels': [f"{item['product']} ({item['warehouse'].name})" for item in data],  # Assuming warehouse has a 'name' attribute
+        'labels': [f"{item['product']} ({item['warehouse'].name})" for item in data],
         'total_purchase': [item['total_purchase'] for item in data],
         'total_manufacture': [item['total_manufacture'] for item in data],
-        'total_sold': [item['total_sold'] for item in data],
-        'total_replacement': [item['total_replacement'] for item in data],
+        'total_existing_in': [item['total_existing_in'] for item in data],
         'total_transfer_in': [item['total_transfer_in'] for item in data],
+        'total_sold': [item['total_sold'] for item in data],
+        'total_operations_out': [item['total_operations_out'] for item in data],
+        'total_replacement_out': [item['total_replacement_out'] for item in data],
         'total_transfer_out': [item['total_transfer_out'] for item in data],
         'total_available': [item['total_available'] for item in data],
         'total_stock': [item['total_stock'] for item in data],
@@ -533,7 +555,6 @@ def inventory_list(request):
     }
 
     warehouse_json = json.dumps(chart_data)
-
     paginator = Paginator(data, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -544,50 +565,93 @@ def inventory_list(request):
         warehouse_total_stock_value = sum(item['total_stock_value'] for item in items_list)
         grouped_data.append((warehouse, items_list, warehouse_total_stock_value))
 
+    form=SummaryReportChartForm()
     context = {
         'grouped_data': grouped_data,
         'product_wise_data': page_obj,
         'warehouse_json': warehouse_json,
-        'grand_total_stock_value': grand_total_stock_value
+        'grand_total_stock_value': grand_total_stock_value,
+        'form': form,
+        'days': days,
+        'start_date': start_date,
+        'end_date': end_date,
+        'warehouse_name':warehouse_name,
+        'product_name':product_name
     }
-
     return render(request, 'inventory/inventory_list.html', context)
 
 
 
-
 def inventory_aggregate_list(request):
-    products = Product.objects.all()
+    products = Product.objects.all().distinct()
     aggregated_data = []
-    grand_total_stock_value = 0   
+    grand_total_stock_value = 0
+    days = None
+    start_date = None
+    end_date = None
+    warehouse_name=None
+    product_name=None
 
-    for product in products:       
-            stock_data = calculate_stock_value2(product)
-            total_available = stock_data['total_available']
-            total_stock_value = total_available * float(product.unit_price)
+    form = SummaryReportChartForm(request.GET or None)
 
-            grand_total_stock_value += total_stock_value
+    if form.is_valid():
+        start_date = form.cleaned_data.get('start_date')
+        end_date = form.cleaned_data.get('end_date')
+        days = form.cleaned_data.get('days')
+        product_name = form.cleaned_data.get('product_name')
+        warehouse_name = form.cleaned_data.get('warehouse_name')
 
-            aggregated_data.append({
-                'product': product.name,  
-                'total_purchase': stock_data['total_purchase'],
-                'total_manufacture': stock_data['total_manufacture'],
-                'total_sold': stock_data['total_sold'],
-                'total_replacement': stock_data['total_replacement'],
-                'total_transfer_in': stock_data['total_transfer_in'],
-                'total_transfer_out': stock_data['total_transfer_out'],
-                'total_available': total_available,
-                'total_stock_value': total_stock_value,
-                'total_stock': stock_data['total_stock'],
-            })
+        if product_name:
+            products = products.filter(id=product_name.id)
+
+        if start_date and end_date:
+            products = products.filter(
+                product_inventories__created_at__range=(start_date, end_date)
+            ).distinct()
+        elif days:
+            end_date = timezone.now()
+            start_date = end_date - timedelta(days=days)
+            products = products.filter(
+                product_inventories__created_at__range=(start_date, end_date)
+            ).distinct()
+
+    for product in products:
+        inventories = product.product_inventories.all()  
+        if start_date and end_date:
+            inventories = inventories.filter(created_at__range=(start_date, end_date))
+        elif days:
+            inventories = inventories.filter(created_at__range=(start_date, end_date))
+
+        stock_data = calculate_stock_value2(product)
+        total_available = stock_data['total_available']
+        total_stock_value = total_available * float(product.unit_price)
+
+        grand_total_stock_value += total_stock_value
+
+        aggregated_data.append({
+            'product': product.name,
+            'total_purchase': stock_data['total_purchase'],
+            'total_manufacture': stock_data['total_manufacture'],
+            'total_existing_in': stock_data['total_existing_in'],
+            'total_transfer_in': stock_data['total_transfer_in'],
+            'total_sold': stock_data['total_sold'],
+            'total_replacement_out': stock_data['total_replacement_out'],
+            'total_operations_out': stock_data['total_operations_out'],
+            'total_transfer_out': stock_data['total_transfer_out'],
+            'total_available': total_available,
+            'total_stock': stock_data['total_stock'],
+            'total_stock_value': total_stock_value,
+        })
 
     chart_data = {
         'labels': [f"{item['product']}" for item in aggregated_data],
         'total_purchase': [item['total_purchase'] for item in aggregated_data],
         'total_manufacture': [item['total_manufacture'] for item in aggregated_data],
-        'total_sold': [item['total_sold'] for item in aggregated_data],
-        'total_replacement': [item['total_replacement'] for item in aggregated_data],
+        'total_existing_in': [item['total_existing_in'] for item in aggregated_data],
         'total_transfer_in': [item['total_transfer_in'] for item in aggregated_data],
+        'total_sold': [item['total_sold'] for item in aggregated_data],
+        'total_operations_out': [item['total_operations_out'] for item in aggregated_data],
+        'total_replacement_out': [item['total_replacement_out'] for item in aggregated_data],
         'total_transfer_out': [item['total_transfer_out'] for item in aggregated_data],
         'total_available': [item['total_available'] for item in aggregated_data],
         'total_stock_value': [item['total_stock_value'] for item in aggregated_data],
@@ -600,17 +664,19 @@ def inventory_aggregate_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    form=SummaryReportChartForm()
     context = {
         'aggregated_data': page_obj,
         'warehouse_json': warehouse_json,
-        'page_obj': page_obj,
-        'product_wise_data': page_obj,
-        'grand_total_stock_value': grand_total_stock_value
+        'grand_total_stock_value': grand_total_stock_value,
+        'form': form,
+        'days': days,
+        'start_date': start_date,
+        'end_date': end_date,
+        'warehouse_name':warehouse_name,
+        'product_name':product_name
     }
-
     return render(request, 'inventory/inventory_aggregate_list.html', context)
-
-
 
 
 

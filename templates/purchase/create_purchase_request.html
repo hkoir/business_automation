@@ -47,7 +47,7 @@
                 <div class="card-body">
                     <h6 class="card-title text-center"><strong>Create Purchase Order</strong> </h6>
                     <form method="post" enctype="multipart/form-data" action="{% url 'purchase:create_purchase_request' %}" id="add_category">
-                        {% csrf_token %}
+                        {% csrf_token %} 
                         {{ form.as_p }}
                         <button type="submit" name="add_to_basket" class="btn btn-primary">Add to list</button>
                     </form>
@@ -132,19 +132,54 @@
 
 <div style="height:800px"></div>
 
+
+
 <script>
- // Show Django message modal if there are messages
- document.addEventListener("DOMContentLoaded", function() {
+    $(document).ready(function() {
+        $('#id_product,#id_category').select2({
+            width: '50%',
+            placeholder: 'Search ...',
+            allowClear: true,
+            ajax: {
+                url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data.results, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Search',
+            allowClear: true
+        });
+    });
+
+
+    document.addEventListener("DOMContentLoaded", function() {
         const messageModal = document.getElementById('messageModal');
-        if (messageModal) {
-            const messagesContainer = document.getElementById('messagesContainer');
-            if (messagesContainer && messagesContainer.children.length > 0) {
-                const modalInstance = new bootstrap.Modal(messageModal);
-                modalInstance.show();
-            }
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
+            const modalInstance = new bootstrap.Modal(messageModal);
+            modalInstance.show();
+            setTimeout(() => {
+                    modalInstance.hide();
+                }, 5000)
         }
     });
-</script>
+    </script>
 
 
 

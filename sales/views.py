@@ -7,11 +7,9 @@ from django.db.models import Sum,Q
 import uuid
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
-
+from utils import update_sale_order,update_sale_request_order,update_sale_shipment_status,create_notification
 import logging
 logger = logging.getLogger(__name__)
-
-
 
 from inventory.models import Inventory, InventoryTransaction
 from .forms import SaleRequestForm,SaleOrderForm,QualityControlForm,SaleOrderSearchForm,QualityControlForm 
@@ -20,7 +18,9 @@ from product.models import Product
 from customer.models import Customer
 from inventory.models import Warehouse,Location
 from logistics.models import SaleDispatchItem
-
+from utils import CommonFilterForm
+from django.core.paginator import Paginator
+from.forms import PurchaseStatusForm
 
 
 def sale_dashboard(request):
@@ -177,8 +177,26 @@ def confirm_sale_request(request):
 
 
 def sale_request_order_list(request):
+    sale_request_order=None
     sale_request_orders = SaleRequestOrder.objects.all().order_by("-created_at")
-    return render (request, 'sales/sale_request_order_list.html',{'sale_request_orders':sale_request_orders})
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        sale_request_order = form.cleaned_data['sale_request_order_id']
+        if sale_request_order:
+            sale_request_orders = sale_request_orders.filter(order_id=sale_request_order)
+
+    paginator= Paginator( sale_request_orders,10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    form=CommonFilterForm()
+    return render (request, 'sales/sale_request_order_list.html',
+        {
+            'sale_request_orders':sale_request_orders,
+            'form':form,
+            'sale_request_order':sale_request_order,
+            'page_obj':page_obj
+        })
 
 
 def sale_request_items(request,order_id):
@@ -186,7 +204,6 @@ def sale_request_items(request,order_id):
     return render(request,'sales/sale_request_items.html',{'order_instance':order_instance})
 
 
-from.forms import PurchaseStatusForm
 
 @login_required
 def process_sale_request(request, order_id):
@@ -205,7 +222,6 @@ def process_sale_request(request, order_id):
             reviewer_approval_status = form.cleaned_data['approval_status']
             approver_approval_status = form.cleaned_data['approval_status']
 
-            # Determine role based on group
             if request.user.groups.filter(name="Requester").exists():
                 if approval_status not in ["SUBMITTED", "CANCELLED"]:
                     messages.error(request, "Requester can only submit or cancel.")
@@ -225,8 +241,7 @@ def process_sale_request(request, order_id):
             else:
                 messages.error(request, "You do not have permission to process this order.")
                 return redirect('sales:sale_request_order_list')
-            
-        # check database approval status
+
         if request.user.groups.filter(name="Requester").exists():
             if order.requester_approval_status in ["SUBMITTED", "CANCELLED"]:
                 messages.error(request, "Already completed.")
@@ -405,7 +420,15 @@ def create_sale_order(request, request_id):
                 return redirect('sales:create_sale_order', request_instance.id)
             return redirect(f"{reverse('sales:confirm_sale_order')}?request_id={request_instance.id}")
 
-    form = SaleOrderForm(request_instance=request_instance)
+    form = SaleOrderForm(
+    initial={
+        'sale_request_order': request_instance,
+        'customer': request_instance.customer,  
+         'sale_request_item':request_instance.sale_request_order.first()
+    },
+    request_instance=request_instance
+)
+
     basket = request.session.get('basket', [])
     return render(request, 'sales/create_sale_order.html', {'form': form, 'basket': basket})
 
@@ -490,15 +513,57 @@ def confirm_sale_order(request):
 
 
 def sale_order_list(request):
-    sale_orders = SaleOrder.objects.all().order_by("-created_at")    
-    return render (request, 'sales/sale_order_list.html',{'sale_orders':sale_orders})
+    sale_order =None
+    sale_orders = SaleOrder.objects.all().order_by("-created_at")   
+
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        sale_order = form.cleaned_data['sale_order_id']
+        if sale_order:
+            sale_orders = sale_orders.filter(order_id=sale_order)
+
+    for order in sale_orders:
+        order.has_payment_attachment = (
+            order.sale_shipment.first()
+            and order.sale_shipment.first().sale_shipment_invoices.first()
+            and order.sale_shipment.first().sale_shipment_invoices.first().sale_payment_invoice.exists()
+        )
+
+    paginator= Paginator( sale_orders,10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    form = CommonFilterForm()
+    return render (request, 'sales/sale_order_list.html',
+        {
+            'sale_orders':sale_orders,
+            'form':form,
+            'sale_order':sale_order,
+            'page_obj':page_obj
+        })
 
 
 
 def sale_order_list_report(request):
+    sale_order =None
     sale_orders = SaleOrder.objects.all().order_by("-created_at")    
-    return render (request, 'sales/sale_order_list_report.html',{'sale_orders':sale_orders})
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        sale_order = form.cleaned_data['ID_number']
+        if sale_order:
+            sale_orders = sale_orders.filter(order_id=sale_order)
 
+    paginator= Paginator( sale_orders,10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render (request, 'sales/sale_order_list_report.html',
+      {
+            'sale_orders':sale_orders,
+            'form':form,
+            'sale_order':sale_order,
+            'page_obj':page_obj
+        })
+    
 
 
 def sale_order_items(request,order_id):
@@ -506,6 +571,173 @@ def sale_order_items(request,order_id):
     return render(request,'sales/sale_order_items.html',{'order_instance':order_instance})
 
 
+
+
+############Below view is for additional items if needed to add, not implemented yet##########################
+
+def add_items_to_sale_order(request, sale_order_id):
+    sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
+    
+    if 'basket' not in request.session:
+        request.session['basket'] = []
+
+    form = SaleOrderForm(request.POST, request_instance=sale_order.sale_request_order)
+
+    if request.method == 'POST':
+        if 'add_to_basket' in request.POST:
+            if form.is_valid():
+                product_obj = form.cleaned_data['product']
+                quantity = form.cleaned_data['quantity']
+                warehouse = form.cleaned_data['warehouse']
+                location = form.cleaned_data['location']
+                sale_request_item = form.cleaned_data['sale_request_item']
+
+                total_requested_quantity = (
+                    sale_order.sale_request_order.filter(product=product_obj)
+                    .aggregate(total_requested=Sum('quantity'))
+                    .get('total_requested', 0)
+                )
+
+                total_confirmed_quantity = (
+                    SaleOrderItem.objects.filter(sale_order=sale_order, product=product_obj)
+                    .aggregate(total_confirmed=Sum('quantity'))
+                    .get('total_confirmed', 0)
+                )
+
+                remaining_quantity = total_requested_quantity - total_confirmed_quantity
+
+                if remaining_quantity <= 0:
+                    messages.error(
+                        request,
+                        f"All requested quantity for '{product_obj.name}' has already been confirmed."
+                    )
+                    return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
+
+                if quantity > remaining_quantity:
+                    messages.error(
+                        request,
+                        f"Quantity exceeds the remaining requested quantity for '{product_obj.name}'. "
+                        f"Remaining available quantity: {remaining_quantity}."
+                    )
+                    return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
+
+                warehouse_quantity = (
+                    InventoryTransaction.objects.filter(
+                        warehouse=warehouse.id,
+                        product=product_obj.id
+                    )
+                    .aggregate(
+                        total_inbound=Sum(
+                            'quantity', filter=Q(transaction_type__in=['INBOUND', 'TRANSFER_IN', 'MANUFACTURE', 'REPLACEMENT_IN'])
+                        ),
+                        total_outbound=Sum(
+                            'quantity', filter=Q(transaction_type__in=['OUTBOUND', 'TRANSFER_OUT', 'REPLACEMENT_OUT'])
+                        ),
+                    )
+                )
+                warehouse_quantity = (warehouse_quantity['total_inbound'] or 0) - (warehouse_quantity['total_outbound'] or 0)
+
+                if quantity > warehouse_quantity:
+                    messages.error(
+                        request,
+                        f"There is not enough stock in the warehouse for '{product_obj.name}'. "
+                        f"Available: {warehouse_quantity}, Requested: {quantity}."
+                    )
+                    return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
+
+                total_amount = float(quantity) * float(product_obj.unit_price)
+                basket = request.session['basket']
+                product_in_basket = next((item for item in basket if item['id'] == product_obj.id), None)
+
+                if product_in_basket:
+                    product_in_basket['quantity'] += quantity
+                    product_in_basket['total_amount'] += total_amount
+                else:
+                    basket.append({
+                        'sale_request_item_id': sale_request_item.id,
+                        'id': product_obj.id,
+                        'name': product_obj.name,
+                        'product_type': product_obj.product_type,
+                        'category': form.cleaned_data['category'].name,
+                        'warehouse': warehouse.name,
+                        'warehouse_id': warehouse.id,
+                        'location': location.name,
+                        'location_id': location.id,
+                        'quantity': quantity,
+                        'sku': product_obj.sku,
+                        'unit_price': float(product_obj.unit_price),
+                        'customer_id': form.cleaned_data['customer'].id,
+                        'customer': form.cleaned_data['customer'].name,
+                        'total_amount': total_amount,
+                        'sale_request_order_id': sale_order.sale_request_order.id,
+                    })
+
+                request.session['basket'] = basket
+                request.session.modified = True
+                messages.success(request, f"Added '{product_obj.name}' to the sale order basket.")
+                return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
+
+        elif 'confirm_purchase' in request.POST:
+            # Handle final confirmation and saving the items
+            basket = request.session.get('basket', [])
+            if not basket:
+                messages.error(request, "Sale basket is empty. Add products before confirming the purchase.")
+                return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
+
+            return redirect(f"{reverse('sales:confirm_sale_order')}?sale_order_id={sale_order.id}")
+
+    return render(request, 'sales/add_items_to_sale_order.html', {'form': form, 'basket': request.session.get('basket', []), 'sale_order': sale_order})
+
+
+def confirm_add_items_to_sale_order(request):
+    sale_order_id = request.GET.get('sale_order_id')
+    sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
+    basket = request.session.get('basket', [])
+
+    if not basket:
+        messages.error(request, "Sale basket is empty. Cannot confirm purchase.")
+        return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                total_amount = 0
+                for item in basket:
+                    product = get_object_or_404(Product, id=item['id'])
+                    total_price = item['quantity'] * item['unit_price']
+                    sale_request_item_id = get_object_or_404(SaleRequestItem, id=item['sale_request_item_id'])
+
+                    warehouse = get_object_or_404(Warehouse, id=item['warehouse_id'])
+                    location = get_object_or_404(Location, id=item['location_id'])
+
+                    total_amount += total_price
+
+                    SaleOrderItem.objects.create(
+                        sale_order=sale_order,
+                        product=product,
+                        quantity=item['quantity'],
+                        warehouse=warehouse,
+                        location=location,
+                        total_price=total_price,
+                        user=request.user,
+                        sale_request_item=sale_request_item_id
+                    )
+
+                sale_order.total_amount = total_amount
+                sale_order.status = 'COMPLETED'  # Update status to completed or any other status
+                sale_order.save()
+
+                request.session['basket'] = []  # Clear the basket after finalizing the sale order
+                request.session.modified = True
+                messages.success(request, "Sale order confirmed successfully!")
+                return redirect('sales:view_sale_order', sale_order_id=sale_order.id)
+        except Exception as e:
+            messages.error(request, f"An error occurred while confirming the sale order: {str(e)}")
+            return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
+
+    return render(request, 'sales/confirm_sale_order.html', {'basket': basket, 'sale_order': sale_order})
+
+##############################################################################################################################
 
 @login_required
 def process_sale_order(request, order_id):
@@ -658,15 +890,14 @@ def update_sale_order_status(request, order_id):
 
 @login_required
 def qc_dashboard(request, sale_order_id=None):
-
     if sale_order_id:
         pending_items = SaleDispatchItem.objects.filter(
             sale_shipment__sales_order=sale_order_id,  
-            status__in=['DISPATCHED']
+            status = 'DISPATCHED'
         )
         sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
     else:
-        pending_items = SaleDispatchItem.objects.filter(status__in=['DISPATCHED'])
+        pending_items = SaleDispatchItem.objects.filter(status='DISPATCHED')
         sale_order = None
 
     if not pending_items:
@@ -675,13 +906,15 @@ def qc_dashboard(request, sale_order_id=None):
 
 
 
-from utils import update_sale_order,update_sale_request_order,update_sale_shipment_status
-
 @login_required
 def qc_inspect_item(request, item_id):
-    sale_dispatch_item = get_object_or_404(SaleDispatchItem, id=item_id)
 
-    shipment = sale_dispatch_item.sale_shipment
+    sale_dispatch_item = get_object_or_404(SaleDispatchItem, id=item_id)
+    sale_order = sale_dispatch_item.dispatch_item.sale_order
+    sale_request_order = sale_order.sale_request_order
+    shipment = sale_dispatch_item.sale_shipment   
+    sale_order_item = sale_dispatch_item.dispatch_item
+    sale_request_item = sale_order_item.sale_request_item
 
     if request.method == 'POST':
         form = QualityControlForm(request.POST, initial_warehouse=sale_dispatch_item.warehouse, initial_location=sale_dispatch_item.location)
@@ -719,16 +952,24 @@ def qc_inspect_item(request, item_id):
                 except Exception as e:
                     messages.error(request, f"Unexpected error: {e}")
                     return redirect('sales:qc_dashboard')
+                
+            
+            sale_order.status = 'DELIVERED'
+            sale_order.save()
+            sale_order_item.status = 'DELIVERED'
+            sale_order_item.save()
 
-
-            sale_order = sale_dispatch_item.dispatch_item.sale_order
+            sale_request_order.status = 'DELIVERED'
+            sale_request_order.save()
+            sale_request_item.status ='DELIVERED'
+            sale_request_item.save()
+          
             all_items_delivered = sale_order.sale_order.filter(status='DELIVERED').count() == sale_order.sale_order.count()
 
             if all_items_delivered:
                 sale_order.status = 'DELIVERED'
-                sale_order.save()
+                sale_order.save()               
 
-            # Check if the sale request order is fully delivered
             sale_request_order = sale_order.sale_request_order
             total_requested_quantity = sale_request_order.sale_request_order.aggregate(Sum('quantity'))['quantity__sum']
             total_ordered_quantity = SaleOrderItem.objects.filter(
@@ -741,10 +982,9 @@ def qc_inspect_item(request, item_id):
 
             update_sale_order(sale_order.id)
             update_sale_shipment_status(shipment.id)
-            update_sale_request_order(sale_request_order.id)  
-
-             
-
+            update_sale_request_order(sale_request_order.id) 
+            create_notification(request.user,f' Sale request order number: { sale_request_order} has been dispatched') 
+           
             messages.success(request, "Quality control inspection recorded and inventory updated successfully.")
             return redirect('sales:qc_dashboard')
         else:

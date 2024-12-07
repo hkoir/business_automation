@@ -1,7 +1,11 @@
 
 from django import forms
 from .models import ReturnOrRefund
-from sales.models import SaleOrder
+from sales.models import SaleOrder,SaleOrderItem   
+from .models import FaultyProduct
+from .models import Replacement
+
+
 
 
 class ReturnOrRefundForm(forms.ModelForm):
@@ -10,11 +14,17 @@ class ReturnOrRefundForm(forms.ModelForm):
             attrs={
                 'class': 'form-control custom-textarea',
                 'rows': 3,  
-                'style': 'height: 50px;width:250px',  
+                'style': 'height: 30px;width:150px',  
             },
            
         )
-    )       
+    )      
+
+    sale_order = forms.ModelChoiceField(
+        queryset=SaleOrder.objects.none(),  
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+        )
 
     class Meta:
         model = ReturnOrRefund
@@ -22,14 +32,25 @@ class ReturnOrRefundForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         sale_order_id = kwargs.pop('sale_order_id', None)
-        super(ReturnOrRefundForm, self).__init__(*args, **kwargs)
+        super(ReturnOrRefundForm, self).__init__(*args, **kwargs)       
         if sale_order_id:
-            self.fields['sale'].queryset = SaleOrder.objects.filter(sale_order__id=sale_order_id)
-       
+            self.fields['sale'].queryset = SaleOrderItem.objects.filter(sale_order_id=sale_order_id)
+    
+        self.fields['sale_order'].queryset = SaleOrder.objects.filter(id=sale_order_id)
 
 
-# below form is for updating by user/path('manage_return_request/<int:return_id>/', views.manage_return_request, name='manage_return_request'),
+
 class ReturnOrRefundFormInternal(forms.ModelForm):
+    remarks = forms.CharField( required=False,
+        widget=forms.Textarea(
+            attrs={
+                'class': 'form-control custom-textarea',
+                'rows': 4,  
+                'style': 'width:350px',  
+            },
+           
+        )
+    )  
     processed_date = forms.DateField(
         label='Processed date',
         widget=forms.DateInput(attrs={'type': 'date'}),
@@ -38,12 +59,7 @@ class ReturnOrRefundFormInternal(forms.ModelForm):
     class Meta:
         model = ReturnOrRefund
         exclude = ['created_at','updated_at','product','customer','warehouse','location','quantity_sold' ]
-    
 
-from django import forms
-from .models import FaultyProduct
-from django import forms
-from .models import Replacement
 
 class FaultyProductForm(forms.ModelForm):
     class Meta:

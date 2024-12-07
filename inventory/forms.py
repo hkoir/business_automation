@@ -1,6 +1,7 @@
 
 from django import forms
-from.models import InventoryTransaction,Warehouse,Location
+from.models import InventoryTransaction,Warehouse,Location,TransferItem
+from product.models import Product
 
 
 
@@ -46,9 +47,7 @@ class QualityControlCompletionForm(forms.Form):
         queryset=Location.objects.none(),  # Initially empty, will be dynamically loaded
         label="Select Location",
         required=True
-    )
-
-  
+    )  
 
     def __init__(self, *args, **kwargs):
         # Accept a 'warehouse' argument to filter location choices
@@ -59,12 +58,6 @@ class QualityControlCompletionForm(forms.Form):
             self.fields['location'].queryset = Location.objects.filter(warehouse=warehouse)
 
 
-
-
-
-
-from product.models import Product
-from.models import TransferItem
 
 class TransferProductForm(forms.ModelForm):
     product = forms.ModelChoiceField(queryset=Product.objects.all())

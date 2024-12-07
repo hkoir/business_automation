@@ -5,15 +5,36 @@
 
 
 <h6 class="text-center" style="margin-top: 40px;">User authentication management<br>
-    <a href="{% url 'accounts:login' %}">loging</a>:
-    <form action="{% url 'accounts:logout' %}" method="POST" style="display:inline;">
+    <button class="btn btn-primary">
+        <a href="{% url 'accounts:login' %}" style="color:white;text-decoration: none;">Login</a>
+    </button>
+    <button class="btn btn-danger" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+        Logout
+    </button>
+    <form id="logout-form" action="{% url 'accounts:logout' %}" method="POST" style="display: none;">
         {% csrf_token %}
-        <button type="submit">Logout</button>
     </form>
-    <a href="{% url 'accounts:register' %}">register</a>:
-    <a href="{% url 'password_change' %}">Password Change</a>:
-    <a href="{% url 'password_reset' %}">Forgot password?</a>
+    <button class="btn btn-secondary">
+        <a href="{% url 'accounts:register' %}" style="color:white;text-decoration: none;">Register</a>
+    </button>
+    <button class="btn btn-warning">
+        <a href="{% url 'accounts:password_change' %}" style="color:white;text-decoration: none;">Password Change</a>
+    </button>
+    <button class="btn btn-info">
+        <a href="{% url 'accounts:pwdreset' %}" style="color:white;text-decoration: none;">Forgot password?</a>
+    </button>
 </h6>
+
+
+
+       
+
+
+
+
+
+
+
 
 
 

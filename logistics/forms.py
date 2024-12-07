@@ -1,7 +1,8 @@
 
 from django import forms
-from .models import PurchaseShipment,SaleShipment
-from.models import PurchaseDispatchItem,SaleDispatchItem
+from .models import PurchaseShipment,SaleShipment,PurchaseDispatchItem,SaleDispatchItem
+from purchase.models import PurchaseOrderItem
+from sales.models import SaleOrder,SaleOrderItem
 
 
 
@@ -18,11 +19,6 @@ class PurchaseShipmentForm(forms.ModelForm):
 
 
 
-
-
-
-from sales.models import SaleOrder
-
 class SaleShipmentForm(forms.ModelForm):
     estimated_delivery = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date'}),
@@ -34,13 +30,10 @@ class SaleShipmentForm(forms.ModelForm):
 
     def __init__(self, *args, sale_order=None, **kwargs):
         super(SaleShipmentForm, self).__init__(*args, **kwargs)
-
-        # Filter the queryset based on the passed sale_order argument
         if sale_order:
             self.fields['sales_order'].queryset = SaleOrder.objects.filter(id=sale_order.id)
         else:
             self.fields['sales_order'].queryset = SaleOrder.objects.all()
-
 
 
 
@@ -78,8 +71,6 @@ class PurchaseDispatchItemForm(forms.ModelForm):
         })
 
 
-from purchase.models import PurchaseOrderItem
-from sales.models import SaleOrderItem
 
 class SaleDispatchItemForm(forms.ModelForm):
     dispatch_date=forms.DateField(

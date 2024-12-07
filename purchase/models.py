@@ -1,8 +1,5 @@
 from django.db import models
 from django.db.models import Sum
-from supplier.models import Supplier
-from product.models import Product,Component
-
 from django.utils import timezone
 from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
@@ -10,9 +7,13 @@ import uuid
 from django.apps import apps
 from django.core.exceptions import ValidationError
 
-from django.db.models import Sum
 import logging
 logger = logging.getLogger(__name__)
+
+from supplier.models import Supplier
+from product.models import Product,Component
+from django.apps import apps
+
 
 
 
@@ -45,7 +46,6 @@ class PurchaseRequestOrder(models.Model):
     total_amount = models.DecimalField(max_digits=15, decimal_places=2,null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
     remarks=models.TextField(null=True,blank=True)
    
     approval_data = models.JSONField(default=dict,null=True,blank=True)
@@ -98,7 +98,7 @@ class PurchaseRequestOrder(models.Model):
             f"{item.product.name} (Qty: {item.quantity})"
             for item in self.purchase_request_order.all()
         )
-        return f"purchase request order={self.order_id}; products: {product_details}"
+        return self.order_id
        
 
 class PurchaseRequestItem(models.Model):
@@ -111,7 +111,7 @@ class PurchaseRequestItem(models.Model):
     total_price = models.DecimalField(max_digits=15,decimal_places=2, null=True,blank=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
+
 
     def save(self,*args,**kwargs):
         if not self.item_request_id:
@@ -153,7 +153,7 @@ class PurchaseOrder(models.Model):
     
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()   
+    
     remarks=models.TextField(null=True,blank=True)
 
     approval_data = models.JSONField(default=dict,null=True,blank=True)
@@ -187,7 +187,7 @@ class PurchaseOrder(models.Model):
 
         
     def __str__(self):
-        return f" purchase_order:{self.order_id}"
+        return self.order_id
     
     @property
     def is_full_delivered(self):  
@@ -231,7 +231,7 @@ class PurchaseOrderItem(models.Model):
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateField(auto_now=True)
     remarks = models.TextField(null=True, blank=True)
-    history = HistoricalRecords()
+
 
   
 
@@ -249,7 +249,7 @@ class PurchaseOrderItem(models.Model):
     def __str__(self):
         return f"{self.quantity} nos {self.product.name}"
     
-from django.apps import apps
+
 
 
 
@@ -265,7 +265,7 @@ class QualityControl(models.Model):
     comments = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
   
 
     def save(self):
@@ -304,7 +304,7 @@ class ReceiveGoods(models.Model):
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateField(auto_now=True)
     remarks = models.TextField(null=True, blank=True)
-    history=HistoricalRecords()
+
 
     def get_warehouse(self):
         Warehouse = apps.get_model('inventory', 'Warehouse')

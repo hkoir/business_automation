@@ -1,5 +1,7 @@
 {% extends 'base.html' %}  
 
+{% load custom_filters %}
+
 {% block content %}
 
 
@@ -19,7 +21,7 @@ table {
     }
     
     th, td {
-        border: 1px solid black; /* Set border color for individual cells */
+       
         vertical-align: middle;
         padding: 0px;
     }
@@ -65,13 +67,36 @@ table {
 
 <div class="container-fluid main-content">
     <div class="row">    
+        <div class="col-12">     
+            <div class="container">
+                <div class="row">
+                    <div class="col-7">
+                        <form method ="GET" action="">
+                            <label for="id_sale_order_id"> Sale Order</label>
+                             {{ form.sale_order_id }}
+                            <button type="Submit" class="btn btn-primary">Search</button>                           
+                        </form>           
+                    </div>
+                    <div class="col-5">                  
+                        {% if sale_order %}
+                            Search result for sale order: <b>{{ sale_order }}</b>
+                            {% else %}
+                        <span> ID does not match</span>
+                        {% endif %}  
+                    
+                    </div>
+                </div>
+            </div>
+
+        </div>      
+        <hr class="mt-2">
         
         <div class="col">       
 
             <h4> Placed Sale orders</h4>
             <table class="table table-striped">
                 <thead>
-                    <tr>
+                    <tr class="btn-primary text-white">
                    
                         <th class="text-center p-2">Request Order Number</th>
                         <th class="text-center p-2">Sale Order Number</th>
@@ -100,24 +125,32 @@ table {
 
                         <th class="text-center p-2">Make payment</th>
                         <th class="text-center p-2">Dispatch Item</th>
+                        <th class="text-center p-2">Invoice</th>
+
+                        <th class="text-center p-2">Upload signed invoice</th>
+                        <th class="text-center p-2">Upload payment Doc</th>
+                        <th class="text-center p-2">View invoice</th>
+                        <th class="text-center p-2">View payment Doc</th>
                      
                     </tr>
                 </thead>
                 <tbody>
-                    {% for order in sale_orders%}
+                    {% for order in page_obj %}
                         <tr>
                          
                             <td class="text-center p-1" style="white-space: nowrap;">{{ order.sale_request_order.order_id }}</td>
                             <td class="text-center p-1" style="white-space: nowrap;">{{ order.order_id }}</td>
                             
-                            <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount}}</td>
-
-                                                
-                            {% if order.is_full_delivered %}
-                            <td><i class="fas fa-check" style="color:green;font-weight: bold;">Delivered</i></td>
-                            {% else %}
-                            <td>In process</td>
-                            {% endif %}                          
+                            <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount|add_commas}}</td>
+                                               
+                           
+                            <td> 
+                                {% if order.is_full_delivered %} 
+                                <strong><i class="fas fa-check" style="color:green">Delivered</i></strong>                        
+                                 {% else %}                             
+                                 <i class="fas fa-hourglass-half" style="color:rgb(235, 10, 29);">In Process</i>
+                                 {% endif %}
+                            </td>             
                            
                             <td class="text-center p-2" style="white-space: nowrap;">{{order.user}}</td>
                             <td class="text-center p-2" style="white-space: nowrap;">
@@ -237,86 +270,132 @@ table {
                             {% else %}
                                 <td>Make shipment first</td>
                             {% endif %}
-                        {% endwith %}
+                        {% endwith %}                                                              
+                                                  
                         
-
-
-
-
-
-
-
-
-
-
-                            
-
-
-                                            
-                                                   
-                        
-                            <td class="text-center p-2" style="white-space: nowrap;">
-                                <a href="{% url 'sales:qc_dashboard_with_order' order.id %}" class="btn btn-sm btn-primary">QC Dashboard</a>
-                            </td>
-                                                 
-
-                                <!-- {% if order.sale_shipment.first %}
-                            <td class="text-center p-2" style="white-space: nowrap;">
-                                <a href="{% url 'finance:create_sale_invoice' order.sale_shipment.first.id %}" class="btn btn-sm btn-primary">Create Invoice</a>
-                            </td>
-                            {% else %}
-                            <td>Create shipment first</td>
-                            {% endif %} -->
-
-                         {% with shipment=order.sale_shipment.first %}
-                            {% if shipment %}
-                                {% with invoice=shipment.sale_shipment_invoices.first %}
-                                    <td class="text-center p-2" style="white-space: nowrap;">
-                                        {% if invoice and invoice.status == "SUBMITTED" %}
-                                            <i class="fas fa-check" style="color:green;font-weight: bold;">Invoice submitted</i>
-                                        {% else %}
-                                            <a href="{% url 'finance:create_sale_invoice' shipment.id %}" class="btn btn-sm btn-primary">Create Invoice</a>
-                                        {% endif %}
-                                    </td>
-                                {% endwith %}
-                            {% else %}
-                                <td class="text-center p-2" style="white-space: nowrap;">
-                                    <span>No shipment found</span>
-                                </td>
-                            {% endif %}
-                        {% endwith %}
-                        
-
                         <td class="text-center p-2" style="white-space: nowrap;">
-                            {% with shipment=order.sale_shipment.first %}
-                                {% if shipment %}
-                                    {% with invoice=shipment.sale_shipment_invoices.first %}
-                                        {% if invoice %}
-                                            {% with payment=invoice.sale_payment_invoice.first %}
-                                                {% if payment %}
-                                                    {% if payment.status == 'PAYMENT_DONE' %}
-                                                        <i class="fas fa-check" style="color:green; font-weight: bold;">Payment Completed</i>
-                                                    {% else %}
-                                                        <a href="{% url 'finance:create_sale_payment' payment.id %}" class="btn btn-sm btn-primary">Make Payment</a>
-                                                    {% endif %}
-                                                {% else %}
-                                                    <a href="{% url 'finance:create_sale_payment' invoice.id %}" class="btn btn-sm btn-primary">Make Payment</a>
-                                                {% endif %}
-                                            {% endwith %}
+                            {% with sale_shipment=order.sale_shipment.first %}
+                                {% if sale_shipment %}
+                                    {% with dispatch_item=sale_shipment.sale_shipment_dispatch.first %}
+                                        {% if dispatch_item and dispatch_item.status == 'DELIVERED' %}
+                                            <span><i class="fas fa-check" style="color:green;font-weight: bold;">Completed</i> </span>
                                         {% else %}
-                                            <button class="btn btn-sm btn-secondary" disabled>No Invoice Available</button>
+                                            <a href="{% url 'sales:qc_dashboard_with_order' order.id %}" class="btn btn-sm btn-primary">QC Dashboard</a>
                                         {% endif %}
                                     {% endwith %}
                                 {% else %}
-                                    <button class="btn btn-sm btn-secondary" disabled>No Shipment Available</button>
+                                    <span>No Shipment Found</span>
                                 {% endif %}
                             {% endwith %}
                         </td>
                         
+             
+                                            
+                                    <td class="text-center p-2" style="white-space: nowrap;">   
+                                        
+                                        {% with shipment=order.sale_shipment.first %}
+                                        {% if shipment%}      
+                                            {% if shipment.is_fully_invoiced  %} 
+                                                <i class="fas fa-check" style="color:green;font-weight: bold;">Invoice submitted</i>
+                                            {% else %}
+                                                <a href="{% url 'finance:create_sale_invoice' shipment.id %}" class="btn btn-sm btn-primary">Create Invoice</a>
+                                             {% endif %}
+                                             {% else %}
+                                             <span> Create shipment first</span>
+                                             {% endif %}
+                                        {% endwith %}
+                                    </td>
+                           
+                        
+
+                                    <td class="text-center p-2" style="white-space: nowrap;">
+                                        {% with shipment=order.sale_shipment.first %}
+                                            {% if shipment %}
+                                                {% with invoice=shipment.sale_shipment_invoices.first %}
+                                                    {% if invoice %}
+                                                        {% with payment=invoice.sale_payment_invoice.first %}
+                                                            {% if payment %}
+                                                                {% if payment.is_fully_paid %}
+                                                                    <span><i class="fas fa-check" style="color:green; font-weight: bold;">Fully Paid</i></span>
+                                                                {% else %}
+                                                                    <a href="{% url 'finance:create_sale_payment' invoice.id %}" class="btn btn-primary">Make Payment</a>
+                                                                {% endif %}
+                                                            {% else %}
+                                                                <a href="{% url 'finance:create_sale_payment' invoice.id %}" class="btn btn-primary">Make Payment</a>
+                                                            {% endif %}
+                                                        {% endwith %}
+                                                    {% else %}
+                                                        <span> No invoice found</span>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <span> No shipment found</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    
+                        
                                                        
                         <td><a href="{% url 'logistics:sale_dispatch_item_list' order.id %}"
-                            class="btn btn-sm btn-primary">view dispatch Item</a>
+                          >view dispatch Item</a>
                         </td>
+                        <td>
+                            {% with order.sale_shipment.first.sale_shipment_invoices.first as first_invoice %}
+                                {% if first_invoice and first_invoice.status in 'SUBMITTED,FULLY_PAID,PARTIALLY_PAID' %}
+                                    <a href="{% url 'finance:download_sale_invoice' order.id %}?mode=preview" target="_blank">Preview</a>|
+                                    <a href="{% url 'finance:download_sale_invoice' order.id %}?mode=download">Download</a>
+                                {% else %}
+                                    <span>Invoice not submitted yet</span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+
+
+                        <!-- <td><a href="{% url 'finance:add_sale_invoice_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">Upload signed invoice</a></td>
+                        <td><a href="{% url 'finance:add_sale_payment_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">Upload payment docs</a></td>
+     -->
+                        <td>
+                            {% if order.sale_shipment.first.sale_shipment_invoices.first %}
+                            <a href="{% url 'finance:add_sale_invoice_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">Upload signed invoice</a>
+                            {% else %}
+                            <span> Invoice not createt yet</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if order.has_payment_attachment %}
+                            <a href="{% url 'finance:add_sale_payment_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">
+                                Upload payment docs
+                            </a>
+                        {% else %}
+                            <span>Payment not made yet</span>
+                        {% endif %}
+                        
+                        
+                        </td>
+
+
+
+                        <td>
+                            {% if order.sale_shipment.first.sale_shipment_invoices.first.sale_invoice_attachment.first.file.url %}
+                                <a href="{{ order.sale_shipment.first.sale_shipment_invoices.first.sale_invoice_attachment.first.file.url }}" target="_blank">
+                                    <img src="{{ order.sale_shipment.first.sale_shipment_invoices.first.sale_invoice_attachment.first.file.url }}" alt="Invoice Attachment" style="max-width: 50px; max-height: 30px;">
+                                </a>
+                            {% else %}
+                                <span>No file</span>
+                            {% endif %}
+                        </td>
+    
+                        <td>
+                            {% if order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachment.first.file.url %}
+                                <a href="{{ order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachment.first.file.url }}" target="_blank">
+                                    <img src="{{ order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachment.first.file.url }}" alt="payment doc Attachment" style="max-width: 50px; max-height: 30px;">
+                                </a>
+                            {% else %}
+                                <span>No file</span>
+                            {% endif %}
+                        </td>
+                        
 
                    
                         </tr>
@@ -386,28 +465,58 @@ table {
 
 
 
+
 <script>
-  
-
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal) {
-            const messagesContainer = document.getElementById('messagesContainer');
-            if (messagesContainer && messagesContainer.children.length > 0) {
-                const modalInstance = new bootstrap.Modal(messageModal);
-                modalInstance.show();
-
-                // Optional: Close the modal on hidden event for cleanup
-                messageModal.addEventListener('hidden.bs.modal', function () {
-                    modalInstance.dispose(); // Reset modal instance if needed
-                });
-            }
-        }
+    $(document).ready(function() {
+        $('#id_sale_order_id').select2({
+            width: '70%',
+            placeholder: 'Search sale order...',
+            allowClear: true,
+            ajax: {
+                url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data.results, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Search for sale order',
+            allowClear: true
+        });
     });
 
 
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
+            const modalInstance = new bootstrap.Modal(messageModal);
+            modalInstance.show();
+            setTimeout(() => {
+                    modalInstance.hide();
+                }, 5000)
+        }
+    });
+    </script>
+    
 
-</script>
+
+
+
 
 
 

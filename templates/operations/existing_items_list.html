@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+
+.table th{
+    text-align: center;
+}
+.table td{
+    text-align: center;
+}
+
+       
+       .select2-container {
+           width: 60% !important; /* Ensure the container is 100% wide */
+       }
+       
+       .select2-container .select2-selection--single {
+           width: 100% !important; /* Ensure the selection area is also 100% wide */
+       }
+       
+       .select2-dropdown {
+           width: auto !important; 
+       }
+       
+       .select2-search__field {
+           width: 80% !important; 
+       }
+       
+       .main-content {   
+           overflow-y: auto;
+           margin-left:0px;
+           position: absolute;
+           width: 100%;
+           left: 0;
+               }
+       </style>
+   
+
+   <div class="container-fluid main-content">
+    <div class="row">
+        <form method="GET" action="">                
+            Order ID: {{ form.ID_number }}                
+           <button type="submit" class="btn btn-primary">Search</button>                       
+       </form>
+       <h6 class="text-center">  
+               Data for
+               {% if days %}
+                   the last {{ days }} days
+               {% elif start_date and end_date %}
+                   from: {{ start_date }} to {{ end_date }}
+                   {% elif order_id %}
+                  Order ID <b>:{{ order_id }}</b>
+               {% endif %} 
+           </h6>    
+           <hr>
+
+        <div class="col-12 col-md-12">
+            {% for order in page_obj %}
+           <h6 style="font-weight: bolder;"> ID:{{ order.order_id }}</h6>
+                <table class="table table-striped">
+                    <thead>                        
+                    <h6>Items added into stock from existing resource</h6>
+                        <tr class="bg-primary text-white">
+                            <th>Product</th>
+                            <th>Category</th>                            
+                            <th style="white-space: nowrap;">Quantity</th>
+                            <th style="white-space: nowrap;" >Unit Price</th> 
+                            <th style="white-space: nowrap;">Warehouse</th>
+                            <th style="white-space: nowrap;">Location</th>
+                            <th style="white-space: nowrap;">Date added</th>
+                                               
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.operations_existing_order_items.all %}
+                        <tr>
+                            <td style="white-space: nowrap;">{{ item.product.name }}</td>  
+                            <td style="white-space: nowrap;">{{ item.product.category.name }}</td>                          
+                            <td style="white-space: nowrap;">{{ item.quantity }}</td>
+                            <td style="white-space: nowrap;">{{ item.product.unit_price }}</td>
+                            <td style="white-space: nowrap;">{{ order.Existing_items_inventory.first.warehouse }}</td>
+                            <td style="white-space: nowrap;">{{ order.Existing_items_inventory.first.location }}</td>
+                            <td style="white-space: nowrap;">{{ order.created_at|date:'M-d,Y' }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No deliveries found yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endfor %}
+        </div>
+    </div>
+
+    
+ <div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
+</div>
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div style="height:800px"></div>
+
+<script>
+ // Show Django message modal if there are messages
+ document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                const modalInstance = new bootstrap.Modal(messageModal);
+                modalInstance.show();
+            }
+        }
+    });
+</script>
+
+
+
+{% endblock %}

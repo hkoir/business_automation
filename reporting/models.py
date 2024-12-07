@@ -25,7 +25,7 @@ class InventoryReport(models.Model):
     report_date = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
+
 
     def __str__(self):
         return f"Report for {self.inventory}"
@@ -40,7 +40,7 @@ class SaleShipmentReport(models.Model):
     total_pending = models.PositiveIntegerField(default=0)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
+
     
     def __str__(self):
         return f"Report for {self.sale_shipment.tracking_number}-{self.report_date}"
@@ -55,7 +55,7 @@ class PurchaseShipmentReport(models.Model):
     total_pending = models.PositiveIntegerField(default=0)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
+
     
     def __str__(self):
         return f"Report for { self.purchase_shipment.tracking_number} on {self.report_date}"

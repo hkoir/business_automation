@@ -5,11 +5,15 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('accounts/', include('accounts.urls', namespace='accounts')),
+    path('', include('accounts.urls', namespace='accounts')),
     path("accounts/", include("django.contrib.auth.urls")),
-    path('',include('core.urls',namespace='core')),
+
+    path('core/',include('core.urls',namespace='core')),
+    path('clients/',include('clients.urls',namespace='clients')),
+
     path('logistics/',include('logistics.urls',namespace='logistics')),
     path('manufacture/',include('manufacture.urls',namespace='manufacture')),
     path('product/',include('product.urls',namespace='product')),
@@ -22,6 +26,10 @@ urlpatterns = [
     path('reporting/',include('reporting.urls',namespace='reporting')),
     path('customer/',include('customer.urls',namespace='customer')),
     path('repairreturn/',include('repairreturn.urls',namespace='repairreturn')),
+    path('operations/',include('operations.urls',namespace='operations')),
+
+   
+    
 ]
 
 

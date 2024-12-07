@@ -16,6 +16,10 @@ from .models import  PurchaseDispatchItem, PurchaseOrderItem,SaleDispatchItem,Wa
 from sales.models import SaleOrderItem,SaleQualityControl,SaleOrder
 from purchase.models import  QualityControl,PurchaseOrder
 
+from utils import CommonFilterForm,create_notification
+from django.core.paginator import Paginator
+
+
 
 
 
@@ -44,10 +48,27 @@ def create_purchase_shipment(request, purchase_order_id):
     })
 
 
-
 def purchase_shipment_list(request):
-    purchase_shipments = PurchaseShipment.objects.all()
-    return render(request,'logistics/purchase/shipment_list.html',{'purchase_shipments':purchase_shipments})
+    purchase_shipment = None
+    purchase_shipments = PurchaseShipment.objects.all().order_by('-created_at')
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        purchase_shipment = form.cleaned_data['purchase_shipment_id']
+        if purchase_shipment:
+             purchase_shipments =  purchase_shipments.filter(shipment_id=purchase_shipment)
+
+    paginator = Paginator(purchase_shipments, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    form=CommonFilterForm()
+
+    return render(request,'logistics/purchase/shipment_list.html',
+        {
+            'purchase_shipments':purchase_shipments,
+            'form':form,
+            'page_obj':page_obj,
+            'purchase_shipment':purchase_shipment
+        })
 
 
 
@@ -61,7 +82,6 @@ def purchase_shipment_detail(request, shipment_id):
         'shipment': shipment,
         'tracking_updates': tracking_updates,
     })
-
 
 
 
@@ -87,10 +107,11 @@ def create_purchase_dispatch_item(request, dispatch_id):
                 total_in_basket = sum(
                     item['quantity'] for item in request.session['basket'] if item['id'] == dispatch_item.id
                 )
+                if dispatched_quantity_total and dispatch_item:
                 
-                if dispatched_quantity_total + total_in_basket + dispatch_quantity > dispatch_item.quantity:
-                    messages.error(request, f"Cannot add {dispatch_quantity} units of '{dispatch_item.product.name}' to the dispatch. The total dispatch quantity would exceed the ordered quantity.")
-                    return redirect('logistics:create_purchase_dispatch_item', dispatch_id=dispatch_id)
+                    if dispatched_quantity_total + total_in_basket + dispatch_quantity > dispatch_item.quantity:
+                        messages.error(request, f"Cannot add {dispatch_quantity} units of '{dispatch_item.product.name}' to the dispatch. The total dispatch quantity would exceed the ordered quantity.")
+                        return redirect('logistics:create_purchase_dispatch_item', dispatch_id=dispatch_id)
 
                 dispatch_date_str = dispatch_date.strftime('%Y-%m-%d') if dispatch_date else None
                 delivery_date_str = delivery_date.strftime('%Y-%m-%d') if delivery_date else None
@@ -158,7 +179,6 @@ def create_purchase_dispatch_item(request, dispatch_id):
 
 
 
-
 def confirm_purchase_dispatch_item(request):
     basket = request.session.get('basket', [])
 
@@ -185,8 +205,11 @@ def confirm_purchase_dispatch_item(request):
                         user=request.user,
                     )
 
+                create_notification(request.user,f'Items for purchase Shipment number:{purchase_shipment.shipment_id} has been dispatched by vendor:{purchase_shipment.purchase_order.supplier}')
+
                 request.session['basket'] = []
                 request.session.modified = True
+
 
                 messages.success(request, "Purchase dispatch confirmed and created successfully.")
                 return redirect('logistics:create_purchase_dispatch_item', dispatch_id=purchase_shipment.id)
@@ -196,9 +219,6 @@ def confirm_purchase_dispatch_item(request):
             return redirect('logistics:create_purchase_dispatch_item', dispatch_id=purchase_shipment.id)
 
     return render(request, 'logistics/purchase/confirm_purchase_dispatch_item.html', {'basket': basket})
-
-
-
 
 
 @login_required
@@ -252,28 +272,31 @@ def dispatch_item_list(request, purchase_order_id):
     return render(request, 'logistics/purchase/dispatch_item_list.html', context)
 
 
+
 def update_dispatch_status(request, dispatch_item_id):
     dispatch_item = get_object_or_404(PurchaseDispatchItem, id=dispatch_item_id)
     if request.method == 'POST':
         new_status = request.POST.get('new_status')
+        old_status = dispatch_item.status
         dispatch_item.status = new_status
-        dispatch_item.save()        
+        dispatch_item.save()  
+        create_notification(request.user, f'Product: {dispatch_item.dispatch_item.product} status updated from {old_status} to {new_status}')     
 
     shipment = dispatch_item.purchase_shipment
     shipment.update_shipment_status()
 
     try:
         shipment = PurchaseShipment.objects.get(id=shipment.id)
-        all_items_delivered = shipment.shipment_dispatch_item.filter(status='REACHED').count() == shipment.shipment_dispatch_item.count()
-        if all_items_delivered:
+        all_items_reached = shipment.shipment_dispatch_item.filter(status__in =['REACHED','OBI']).count() == shipment.shipment_dispatch_item.count()
+        if all_items_reached:
             shipment.status = 'REACHED'
             shipment.save()
             logger.info(f"Shipment {shipment.id} marked as DELIVERED.")
+            create_notification(request.user,f'item {dispatch_item.dispatch_item.product} has just reached')
     except PurchaseShipment.DoesNotExist:
         logger.error(f"Shipment {shipment.id} not found.")
 
     return redirect('logistics:dispatch_item_list', purchase_order_id=shipment.purchase_order.id)
-
 
 
 def cancel_dispatch_item(request, dispatch_item_id):
@@ -316,12 +339,30 @@ def create_sale_shipment(request, sale_order_id):
     })
 
 
-
 def sale_shipment_list(request):
+    shipment_id = None
     sale_shipments = SaleShipment.objects.all()
-    return render(request,'logistics/sales/shipment_list.html',{'sale_shipments':sale_shipments})
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        shipment_id = form.cleaned_data['sale_shipment_id']
+        if shipment_id:
+            sale_shipments = sale_shipments.filter(shipment_id = shipment_id)
 
+    
+    paginator = Paginator(sale_shipments, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
+    form=CommonFilterForm()
+
+    return render(request,'logistics/sales/shipment_list.html',
+        {
+            'sale_shipments':sale_shipments,
+            'form':form,
+            'shipment_id':shipment_id,
+            'page_obj':page_obj
+
+        })
 
 
 @login_required
@@ -432,7 +473,6 @@ def create_sale_dispatch_item(request, dispatch_id):
 
 
 
-
 def confirm_sale_dispatch_item(request):
     basket = request.session.get('basket', [])
 
@@ -447,7 +487,6 @@ def confirm_sale_dispatch_item(request):
     sale_shipment_id = get_object_or_404(SaleShipment, id=sale_shipment_id)
     warehouse = get_object_or_404(Warehouse, id=warehouse_id)
     location = get_object_or_404(Location, id=location_id)
-
     if request.method == 'POST':
         try:
             with transaction.atomic():
@@ -466,20 +505,15 @@ def confirm_sale_dispatch_item(request):
                         status='DISPATCHED',
                         user=request.user,
                     )
-
                 request.session['basket'] = []
                 request.session.modified = True
-
                 messages.success(request, " Sale dispatch confirmed and created successfully.")
                 return redirect('logistics:create_sale_dispatch_item', dispatch_id=sale_shipment_id.id)
 
         except Exception as e:
             messages.error(request, f"An error occurred while confirming the dispatch: {str(e)}")
             return redirect('logistics:create_sale_dispatch_item', dispatch_id=sale_shipment_id.id)
-
     return render(request, 'logistics/sales/confirm_sale_dispatch_item.html', {'basket': basket})
-
-
 
 
 
@@ -530,10 +564,7 @@ def sale_dispatch_item_list(request, sale_order_id):
         'shipments': shipments,
         'product_wise_totals': dict(product_wise_totals),
         'qc_quantities': qc_quantities,    }
-
     return render(request, 'logistics/sales/dispatch_item_list.html', context)
-
-
 
 
 
@@ -546,7 +577,6 @@ def update_sale_dispatch_status(request, dispatch_item_id):
 
     shipment = dispatch_item.sale_shipment
     shipment.update_shipment_status()
-
     return redirect('logistics:sale_dispatch_item_list', sale_order_id=shipment.sales_order.id)
 
 

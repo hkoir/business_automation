@@ -2,6 +2,9 @@
 from django import forms
 from .models import PurchaseInvoice, PurchasePayment,SaleInvoice,SalePayment
 from purchase.models import PurchaseOrder
+from.models import SaleInvoiceAttachment,SalePaymentAttachment,PurchasePaymentAttachment,PurchaseInvoiceAttachment
+
+
 
 
 class PurchaseInvoiceForm(forms.ModelForm):
@@ -23,6 +26,12 @@ class PurchaseInvoiceForm(forms.ModelForm):
 
 
 
+class PurchaseInvoiceAttachmentForm(forms.ModelForm):
+    class Meta:
+        model = PurchaseInvoiceAttachment
+        fields = ['file']
+
+
 
 class PurchasePaymentForm(forms.ModelForm):
     class Meta:
@@ -41,6 +50,13 @@ class PurchasePaymentForm(forms.ModelForm):
         self.fields['payment_method'].label = "Payment Method"
 
 
+
+class PurchasePaymentAttachmentForm(forms.ModelForm):
+    class Meta:
+        model = PurchasePaymentAttachment
+        fields = ['file']
+
+        
 
 class SaleInvoiceForm(forms.ModelForm):
     class Meta:
@@ -61,6 +77,12 @@ class SaleInvoiceForm(forms.ModelForm):
 
 
 
+class SaleInvoiceAttachmentForm(forms.ModelForm):
+    class Meta:
+        model = SaleInvoiceAttachment
+        fields = ['file']
+
+
 class SalePaymentForm(forms.ModelForm):
     class Meta:
         model = SalePayment
@@ -74,5 +96,11 @@ class SalePaymentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(SalePaymentForm, self).__init__(*args, **kwargs)
         self.fields['sale_invoice'].label = "Invoice"
-        self.fields['amount'].label = "Payment Amount"
+        self.fields['amount'].label = "Amount"
         self.fields['payment_method'].label = "Payment Method"
+
+
+class SalePaymentAttachmentForm(forms.ModelForm):
+    class Meta:
+        model = SalePaymentAttachment
+        fields = ['file']

@@ -20,8 +20,8 @@ class AssignRolesForm(forms.Form):
 
 class MaterialsRequestForm(forms.ModelForm):
     class Meta:
-        model = MaterialsRequestOrder  # Link to the model
-        fields = ['status','order_date']  # Include fields from your form
+        model = MaterialsRequestOrder  
+        fields = ['status','order_date']  
 
     category = forms.ModelChoiceField(
         queryset=Category.objects.all(),
@@ -48,8 +48,6 @@ class MaterialsRequestForm(forms.ModelForm):
         min_value=1,
         widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
-
-
     materials_request_order = forms.ModelChoiceField(
         queryset=MaterialsRequestOrder.objects.all(),
         label="Request Order",
@@ -74,19 +72,16 @@ class MaterialsDeliveryForm(forms.ModelForm):
         queryset=MaterialsRequestItem.objects.all(),
          label="Materials Request Item",
         required=False)
-
     category = forms.ModelChoiceField(
         queryset=Category.objects.all(),
         label="Category",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-
     product = forms.ModelChoiceField(
         queryset=Product.objects.all(),
         label="Product",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-
     product_type = forms.ChoiceField(
         choices=[
             ('raw_materials', 'Raw Materials'),
@@ -97,34 +92,24 @@ class MaterialsDeliveryForm(forms.ModelForm):
         label="Product Type",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-
     quantity = forms.IntegerField(
         label="Quantity",
         min_value=1,
         widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
-
-
     warehouse = forms.ModelChoiceField(
         queryset=Warehouse.objects.all(), 
         label="Warehouse",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-
     location = forms.ModelChoiceField(
         queryset=Location.objects.all(),  
         label="Location",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
 
-
-
-
-
     def __init__(self, *args, request_instance=None, **kwargs):
         super(MaterialsDeliveryForm, self).__init__(*args, **kwargs)
-
-        # Restrict queryset based on the provided request_instance
         if request_instance:
             self.fields['materials_request_order'].queryset = MaterialsRequestOrder.objects.filter(id=request_instance.id)
             self.fields['materials_request_item'].queryset = MaterialsRequestItem.objects.filter(material_request_order=request_instance)
@@ -137,11 +122,9 @@ class MaterialsDeliveryForm(forms.ModelForm):
                     self.fields['product'].initial = product
 
         else:
-            # Default queryset if no request_instance is provided
             self.fields['materials_request_order'].queryset = MaterialsRequestOrder.objects.all()
             self.fields['materials_request_item'].queryset = MaterialsRequestItem.objects.all()
 
-        # Add styling to fields
         self.fields['materials_request_order'].widget.attrs.update({
             'style': 'max-width: 200px; word-wrap: break-word; overflow: hidden; text-overflow: ellipsis;'
         })
@@ -156,8 +139,8 @@ class QualityControlForm(forms.ModelForm):
         widget=forms.Textarea(
             attrs={
                 'class': 'form-control custom-textarea',
-                'rows': 5,  # Adjust the number of rows as needed
-                'style': 'height: 100px;',  # Set the height directly if needed
+                'rows': 5, 
+                'style': 'height: 100px;', 
             }
         )
     )
@@ -181,14 +164,11 @@ class QualityControlForm(forms.ModelForm):
         return cleaned_data
 
 
-from .models import FinishedGoodsReadyFromProduction
-
 class FinishedGoodsForm(forms.ModelForm):
     class Meta:
         model = FinishedGoodsReadyFromProduction
-        fields = ['materials_request_order', 'product', 'quantity', 'status', 'remarks']
-        widgets = {
-            'status': forms.Select(attrs={'class': 'form-select'}),
+        fields = ['materials_request_order', 'product', 'quantity','remarks']
+        widgets = {           
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'product': forms.Select(attrs={'class': 'form-select'}),
@@ -202,7 +182,6 @@ class FinishedGoodsForm(forms.ModelForm):
 
 
 
-
 class MaterialsOrderSearchForm(forms.Form):
     order_number = forms.CharField(
         label=" Request Order Number",
@@ -210,8 +189,6 @@ class MaterialsOrderSearchForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter order number'})
     )
-
-
 
 
 
@@ -228,8 +205,8 @@ class MaterialsStatusForm(forms.Form):
         widget=forms.Textarea(
             attrs={
                 'class': 'form-control custom-textarea',
-                'rows': 5,  # Adjust the number of rows as needed
-                'style': 'height: 100px;',  # Set the height directly if needed
+                'rows': 5, 
+                'style': 'height: 100px;', 
             }
         ),
         required=False

@@ -51,11 +51,11 @@
 <div class="container fluid main-content">
     <div class="row">
         <div class="col-3"></div>
-        <div class="col-6">          
+        <div class="col-7">          
        
-            <div class="card shadow" style="padding:10px;background-color:aliceblue;">
+            <div class="card shadow" style="padding:10px;background-color:white;">
                 <div class="card-body">
-                    <h6>Manage Return/Refund Request for {{ return_request.sale.product.product_name }}</h6>
+                    <h6>Manage Return/Refund Request for: {{ return_request.sale.product.name }}</h6>
                     <h6 class="card-title text-center"><strong>Update status</strong> </h6>
                     <form method="post">
                         {% csrf_token %}                       
@@ -66,7 +66,7 @@
             </div>          
             
         </div>
-        <div class="col-3"></div>
+        <div class="col-2"></div>
 
     </div>
 </div>

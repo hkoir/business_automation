@@ -14,11 +14,13 @@ from supplier.models import Supplier
 from inventory.models import Warehouse,Location
 from product.models import Product
 from logistics.models import PurchaseDispatchItem
+
 from.models import MaterialsRequestOrder,MaterialsRequestItem,MaterialsDeliveryItem,FinishedGoodsReadyFromProduction,ReceiveFinishedGoods
-from.forms import MaterialsRequestForm,MaterialsDeliveryForm,QualityControlForm,MaterialsStatusForm,MaterialsOrderSearchForm
+from.forms import MaterialsRequestForm,MaterialsDeliveryForm,QualityControlForm,MaterialsStatusForm,MaterialsOrderSearchForm,FinishedGoodsForm
 
+from utils import create_notification,CommonFilterForm
 
-
+from django.core.paginator import Paginator
 
 def manufacture_dashboard(request):
     return render(request,'manufacture/materials_dashboard.html')
@@ -95,9 +97,6 @@ def create_materials_request(request):
     return render(request, 'manufacture/create_materials_request.html', {'form': form, 'basket': basket})
 
 
-
-from decimal import Decimal
-
 def confirm_materials_request(request):
     basket = request.session.get('basket', [])
     if not basket:
@@ -108,19 +107,15 @@ def confirm_materials_request(request):
         try:
             with transaction.atomic():
                 from decimal import Decimal
-                
-                # Calculate total amount
+
                 total_amount = sum(Decimal(item['quantity']) * Decimal(item['unit_price']) for item in basket)
-                
-                # Save MaterialsRequestOrder
+
                 materials_request_order = MaterialsRequestOrder(
                     total_amount=total_amount,
-                    status='PENDING',  # Ensure status is set
+                    status='PENDING',  
                     user=request.user
                 )
                 materials_request_order.save()
-
-                # Save each MaterialsRequestItem
                 for item in basket:
                     product = get_object_or_404(Product, id=item['id'])
                     materials_request_item = MaterialsRequestItem(
@@ -130,8 +125,6 @@ def confirm_materials_request(request):
                         user=request.user,
                     )
                     materials_request_item.save()
-
-                # Clear the basket and redirect
                 request.session['basket'] = []
                 request.session.modified = True
                 messages.success(request, "Materials request order created successfully!")
@@ -141,25 +134,39 @@ def confirm_materials_request(request):
             logger.error(f"Error creating materials order: {e}")
             messages.error(request, f"An error occurred while creating the materials request order: {e}")
             return redirect('manufacture:create_materials_request')
-
     return render(request, 'manufacture/confirm_materials_request.html', {'basket': basket})
 
 
 
 def materiala_request_order_list(request):
+    request_order = None
     purchase_request_orders = MaterialsRequestOrder.objects.all().order_by("-created_at")
+    form=CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        request_order = form.cleaned_data['materials_order_id']
+        if request_order:
+            purchase_request_orders = purchase_request_orders.filter(order_id = request_order)
 
     is_requester = request.user.groups.filter(name="Requester").exists()
     is_reviewer = request.user.groups.filter(name="Reviewer").exists()
     is_approver = request.user.groups.filter(name="Approver").exists()
 
+    pageinator = Paginator(purchase_request_orders,10)
+    page_number = request.GET.get('page')
+    page_obj = pageinator.get_page(page_number)
+
+    form=CommonFilterForm()
+            
     return render (request, 'manufacture/materials_request_order_list.html',                   
         {'purchase_request_orders':purchase_request_orders,
          
          'is_requester':is_requester,
          'is_reviewer':is_reviewer,
          'is_approver': is_approver,
-         'user':request.user
+         'user':request.user,
+         'page_obj':page_obj,
+         'form':form,
+         'request_order':request_order
          })
 
 
@@ -185,8 +192,6 @@ def process_materials_request(request, order_id):
             requester_approval_status = form.cleaned_data['approval_status']
             reviewer_approval_status = form.cleaned_data['approval_status']
             approver_approval_status = form.cleaned_data['approval_status']
-
-            # Determine role based on group
             if request.user.groups.filter(name="Requester").exists():
                 if approval_status not in ["SUBMITTED", "CANCELLED"]:
                     messages.error(request, "Requester can only submit or cancel.")
@@ -206,8 +211,7 @@ def process_materials_request(request, order_id):
             else:
                 messages.error(request, "You do not have permission to process this order.")
                 return redirect('manufacture:materials_request_order_list')
-            
-        # check database approval status
+ 
         if request.user.groups.filter(name="Requester").exists():
             if order.requester_approval_status in ["SUBMITTED", "CANCELLED"]:
                 messages.error(request, "Already completed.")
@@ -238,7 +242,7 @@ def process_materials_request(request, order_id):
             else:
                 order.approver_approval_status = approver_approval_status 
                 order.remarks = remarks
-                order.Approver_remarks = remarks               
+                order.Approver_remarks = remarks              
                                                                          
         if role:
                 order.approval_data[role] = {
@@ -249,7 +253,6 @@ def process_materials_request(request, order_id):
                 }
            
         order.save()
-
         messages.success(request, f"Order {order.id} successfully updated.")
         return redirect('manufacture:materials_request_order_list')
     else:
@@ -336,8 +339,6 @@ def create_materials_delivery(request, request_id):
                         'total_amount': total_amount,
                         'materials_request_order_id': materials_request_order_id,
                     })
-
-                # Save basket to session
                 request.session['basket'] = basket
                 request.session.modified = True
                 messages.success(request, f"Added '{product_obj.name}' to the purchase basket")
@@ -377,7 +378,6 @@ def create_materials_delivery(request, request_id):
 
 
 
-
 def confirm_materilas_delivery(request):
     request_id = request.GET.get('request_id')
     basket = request.session.get('basket', [])
@@ -385,13 +385,12 @@ def confirm_materilas_delivery(request):
     if not basket:
         messages.error(request, "Purchase basket is empty. Cannot confirm purchase.")
         return redirect('manufacture:materials_request_order_list')
-
     if request.method == 'POST':
         try:
             with transaction.atomic(): 
                 total_amount = sum(item['quantity'] * item['unit_price'] for item in basket)              
 
-                location_id = basket[0].get('location_id')  # Use .get() for safety
+                location_id = basket[0].get('location_id')  
                 warehouse_id = basket[0].get('warehouse_id') 
                
                 materials_request_order = get_object_or_404(MaterialsRequestOrder, id=request_id)
@@ -405,7 +404,6 @@ def confirm_materilas_delivery(request):
                    
                     warehouse = get_object_or_404(Warehouse, id=warehouse_id) 
                     location = get_object_or_404(Location, id=location_id) 
-
 
                     purchase_item = MaterialsDeliveryItem(
                         materials_request_order=materials_request_order,
@@ -432,17 +430,9 @@ def confirm_materilas_delivery(request):
 
 
 
-
-
-
 def materials_delivered_items(request,order_id):
     order_instance = get_object_or_404(MaterialsRequestOrder,id=order_id)
     return render(request,'manufacture/materials_delivery_items.html',{'order_instance':order_instance})
-
-
-
-
-from .models import FinishedGoodsReadyFromProduction
 
 
 @login_required
@@ -451,12 +441,12 @@ def qc_dashboard(request, material_request_order_id=None):
         pending_items = FinishedGoodsReadyFromProduction.objects.filter(
             materials_request_order=material_request_order_id,
             status__in=['SUBMITTED']
-        ).select_related('materials_request_order')  # Optimize query
+        ).select_related('materials_request_order')  
         materials_request_order = get_object_or_404(MaterialsRequestOrder, id=material_request_order_id)
     else:
         pending_items = FinishedGoodsReadyFromProduction.objects.filter(
             status__in=['SUBMITTED']
-        ).select_related('materials_request_order')  # Optimize query
+        ).select_related('materials_request_order')  
         materials_request_order = None
 
     if not pending_items:
@@ -485,7 +475,6 @@ def qc_inspect_item(request, item_id):
             qc_entry.inspection_date = timezone.now()
             qc_entry.save()
 
-            # Ensure only good quantity is received
             good_quantity = qc_entry.good_quantity
             if good_quantity > 0:
                 ReceiveFinishedGoods.objects.create(
@@ -496,11 +485,7 @@ def qc_inspect_item(request, item_id):
                     status='RECEIVED',
                     remarks=f"Received {good_quantity} after QC inspection.",
                 )
-
-                # Update the status of finished goods
-                # finish_goods_item.status = 'DELIVERED'
-                # finish_goods_item.save()
-
+              
                 messages.success(
                     request, f"QC inspection recorded. {good_quantity} items received."
                 )
@@ -517,8 +502,6 @@ def qc_inspect_item(request, item_id):
         'form': form,
         'finish_goods_item': finish_goods_item,
     })
-
-
 
 
 def materials_order_item(request):
@@ -538,37 +521,48 @@ def materials_order_item(request):
 
 
 
-
-from .models import FinishedGoodsReadyFromProduction, MaterialsRequestOrder, Product
-from .forms import FinishedGoodsForm
-
 def submit_finished_goods(request, request_id):
     materials_request_order = get_object_or_404(MaterialsRequestOrder, id=request_id)
-    finished_goods = FinishedGoodsReadyFromProduction.objects.all()
+    finished_goods = FinishedGoodsReadyFromProduction.objects.all().order_by('-created_at')
 
     if request.method == 'POST':
         form = FinishedGoodsForm(request.POST, request_order_queryset=MaterialsRequestOrder.objects.filter(id=request_id))
         if form.is_valid():
+            product = form.cleaned_data('product')
             finished_goods = form.save(commit=False)
-            finished_goods.user = request.user  # Assign the current user
+            finished_goods.user = request.user  
             finished_goods.save()
             messages.success(request, 'Finished goods submitted successfully!')
-            return redirect('manufacture:materials_request_order_list')  # Replace with your desired URL
+            create_notification(request.user,f'Production department has submitted{product} to receive')
+            return redirect('manufacture:materials_request_order_list')  
     else:
         form = FinishedGoodsForm(request_order_queryset=MaterialsRequestOrder.objects.filter(id=request_id))
 
+    paginator = Paginator(finished_goods,10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     return render(request, 'manufacture/submit_finished_goods.html', {
         'form': form,
         'materials_request_order': materials_request_order,
-        'finished_goods':finished_goods
+        'finished_goods':finished_goods,
+        'page_obj':page_obj
     })
 
 
-
-
-
-
-
+def submit_finished_goods2(request, request_id):
+    materials_request_order = get_object_or_404(MaterialsRequestOrder, id=request_id)
+    finished_goods = FinishedGoodsReadyFromProduction.objects.all().order_by('-created_at')
+    
+    paginator = Paginator(finished_goods,10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'manufacture/submit_finished_goods2.html', {
+        'materials_request_order': materials_request_order,
+        'finished_goods':finished_goods,
+        'page_obj':page_obj
+    })
 
 
 

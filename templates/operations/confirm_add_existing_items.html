@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+
+.table th{
+    text-align: center;
+}
+.table td{
+    text-align: center;
+}
+
+       
+       .select2-container {
+           width: 60% !important; /* Ensure the container is 100% wide */
+       }
+       
+       .select2-container .select2-selection--single {
+           width: 100% !important; /* Ensure the selection area is also 100% wide */
+       }
+       
+       .select2-dropdown {
+           width: auto !important; 
+       }
+       
+       .select2-search__field {
+           width: 80% !important; 
+       }
+       
+       .main-content {   
+           overflow-y: auto;
+           margin-left:0px;
+           position: absolute;
+           width: 100%;
+           left: 0;
+               }
+       </style>
+   
+
+
+
+<div class="container-fluid main-content">
+    <div class="row">        
+        <div class="col-12">
+
+            {% if basket %}
+                <table class="table table-striped">
+                    <thead>                        
+                    <h4>Items requested</h4>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>                            
+                            <th style="white-space: nowrap;">Quantity</th>
+                            <th style="white-space: nowrap;" >Unit Price</th>                       
+                            <th>Change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in basket %}
+                        <tr>
+                            <td style="white-space: nowrap;">{{ item.name }}</td>  
+                            <td style="white-space: nowrap;">{{ item.category }}</td>                          
+                           
+                            <td style="white-space: nowrap;">{{ item.quantity }}</td>
+                            <td style="white-space: nowrap;">{{ item.unit_price }}</td>
+                        
+                            <td style="white-space: nowrap;">
+                                <form method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="product_id" value="{{ item.id }}">
+                                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" class="form-control d-inline w-25">
+                                    <button type="submit" name="action" value="update" class="btn btn-sm btn-warning">Update</button>
+                                </form>
+                                <form method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="product_id" value="{{ item.id }}">                                  
+                                    <button type="submit" name="action" value="delete" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+        
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" name="confirm_purchase" class="btn btn-success">Confirm Purchase</button>
+                </form>
+            {% else %}
+                <p>No products added to the list yet.</p>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div style="height:800px"></div>
+
+<script>
+ // Show Django message modal if there are messages
+ document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                const modalInstance = new bootstrap.Modal(messageModal);
+                modalInstance.show();
+            }
+        }
+    });
+</script>
+
+
+
+{% endblock %}

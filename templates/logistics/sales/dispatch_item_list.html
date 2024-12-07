@@ -158,12 +158,9 @@ table {
                                     <td>{{ dispatch_item.dispatch_item.quantity }}</td>
 
                                     <td>{{ dispatch_item.dispatch_quantity }}</td>
-                                    <td>{{ dispatch_item.delivery_date }}</td>
-                                    {% if qc_quantities|get_item:dispatch_item.id|get_item:'created_at' %}
-                                    <td>{{ qc_quantities|get_item:dispatch_item.id|get_item:'created_at'|date:"d M Y" }}</td>
-                                    {% else %}
-                                    <td style="color:red;font-weight: bold;">not Arrived yet</td>
-                                    {% endif %}
+                                    <td>{{ dispatch_item.delivery_date }}</td>                                    
+                                                                
+                                    <td>{{dispatch_item.sale_quality_control.first.updated_at|date:"d M Y" }}</td>
 
                                     <td>{{ dispatch_item.dispatch_id }}</td>
                                     <td>{{ dispatch_item.get_status_display }}</td>                                   
@@ -173,8 +170,12 @@ table {
                                     
                                
                                 
-                                <td>
+                                <td>                                   
+                                    {% if dispatch_item.status|in_list:"['DELIVERED', 'ONBOARD', 'REACHED', 'OBI', 'IN_TRANSIT']" %}
+                                    <i class="fas fa-times" style="color:red;font-weight: bold;"></i>
+                                    {% else %}
                                     <a href="{% url 'logistics:cancel_sale_dispatch_item' dispatch_item.id %}" class="btn btn-sm btn-danger">Cancel</a>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

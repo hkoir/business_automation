@@ -1,13 +1,14 @@
 
 from django import forms
+from django.contrib.auth.models import User
+
 from product.models import Product,Category
-from.models import PurchaseRequestOrder,PurchaseRequestItem
-from .models import QualityControl
+from.models import PurchaseRequestOrder,PurchaseRequestItem, QualityControl
 from inventory.models import Warehouse,Location
 from supplier.models import Supplier
 from purchase.models import PurchaseRequestOrder,PurchaseOrder
 
-from django.contrib.auth.models import User
+
 
 
 
@@ -19,8 +20,8 @@ class AssignRolesForm(forms.Form):
 
 class PurchaseRequestForm(forms.ModelForm):
     class Meta:
-        model = PurchaseRequestOrder  # Link to the model
-        fields = ['category', 'product', 'product_type', 'quantity','requester']  # Include fields from your form
+        model = PurchaseRequestOrder  
+        fields = ['category', 'product', 'product_type', 'quantity','requester']  
 
     category = forms.ModelChoiceField(
         queryset=Category.objects.all(),
@@ -49,12 +50,10 @@ class PurchaseRequestForm(forms.ModelForm):
     )
 
 
-
-
 class PurchaseOrderForm(forms.ModelForm):
     class Meta:
-        model = PurchaseOrder  # Link to the model
-        fields = ['purchase_request_order', 'status', 'supplier']  # Removed redundant `supplier`
+        model = PurchaseOrder  
+        fields = ['purchase_request_order', 'status', 'supplier']  
 
     purchase_request_order = forms.ModelChoiceField(
         queryset=PurchaseRequestOrder.objects.all(),
@@ -125,8 +124,8 @@ class QualityControlForm(forms.ModelForm):
         widget=forms.Textarea(
             attrs={
                 'class': 'form-control custom-textarea',
-                'rows': 5,  # Adjust the number of rows as needed
-                'style': 'height: 100px;',  # Set the height directly if needed
+                'rows': 5, 
+                'style': 'height: 100px;',  
             }
         )
     )
@@ -149,9 +148,6 @@ class QualityControlForm(forms.ModelForm):
                 raise forms.ValidationError("Good and bad quantities cannot exceed the total quantity.")
         return cleaned_data
 
-
-
-
 class PurchaseOrderSearchForm(forms.Form):
     order_number = forms.CharField(
         label="Purchase Order Number",
@@ -159,9 +155,6 @@ class PurchaseOrderSearchForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter order number'})
     )
-
-
-
 
 
 class PurchaseStatusForm(forms.Form):
@@ -177,8 +170,8 @@ class PurchaseStatusForm(forms.Form):
         widget=forms.Textarea(
             attrs={
                 'class': 'form-control custom-textarea',
-                'rows': 5,  # Adjust the number of rows as needed
-                'style': 'height: 100px;',  # Set the height directly if needed
+                'rows': 5, 
+                'style': 'height: 100px;',  
             }
         ),
         required=False

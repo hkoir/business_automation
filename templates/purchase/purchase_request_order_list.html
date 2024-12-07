@@ -19,7 +19,7 @@ table {
     }
     
     th, td {
-        border: 1px solid black; /* Set border color for individual cells */
+       
         vertical-align: middle;
         padding: 0px;
     }
@@ -40,23 +40,25 @@ table {
         white-space: nowrap;
     }
     
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
+   
+
+.select2-container {
+        width: 50% !important; /* Ensure the container is 100% wide */
+    }  
     
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
+.select2-search__field {
+        width: 100% !important; 
+    }  
+.select2-container--default .select2-selection--single {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        height: 38px;
+        display: flex;
+        align-items: center;
     }
+
     
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
+.main-content {   
         overflow-y: auto;
         margin-left:0px;
         position: absolute;
@@ -68,14 +70,36 @@ table {
 
 
 <div class="container-fluid main-content">
-    <div class="row">    
+    <div class="row"> 
+        <div class="col">
+            <div class="container">
+                <div class="row">
+                    <div class="col-6">
+                        <form method="GET" action="">    
+                            <label for="id_purchase_request_order_id">Request Number</label>            
+                            {{ form.purchase_request_order_id}}                
+                        <button type="submit" class="btn btn-primary">Search</button>  
+                        </form>
+                    </div>
+                    <div class="col-6">
+                        {% if request_order %}
+                        Result for Request order ID <b>:{{request_order }}</b>
+                    {% else %}
+                    <span>No matching result found</span>
+                    {% endif %}   
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <hr class="mt-2">
         
         <div class="col">       
 
             <h4>Requested Order list</h4>
             <table class="table table-striped">
                 <thead>
-                    <tr>
+                    <tr class="btn-primary text-white">
                    
                         <th class="text-center p-2">Order Number</th>                       
                         <th class="text-center p-2">Total amount</th>  
@@ -94,15 +118,21 @@ table {
                 </thead>
                 <tbody>                
 
-                 {% for order in purchase_request_orders%}
+                 {% for order in page_obj %}
                 <tr>
                                            
                     <td class="text-center p-1" style="white-space: nowrap;">{{ order.order_id }}</td>
                     <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount}}</td>                
                     <td class="text-center p-2" style="white-space: nowrap;">{{order.created_at}}</td>
                     
-                    
-                    <td class="text-center p-2" style="white-space: nowrap;">{{order.get_status_display}}</td>
+                 
+                    <td class="text-center p-2" style="white-space: nowrap;">
+                        {% if order.status == "DELIVERED" %}                       
+                        <i class="fas fa-check" style="color:green;font-weight: bold;">{{order.get_status_display}}</i>
+                        {% else %}
+                        <span style="color:red;font-weight: bold;">In Process</span>
+                        {% endif %}
+                    </td>
                     <td class="text-center p-2" style="white-space: nowrap;">{{order.user}}</td>
                     <td class="text-center p-1" style="white-space: nowrap;">
                         <a href="{% url 'purchase:purchase_request_items' order.id %}">Items</a>
@@ -206,30 +236,29 @@ table {
 
                     {% endfor %}
                 </tbody>
-            </table>
+            </table>               
+        </div>
+         
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1">&laquo; first</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                {% endif %}
 
+                <span class="current">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                </span>
 
-
-                
-                <div class="pagination">
-                    <span class="step-links">
-                        {% if page_obj.has_previous %}
-                            <a href="?page=1">&laquo; first</a>
-                            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
-                        {% endif %}
-
-                        <span class="current">
-                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
-                        </span>
-
-                        {% if page_obj.has_next %}
-                            <a href="?page={{ page_obj.next_page_number }}">next</a>
-                            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
-                        {% endif %}
-                    </span>
-                </div>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                {% endif %}
+            </span>
         </div>
     </div>
+
+    
 </div>      
 
 <div style="height:2000px"></div>
@@ -287,6 +316,44 @@ table {
 </script>
 
 
+
+<script>
+    $(document).ready(function() {
+        $('#id_purchase_request_order_id').select2({
+            width: '50%',
+            placeholder: 'Search id...',
+            allowClear: true,
+            ajax: {
+                url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data.results, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Search for Purchase request order',
+            allowClear: true
+        });
+    });
+
+
+
+    </script>
+    
 
 
 

@@ -7,6 +7,9 @@ from decimal import Decimal
 from django.utils import timezone
 from datetime import datetime
 
+
+
+
 class Notice(models.Model):
     title = models.CharField(max_length=255,null=True,blank=True)
     content = models.TextField(null=True,blank=True)
@@ -20,7 +23,7 @@ class Notice(models.Model):
 
 
 
-class Employee(models.Model): 
+class Employee(models.Model):    
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='employee_user')
     user_profile = models.ForeignKey(UserProfile,on_delete=models.CASCADE,null=True, blank=True)
     employee_code = models.CharField(max_length=100, unique=True, null=True, blank=True, default='None')
@@ -112,7 +115,7 @@ class Employee(models.Model):
     gross_monthly_salary = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True, default=0.00)
     created_at=models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+  
 
     def save(self, *args, **kwargs):
 
@@ -134,11 +137,12 @@ class Employee(models.Model):
 class Company(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='company_hq_user')
     name = models.CharField(max_length=255)
+    logo = models.ImageField(upload_to='company_logo/',blank=True, null=True)
     contact_person = models.ForeignKey(Employee,on_delete=models.CASCADE,related_name='hq_employee_name')
     website = models.URLField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
     
     def __str__(self):
         return self.name
@@ -157,7 +161,7 @@ class Location(models.Model):
     postal_code = models.CharField(max_length=20,null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     class Meta:
         app_label = 'core'
@@ -217,4 +221,7 @@ class MonthlySalaryReport(models.Model):
     year = models.IntegerField()
     total_working_hours = models.DecimalField(max_digits=5, decimal_places=2 , null=True, blank=True )
     total_salary = models.DecimalField(max_digits=10, decimal_places=2 , null=True, blank=True)
+
+
+
 

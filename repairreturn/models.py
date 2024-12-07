@@ -7,18 +7,19 @@ from inventory.models import Warehouse,Location,Inventory
 
 from sales.models import SaleOrder,SaleOrderItem
 from purchase.models import PurchaseOrder,PurchaseOrderItem
+from inventory.models import InventoryTransaction
+
 
 
 class ReturnOrRefund(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True, related_name='return_or_refund_user')
+    return_id = models.CharField(max_length=20,null=True, blank=True)
     sale = models.ForeignKey(SaleOrderItem,null=True, blank=True, related_name='sale_returns', on_delete=models.CASCADE)
-
     product = models.ForeignKey(Product, on_delete=models.CASCADE,null=True,blank=True)
     customer = models.ForeignKey(Customer, related_name='customer_return_refund', on_delete=models.CASCADE,null=True,blank=True)
     warehouse = models.ForeignKey(Warehouse, related_name='return_refund_warehouses', on_delete=models.CASCADE,null=True,blank=True)
     location = models.ForeignKey(Location, related_name='return_refund_locations', on_delete=models.CASCADE,null=True,blank=True)
-    quantity_sold = models.PositiveIntegerField(null=True, blank=True)
-    
+    quantity_sold = models.PositiveIntegerField(null=True, blank=True)       
     return_reason = models.CharField(max_length=20, choices=[
         ('DEFECTIVE', 'DEFECTIVE'),
         ('NOT_AS_DESCRIBED', 'NOT AS DESCRIBED'),
@@ -39,7 +40,6 @@ class ReturnOrRefund(models.Model):
     processed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     processed_date = models.DateTimeField(null=True, blank=True)
     remarks = models.TextField(null=True, blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -51,7 +51,7 @@ class ReturnOrRefund(models.Model):
         if not self.product and self.sale.product:
             self.product= self.sale.product
         if not self.quantity_sold and self.sale.quantity:
-            self.quantity_sold = self.sale.quantity
+            self.quantity_sold = self.sale.quantity       
 
         super().save(*args,**kwargs)
 
@@ -62,7 +62,6 @@ class ReturnOrRefund(models.Model):
 class FaultyProduct(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True,related_name='user_faulty_product')
     return_request = models.ForeignKey(ReturnOrRefund, on_delete=models.CASCADE, related_name='faulty_products', null=True, blank=True,)
-    
     sale = models.ForeignKey(SaleOrderItem, on_delete=models.CASCADE, related_name='faulty_sales')   
     warehouse = models.ForeignKey(Warehouse, related_name='return_warehouses', on_delete=models.CASCADE,null=True,blank=True)
     location = models.ForeignKey(Location, related_name='return_locations', on_delete=models.CASCADE,null=True,blank=True) 
@@ -75,8 +74,8 @@ class FaultyProduct(models.Model):
         ('UNDER_INSPECTION', 'UNDER INSPECTION'), 
         ('REPAIRABLE', 'REPAIRABLE'), 
         ('UNREPAIRABLE', 'UNREPAIRABLE'),
-        ('REPAIRED_AND_READY', 'REPAIRED_AND_READY'),
-        ('REPAIRED_AND_RETURNED','REPAIRED_AND_RETURNED'),
+        ('REPAIRED_AND_READY', 'Repaire and ready'),
+        ('REPAIRED_AND_RETURNED','Repaire and returned'),
         ('SCRAPPED', 'SCRAPPED')
     ], default='UNDER_INSPECTION',null=True, blank=True,)
     
@@ -108,19 +107,14 @@ class FaultyProduct(models.Model):
         return f" {self.faulty_product_quantity} nos faulty {self.sale.product.name} issue raised by customer"
 
 
-
-from inventory.models import InventoryTransaction
-
 class Replacement(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)
     source_inventory = models.ForeignKey(Inventory,on_delete=models.CASCADE,related_name='replacement_source_inventory',null=True, blank=True,)    
     faulty_product = models.ForeignKey(FaultyProduct, on_delete=models.CASCADE, related_name='faulty_replacement')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='replacement_users', null=True, blank=True)
-
     warehouse=models.ForeignKey(Warehouse,on_delete=models.CASCADE,related_name='replacement_warehouse',null=True, blank=True,)
     location=models.ForeignKey(Location,on_delete=models.CASCADE,related_name='replacement_location',null=True, blank=True,)
-   
     replacement_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='replacement_products', null=True, blank=True)  
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='replacement_customers', null=True, blank=True)
     transaction_type = models.CharField(max_length=20, choices=[
@@ -129,27 +123,23 @@ class Replacement(models.Model):
     ],null=True, blank=True)
     status = models.CharField(max_length=20, choices=[
         ('PENDING', 'PENDING'),
-        ('REPLACED_DONE', 'REPLACED_DONE'),
+        ('REPLACED_DONE', 'Replaced'),
         ('CANCELLED', 'CANCELLED'),
     ], default='PENDING',null=True, blank=True,)
 
     feedback = models.TextField(null=True, blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
 
     def save(self, *args, **kwargs):
-
         if self.faulty_product and not self.replacement_product:
             self.replacement_product = self.faulty_product.product
-
         if self.faulty_product and self.faulty_product.return_request:
             sale = self.faulty_product.return_request.sale
             if sale and not self.customer:
                 self.customer = sale.sale_order.customer
-
         if self.source_inventory:
             if not self.warehouse:
                 self.warehouse = self.source_inventory.warehouse
@@ -157,28 +147,24 @@ class Replacement(models.Model):
                 self.location = self.source_inventory.location
         super().save(*args, **kwargs)
 
-        # Create InventoryTransaction for replacement OUT (OUTBOUND)
         if self.transaction_type == 'OUTBOUND':
             InventoryTransaction.objects.create(
-                product=self.product,
+                product=self.faulty_product.product,
                 warehouse=self.warehouse,
                 quantity=self.quantity,
                 transaction_type='OUTBOUND',
-                remarks=self.remarks
+                remarks=self.feedback
             )
-        
-        # Create InventoryTransaction for replacement IN (INBOUND)
+
         elif self.transaction_type == 'INBOUND':
             InventoryTransaction.objects.create(
-                product=self.product,
+                product=self.faulty_product.product,
                 warehouse=self.warehouse,
                 quantity=self.quantity,
                 transaction_type='INBOUND',
-                remarks=self.remarks
-            )
-        
-        return super().save(*args, **kwargs)
-    
+                remarks=self.feedback
+            )        
+        return super().save(*args, **kwargs)    
        
     def __str__(self):
         return f"Replacement for {self.faulty_product.product.name} in {self.warehouse.name}"

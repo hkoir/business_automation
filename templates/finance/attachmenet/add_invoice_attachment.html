@@ -1,0 +1,20 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+
+
+
+
+<h4>Add Attachment for Invoice {{ invoice.invoice_number }}</h4>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Add Attachment</button>
+</form>
+
+
+
+
+{% endblock %}

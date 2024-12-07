@@ -5,86 +5,138 @@
 
 <style>
 
-
-    html, body {
-       margin: 0;
-       padding: 0;
-       overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-       }
    
-       .table td,th{
+.table td,th{
         white-space: nowrap;
         text-align: center;
        }
    
+     
+
+.select2-container {
+        width: 50% !important; /* Ensure the container is 100% wide */
+    }  
+    
+.select2-search__field {
+        width: 100% !important; 
+    }
+  
+.select2-container--default .select2-selection--single {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+    }
+    
        
-       .select2-container {
-           width: 60% !important; /* Ensure the container is 100% wide */
-       }
-       
-       .select2-container .select2-selection--single {
-           width: 100% !important; /* Ensure the selection area is also 100% wide */
-       }
-       
-       .select2-dropdown {
-           width: auto !important; 
-       }
-       
-       .select2-search__field {
-           width: 80% !important; 
-       }
-       
-       .main-content {   
+.main-content {   
            overflow-y: auto;
            margin-left:0px;
            position: absolute;
            width: 100%;
            left: 0;
                }
-       </style>
+               
+</style>
 
 
 
-<a href="{% url 'purchase:purchase_order_item' %}" class="btn btn-sm btn-primary">More shipment details</a>
-<h2>Shipment List</h2>
+<div class="container-fluid main-content">
+    <div class="row">       
+               
+        <div class="col">     
+            <div class="container">
+                <div class="row">
+                    <div class="col-7">
+                        <form method="GET" action="{% url 'logistics:purchase_shipment_list' %}"> 
+                            <label for="id_purchase_shipment_id">Shipment Number</label>               
+                             {{ form.purchase_shipment_id }}                
+                            <button type="submit" class="btn btn-primary">Search</button>                                                
+                        </form>
+                    </div>
+                    <div class="col-5">                   
+                        {% if purchase_shipment %}                    
+                        <span>Search result for Order ID: <b>{{ purchase_shipment }}</b></span> 
+                    {% else %} 
+                    <span> ID does not match</span>                
+                        {% endif %}
+                     
+                    
+                    </div>
+                </div>
+            </div>
 
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Purchase Order</th>
-            <th>Shipment ID</th>
-            <th>Total Amount</th>
-            <th>Carrier</th>
-            <th>estimated_delivery</th>
-            <th>Current status</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for data in purchase_shipments %}
-            <tr>
-                <td>{{ data.purchase_order.order_id }}</td>
-                <td>{{ data.shipment_id}}</td>
-                <td>{{ data.total_amount}}</td>
-
-                <td>{{ data.carrier }}</td>
-                <td>{{ data.estimated_delivery }}</td>
-
-                {% if data.is_fully_shipped %}
-                <td>Delivered</td>
-                {% else %}
-                <td>{{ data.get_status_display }}</td>
-                {% endif %}
-
-                <td>
-                    <a href="{% url 'logistics:purchase_shipment_detail' data.id %}">Shipment details</a>
-                </td>
-            </tr>
+        </div> 
      
-        {% endfor %}
-    </tbody>
-</table>
+        <hr class="mt-2">
+                   
+            
+        
+        <div class="col">
+        <a href="{% url 'purchase:purchase_order_item' %}" class="btn btn-sm btn-primary">More shipment details</a>
+        <h4 class="mt-4">Shipment List</h4>
+        <table class="table table-striped">
+            <thead>
+                <tr class="btn-primary text-white">
+                    <th>Purchase Order</th>
+                    <th>Shipment ID</th>
+                    <th>Total Amount</th>
+                    <th>Carrier</th>
+                    <th>estimated_delivery</th>
+                    <th>Current status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in page_obj %}
+                    <tr>
+                        <td>{{ data.purchase_order.order_id }}</td>
+                        <td>{{ data.shipment_id}}</td>
+                        <td>{{ data.total_amount}}</td>
+
+                        <td>{{ data.carrier }}</td>
+                        <td>{{ data.estimated_delivery }}</td>
+
+                        {% if data.is_fully_shipped %}
+                        <td>Delivered</td>
+                        {% else %}
+                        <td>{{ data.get_status_display }}</td>
+                        {% endif %}
+
+                        <td>
+                            <a href="{% url 'logistics:purchase_shipment_detail' data.id %}">Shipment details</a>
+                        </td>
+                    </tr>
+            
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+    </div>
+    
+ <div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
+
+</div>
+
 
 
 
@@ -109,16 +161,57 @@
 
 
 
+
+
+
+
 <script>
-    // Show Django message modal if there are messages
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
-            new bootstrap.Modal(messageModal).show();
-        }
+    $(document).ready(function() {
+        $('#id_purchase_shipment_id').select2({
+            width: '50%',
+            placeholder: 'Search shipment...',
+            allowClear: true,
+            ajax: {
+                url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data.results, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Search for shipment order',
+            allowClear: true
+        });
     });
 
-</script>
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
+            const modalInstance = new bootstrap.Modal(messageModal);
+            modalInstance.show();
+            setTimeout(() => {
+                    modalInstance.hide();
+                }, 5000)
+        }
+    });
+    </script>
+    
 
 
 {% endblock %}

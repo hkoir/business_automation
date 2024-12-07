@@ -1,0 +1,219 @@
+{% extends 'base.html' %}  
+{% load custom_filters %}
+
+
+{% block content %}
+
+<style>
+    
+.select2-container {
+        width: 40% !important; /* Ensure the container is 100% wide */
+    }
+ 
+  
+    
+.select2-search__field {
+        width: 100% !important; 
+    }
+
+  
+.select2-container--default .select2-selection--single {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+    }
+
+</style>
+
+
+<div class="container-fluid main-content">
+    <div class="row">           
+                             
+            <form method="GET" action="{% url 'core:employee_list' %}">  
+                <label for="id_employee_name">Employee name</label>           
+                {{ form.employee_name }}                                                
+                <button type="submit" class="btn btn-primary">Search</button>                            
+             </form>
+            <h6 class="text-center mt-2">             
+                {% if name %}                 
+                 Search result for <b>{{ name }}</b>
+                {% endif %} 
+            </h6>             
+        <hr>
+        <div class="col">
+
+            <h4>Employee list</h4>
+            <table class="table table-border">
+                <thead>
+                    <tr class="bg-primary text-white">
+                        <th>Name</th>
+                        <th>Employee ID</th>
+                        <th>Designation</th>
+                        <th>Date of joining</th>
+                        <th>Level</th>
+            
+                        <th>Create Pay slip</th>
+                        <th>Create salary certicate</th>
+                        <th>Create experience certificate</th>
+                        <th>Change history</th>
+                     
+                       
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in page_obj %}
+                    <tr>
+                        <td>{{ employee.name }}</td>    
+                        <td>{{ employee.employee_code}}</td>         
+                        <td>{{ employee.position }}</td>
+                        <td>{{ employee.joining_date }}</td>
+                        <td>{{ employee.employe_level }}</td>
+            
+                        <td>
+                            <a href="{% url 'core:generate_pay_slip' employee.id %}">Click to create</a>
+                        </td>           
+                        <td>
+                            <a href="{% url 'core:generate_salary_certificate' employee.id %}">Click to create</a>
+                        </td> 
+                        <td>
+                            <a href="{% url 'core:generate_experience_certificate' employee.id %}">Click to create</a>
+                        </td> 
+
+                        <td>
+                            <a href="{% url 'core:view_employee_changes_single' employee.id %}">Change History</a>
+                        </td> 
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+
+
+        <h2>Employee Change History</h2>
+
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Date</th>
+                    <th>User</th>
+                    <th>Change Type</th>
+                    <th>Field</th>
+                    <th>Old Value</th>
+                    <th>New Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in history_records %}
+                <tr>
+                    <td>{{ record.employee }}</td>
+                    <td>{{ record.date|date:"Y-m-d H:i:s" }}</td>
+                    <td>{{ record.user }}</td>
+                    <td>
+                        {% if record.type == '+' %}
+                            Created
+                        {% elif record.type == '~' %}
+                            Updated
+                        {% elif record.type == '-' %}
+                            Deleted
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </td>
+                    <td colspan="3">
+                        <ul>
+                            {% for change in record.changes %}
+                            <li>
+                                <strong>{{ change.field }}:</strong> 
+                                Old Value: {{ change.old_value }} <br>
+                                New Value: {{ change.new_value }}
+                            </li>
+                            {% empty %}
+                            <li>No changes</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center;">No history records found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        
+        
+
+
+
+
+
+    </div>
+
+      <!-- Pagination Controls -->
+      <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+
+
+</div>
+
+
+
+<h4 style="height:400px"></h4>
+
+<script>
+    $(document).ready(function() {
+        $('#id_employee_name').select2({
+            width: '100%',
+            placeholder: 'Search employee...',
+            allowClear: true,
+            ajax: {
+                url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data.results, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Search for employee',
+            allowClear: true
+        });
+    });
+    </script>
+    
+
+{% endblock %}

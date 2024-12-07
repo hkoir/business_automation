@@ -1,0 +1,29 @@
+{% extends 'sub_base.html' %}  
+
+{% block content %}
+
+
+
+
+<div class="container-fluid main-content">
+    <div class="row">
+        <div class="col-12 col-md-3"></div>
+        <div class="col-12 col-md-6">
+            <div class="card shadow" style="padding:10px;background-color:aliceblue;">
+                <div class="card-body">
+                    <h6 class="card-title text-center"><strong style="color:chocolate">You activation has expired.</strong> </h6>
+                    <h6 class="card-title text-center"><strong style="color:green">Apply for reactivation</strong> </h6>
+                    <form method="post" enctype="multipart/form-data" action="" id="add_category">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" name="add_to_basket" class="btn btn-primary">Submit</button>
+                    </form>
+                 </div>
+            </div>           
+        </div>
+        <div class="col-12 col-md-3"></div>
+    </div>
+</div>
+
+<div style="height:800px" ></div>
+{% endblock %}

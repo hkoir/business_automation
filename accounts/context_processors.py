@@ -14,3 +14,13 @@ def user_info(request):
         'user_info': request.user.username if request.user.is_authenticated else None,  # Adjust to show username or desired field
         'profile_picture_url': profile_picture_url
     }
+
+
+from reporting.models import Notification
+
+def notifications_context(request):
+    if request.user.is_authenticated: 
+        notifications = Notification.objects.filter(user=request.user, is_read=False)
+    else:
+        notifications = []
+    return {'notifications': notifications}

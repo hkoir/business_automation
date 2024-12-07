@@ -8,7 +8,7 @@ from django.db.models import Sum
 from customer.models import Customer
 from product.models import Product
 
-
+from django.db.models import Q
 
 
 class SaleRequestOrder(models.Model):    
@@ -27,7 +27,6 @@ class SaleRequestOrder(models.Model):
     customer = models.ForeignKey(Customer, related_name='request_customer_sale', on_delete=models.CASCADE,null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
     remarks=models.TextField(null=True,blank=True)
 
     approval_data = models.JSONField(default=dict,null=True,blank=True)
@@ -46,17 +45,19 @@ class SaleRequestOrder(models.Model):
                 sale_request_item=request_item
             ).aggregate(total=Sum('quantity'))['total'] or 0
 
-            if total_ordered_quantity < request_item.quantity:
-                return False 
-        return True  
-
+            if total_ordered_quantity >= request_item.quantity:
+                return True
+        return False
+    
+        
+      
     def save(self,*args,**kwargs):
         if not self.order_id:
             self.order_id= f"PROID-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args,*kwargs)
 
     def __str__(self):
-        return f" sale request order={self.order_id}:status: {self.status} "
+        return self.order_id
 
 
 
@@ -67,9 +68,14 @@ class SaleRequestItem(models.Model):
     product = models.ForeignKey(Product,related_name='sale_request_item', on_delete=models.CASCADE,null=True, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)   
     priority = models.CharField(max_length=20, choices=[('LOW', 'Low'), ('MEDIUM', 'Medium'), ('HIGH', 'High')],null=True, blank=True)
+    STATUS_CHOICES = [
+        ('PENDING', 'PENDING'),
+        ('INSPECTED', 'INSPECTED'),
+        ('DELIVERED', 'DELIVERED'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
 
     def save(self, *args, **kwargs):
         if not self.request_id:
@@ -102,7 +108,6 @@ class SaleOrder(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     remarks = models.TextField(null=True, blank=True)
-    history=HistoricalRecords()
     remarks=models.TextField(null=True,blank=True)
 
     approval_data = models.JSONField(default=dict,null=True,blank=True)
@@ -133,8 +138,9 @@ class SaleOrder(models.Model):
     @property
     def is_full_delivered(self):  
         total_delivered = self.sale_shipment.all().aggregate(
-            total_dispatched=Sum('sale_shipment_dispatch__dispatch_quantity')
-        )['total_dispatched'] or 0
+        total_dispatched=Sum(
+            'sale_shipment_dispatch__dispatch_quantity', 
+            filter=Q(sale_shipment_dispatch__status='DELIVERED')))['total_dispatched'] or 0
         
         total_ordered = self.sale_order.all().aggregate(
             total_ordered=Sum('quantity')
@@ -142,7 +148,8 @@ class SaleOrder(models.Model):
         return total_delivered >= total_ordered
 
     def __str__(self):
-        return f" Order ID:{self.order_id} amount:{self.total_amount};"
+        return self.order_id
+
 
 
 class SaleOrderItem(models.Model):
@@ -158,14 +165,14 @@ class SaleOrderItem(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'PENDING'),
         ('INSPECTED', 'INSPECTED'),
-        ('COMPLETED', 'COMPLETED'),
+        ('DELIVERED', 'DELIVERED'),
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     sale_date = models.DateTimeField(auto_now_add=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateField(auto_now=True)
     remarks = models.TextField(null=True, blank=True)
-    history=HistoricalRecords()
+
 
     def get_warehouse(self):
         Warehouse = apps.get_model('inventory', 'Warehouse')
@@ -185,7 +192,7 @@ class SaleOrderItem(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.product.name} customer:{self.sale_order.customer.name}:qty:{self.quantity};"
+        return f"{self.product.name}:qty:{self.quantity};"
 
 
 
@@ -220,7 +227,7 @@ class SaleQualityControl(models.Model):
     comments = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+  
 
 
     def get_sale_dispatch_item(self):

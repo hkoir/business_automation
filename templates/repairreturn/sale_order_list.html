@@ -1,5 +1,6 @@
 {% extends 'base.html' %}  
 
+{% load custom_filters %}
 {% block content %}
 
 <style>
@@ -84,25 +85,64 @@ table {
 
 
 <div class="container-fluid main-content">
-    <div class="row">         
+    <div class="row">          
+        <div class="col-12">     
+            <div class="container">
+                <div class="row">
+                    <div class="col-7">
+                        <form method ="GET" action="">
+                            <label for="id_sale_order_id"> Sale Order</label>
+                             {{ form.sale_order_id }}
+                            <button type="Submit" class="btn btn-primary">Search</button>                           
+                        </form>           
+                    </div>
+                    <div class="col-5">                  
+                        {% if sale_order_number %}
+                            Search result for sale order: <b>{{ sale_order_number }}</b>
+                            {% else %}
+                        <span> ID does not match</span>
+                        {% endif %}  
+                    
+                    </div>
+                </div>
+            </div>
+
+        </div>      
+        <hr class="mt-2">
+
+          
         <div class="col">       
 
-            <h4> Placed Sale orders</h4>
+            <h4> Repair Return</h4>
             <table class="table table-striped">
-                <thead>
+                <thead class="bg-primary text-white">
                     <tr>                   
-                        <th class="text-center p-2">Sale Order Number</th>                    
+                        <th class="text-center p-2">Sale Order Number</th>    
+                        <th class="text-center p-2">Customer</th>                  
                          <th class="text-center p-2">Total amount</th> 
-                         <th class="text-center p-2">Create and view RRR</th>                
+                         <th class="text-center p-2">Date sold</th> 
+                         <th class="text-center p-2">Days Passed</th> 
+                         <th class="text-center p-2">Create RRR</th>    
+                         <th class="text-center p-2">View RRR Status</th>              
                      
                     </tr>
                 </thead>
                 <tbody>
-                    {% for order in sale_orders %}                  
+                    {% for order in page_obj %}                  
                         <tr>                          
-                          <td class="text-center p-1" style="white-space: nowrap;">{{ order.order_id }}</td>                           
-                          <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount}}</td>
-                          <td><a href="{% url 'repairreturn:create_return_request' order.id %}">View and Apply</a></td>
+                          <td class="text-center p-1" style="white-space: nowrap;">{{ order.order_id }}</td> 
+                          <td class="text-center p-1" style="white-space: nowrap;">{{ order.customer.name}}</td>                           
+                          <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount|add_commas}}</td>
+                          <td class="text-center p-2" style="white-space: nowrap;">{{order.created_at|date:'M-d,Y'}}</td>
+                          <td class="text-center">
+                            {% if order.created_at %}
+                                {{ order.created_at|timesince }}
+                            {% else %}
+                                Not Sold Yet
+                            {% endif %}
+                        </td>
+                          <td><a href="{% url 'repairreturn:create_return_request' order.id %}"> Apply for repair return</a></td>
+                          <td><a href="{% url 'repairreturn:return_request_progress' order.id %}">View Progress</a></td>
                            
 
 
@@ -180,8 +220,41 @@ table {
 
 
 
-<!-- JavaScript to trigger modal -->
+
 <script>
+    $(document).ready(function() {
+        $('#id_sale_order_id').select2({
+            width: '70%',
+            placeholder: 'Search sale order...',
+            allowClear: true,
+            ajax: {
+                url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data.results, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Search for sale order',
+            allowClear: true
+        });
+    });
+
+
     document.addEventListener("DOMContentLoaded", function() {
         const messageModal = document.getElementById('messageModal');
         const messagesContainer = document.getElementById('messagesContainer');
@@ -193,7 +266,9 @@ table {
                 }, 5000)
         }
     });
-</script>
+    </script>
+    
+
 
 
 

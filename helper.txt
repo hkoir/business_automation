@@ -1,0 +1,36 @@
+python manage.py makemigrations
+
+python manage.py migrate_schemas --shared
+
+python manage.py makemigrations
+python manage.py migrate_schemas
+
+tenant = Client(schema_name='public', name='Public')
+tenant.save()
+domain=Domain(domain_name ='localhost', tenant=tenant,is_primary=True)
+domain.save()
+
+
+tenant = Client(schema_name='company-1', name='Company-1')
+tenant.save()
+domain=Domain(domain_name ='company-1.localhost', tenant=tenant,is_primary=True)
+domain.save()
+
+tenant = Client(schema_name='company-2', name='Company-2')
+tenant.save()
+domain=Domain(domain_name ='company-2.localhost', tenant=tenant,is_primary=True)
+domain.save()
+
+
+python manage.py createsuperuser>> for public superuser/general purpose??
+python manage.py tenant_command createsuperuser --schema=company-1
+python manage.py tenant_command createsuperuser --schema=company-2
+
+
+GIT
+
+git remote add origin https://github.com/your-username/your-repo-name.git
+Push the code to the remote repository:
+
+git branch -M main
+git push -u origin main

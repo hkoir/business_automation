@@ -1,5 +1,5 @@
 {% extends 'base.html' %}  
-
+{% load custom_filters %}
 {% block content %}
 
 
@@ -31,7 +31,10 @@ table {
     table thead th {
     white-space: normal;
     }
-
+.table td,th{
+    text-align: center;
+    white-space: nowrap;
+}
 
     
     .select2-container {
@@ -60,9 +63,13 @@ table {
     </style>
 
 
-<h2>Invoice Details - {{ invoice.invoice_number }}</h2>
+<h2>Invoice number - {{ invoice.invoice_number }}</h2>
 
 <table class="table table-striped">
+    <tr>
+        <th>Shipment ID</th>
+        <td>{{ invoice.purchase_shipment }}</td>
+    </tr>
     <tr>
         <th>Invoice Number</th>
         <td>{{ invoice.invoice_number }}</td>
@@ -73,7 +80,7 @@ table {
     </tr>
     <tr>
         <th>Amount Due</th>
-        <td>{{ invoice.amount_due }}</td>
+        <td>{{ invoice.amount_due|add_commas }}</td>
     </tr>
     <tr>
         <th>Tax Rate</th>
@@ -110,7 +117,7 @@ table {
             {% for payment in payments %}
                 <tr>
                     <td>{{ payment.payment_id }}</td>
-                    <td>{{ payment.amount }}</td>
+                    <td>{{ payment.amount|add_commas }}</td>
                     <td>{{ payment.payment_date }}</td>
                     <td>{{ payment.payment_method }}</td>
                 </tr>
@@ -143,7 +150,7 @@ table {
     </div>
 </div>
 
-
+<div style="height:1000px"></div>
 
 <script>
     // Show Django message modal if there are messages

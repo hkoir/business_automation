@@ -10,6 +10,7 @@ from django.apps import apps
 
 class Supplier(models.Model):
     name = models.CharField(max_length=255,null=True, blank=True)
+    logo = models.ImageField(upload_to='company_logo/',blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='supplier_user')
     supplier_id = models.CharField(max_length=150, null=True, blank=True)
     contact_person = models.CharField(max_length=255,null=True, blank=True)
@@ -18,7 +19,7 @@ class Supplier(models.Model):
     website = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+ 
     
     def save(self, *args, **kwargs):
         if not self.supplier_id:
@@ -41,7 +42,7 @@ class Location(models.Model):
     postal_code = models.CharField(max_length=20,null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+ 
 
     def save(self, *args, **kwargs):
         if not self.location_id:
@@ -66,7 +67,7 @@ class SupplierPerformance(models.Model):
     feedback = models.TextField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     def get_purchase_order(self):
         PurchaseOrder = apps.get_model('purchase', 'PurchaseOrder')

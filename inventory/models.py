@@ -1,16 +1,19 @@
 
 from django.db import models
-from product.models import Product
 import uuid
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.apps import apps
 from simple_history.models import HistoricalRecords
 
+import logging
+logger = logging.getLogger(__name__)
+
+from product.models import Product
+from manufacture.models import MaterialsRequestOrder
 from sales.models import SaleOrder
 from manufacture.models import ReceiveFinishedGoods
 from purchase.models import PurchaseOrder
-
 
 
 
@@ -21,9 +24,11 @@ class Warehouse(models.Model):
     address = models.CharField(max_length=255, blank=True, null=True)
     city=models.CharField(max_length=100,null=True,blank=True)
     description = models.TextField(blank=True, null=True)
+    reorder_level = models.PositiveIntegerField(default=10,null=True,blank=True)
+    lead_time = models.PositiveIntegerField(null=True,blank=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     def save(self, *args, **kwargs):
         if not self.warehouse_id:
@@ -31,7 +36,7 @@ class Warehouse(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f" {self.name} at {self.locations.first()} "
+        return f" {self.name} "
 
 
 
@@ -44,7 +49,7 @@ class Location(models.Model):
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     def save(self, *args, **kwargs):
         if not self.location_id:
@@ -54,10 +59,7 @@ class Location(models.Model):
     def __str__(self):
         return self.name
 
-import logging
-logger = logging.getLogger(__name__)
-
-from manufacture.models import MaterialsRequestOrder
+from operations.models import ExistingOrder,OperationsRequestOrder
 
 class InventoryTransaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='inventory_transaction_user')
@@ -74,21 +76,22 @@ class InventoryTransaction(models.Model):
         ('REPLACEMENT_IN', 'Replacement In'),
         ('TRANSFER_OUT', 'Transfer Out'),
         ('TRANSFER_IN', 'Transfer In'),
+        ('EXISTING_ITEM_IN', 'Existing items'),
+        ('OPERATIONS_OUT', 'Operations out'),
     ],
     null=True, blank=True
-)
-
-    
+    )    
     quantity = models.PositiveIntegerField(null=True, blank=True)
-    transaction_date = models.DateTimeField(auto_now_add=True)    
-   
+    transaction_date = models.DateTimeField(auto_now_add=True)       
     purchase_order = models.ForeignKey(PurchaseOrder, related_name='purchase_transactions', null=True, blank=True, on_delete=models.CASCADE)
     sales_order = models.ForeignKey(SaleOrder, related_name='sale_transactions', null=True, blank=True, on_delete=models.CASCADE)
     manufacture_order = models.ForeignKey(MaterialsRequestOrder,related_name='manufacure_inventory',null=True,blank=True, on_delete=models.CASCADE)
+    existing_items_order = models.ForeignKey(ExistingOrder,related_name='Existing_items_inventory',null=True,blank=True, on_delete=models.CASCADE)
+    operations_request_order = models.ForeignKey(OperationsRequestOrder,related_name='operations_request_order_inventory',null=True,blank=True, on_delete=models.CASCADE)
     remarks = models.TextField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     def update_inventory(self):
         try:
@@ -103,14 +106,14 @@ class InventoryTransaction(models.Model):
             if created:
                 logger.info(f"Created new inventory record for {self.product.name} in {self.warehouse.name}")
 
-            if self.transaction_type in ['OUTBOUND', 'TRANSFER_OUT', 'REPLACEMENT_OUT']:
+            if self.transaction_type in ['OUTBOUND', 'TRANSFER_OUT', 'REPLACEMENT_OUT','OPERATIONS_OUT']:
                 if inventory.quantity < self.quantity:
                     raise ValueError(
                         f"Insufficient stock for {self.product.name} in {self.warehouse.name}."
                     )
                 inventory.quantity -= self.quantity
 
-            elif self.transaction_type in ['INBOUND', 'MANUFACTURE', 'TRANSFER_IN']:
+            elif self.transaction_type in ['INBOUND', 'MANUFACTURE_IN', 'TRANSFER_IN','EXISTING_ITEM_IN']:
                 inventory.quantity += self.quantity
 
             else:
@@ -174,14 +177,15 @@ class Inventory(models.Model):
         null=True,
         blank=True
     )
-    quantity = models.IntegerField(default=0,null=True,blank=True)  # Add this field for direct updates
+    quantity = models.IntegerField(default=0,null=True,blank=True) 
+    reorder_level = models.PositiveIntegerField(default=10,null=True,blank=True)
     remarks = models.TextField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
     def __str__(self):
-        return f"{self.warehouse} - {self.product} available qty:{self.quantity}"
+        return f"{self.warehouse}"
 
 
 
@@ -198,7 +202,6 @@ class TransferOrder(models.Model):
         return self.order_number
     
 
-from django.db import transaction
 
 class TransferItem(models.Model):
     transfer_order = models.ForeignKey(TransferOrder, related_name='transfers', on_delete=models.CASCADE, null=True, blank=True)
@@ -231,3 +234,7 @@ class ReorderLevel(models.Model):
 
     class Meta:
         unique_together = ('product', 'warehouse')  
+
+
+
+

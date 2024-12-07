@@ -10,6 +10,7 @@ app_name = 'repairreturn'
 urlpatterns = [  
     
   path('create_return_request/<int:sale_order_id>/', views.create_return_request, name='create_return_request'),
+  path('return_request_progress/<int:sale_order_id>/', views.return_request_progress, name='return_request_progress'),
   path('return_request_list/', views.return_request_list, name='return_request_list'),
   path('manage_return_request/<int:return_id>/', views.manage_return_request, name='manage_return_request'),
   path('faulty_product_list/', views.faulty_product_list, name='faulty_product_list'),

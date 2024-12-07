@@ -124,14 +124,23 @@ class SaleOrderForm(forms.ModelForm):
         super(SaleOrderForm, self).__init__(*args, **kwargs)
 
         if request_instance:
-            self.fields['sale_request_order'].queryset = SaleRequestOrder.objects.filter(sale_request_order=request_instance.id)
-            self.fields['sale_request_item'].queryset = SaleRequestItem.objects.filter(sale_request_order=request_instance)  # Filter `sale_request_item` by `sale_request_order`
+            # Filter fields based on the provided request_instance
+            self.fields['sale_request_order'].queryset = SaleRequestOrder.objects.filter(id=request_instance.id)
+            self.fields['sale_request_item'].queryset = SaleRequestItem.objects.filter(sale_request_order=request_instance)
             self.fields['customer'].queryset = Customer.objects.filter(request_customer_sale=request_instance.id)
+
+            # Set initial values if not already provided
+            if 'initial' not in kwargs:
+                self.initial.update({
+                    'sale_request_order': request_instance,
+                    'customer': request_instance.customer,  # Assuming `customer` is related to `SaleRequestOrder`
+                })
         else:
+            # Default querysets when no request_instance is provided
             self.fields['sale_request_order'].queryset = SaleRequestOrder.objects.all()
             self.fields['sale_request_item'].queryset = SaleRequestItem.objects.all()
             self.fields['customer'].queryset = Customer.objects.all()
-           
+
 
 
 

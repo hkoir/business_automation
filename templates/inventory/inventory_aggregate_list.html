@@ -5,61 +5,57 @@
 {% block content %}
 
 
-<style>
-
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    }
-
-    
-    .table th, td {
-
-        /* border: 1px solid black;  */
-        vertical-align: middle;
-        padding: 0px;
-        text-align: center;
-        font-size: 14px;
-        padding:10px;
-    }
-
-    .table td{
-        white-space: nowrap;
-    }
-       
-    
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
+ 
 
 <div class="container-fluid main-content">
     <div class="row">
-        <h4 class="text-center" style="color:blue;font-weight: bold;">DOPS Inventory Summary</h4>
+      <h4 class="text-center mb-4" style="color:blue;font-weight: bold;">  DOPS Inventory Summary</h4>
+        <div class="col-12">                          
+            <form method="GET" action="{% url 'inventory:inventory_aggregate_list' %}">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Start Date: {{ form.start_date }}
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            End Date: {{ form.end_date }}
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Days: {{ form.days }}
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Warehouse Name: {{ form.warehouse_name }}
+                        </div> 
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Product Name: {{ form.product_name }}
+                        </div> 
+                        <div class="col-md-3 col-sm-6 mt-2">
+                            <button type="submit" class="btn btn-primary">Generate Data</button> 
+                            
+                        </div>
+                    </div>
+                </div>                    
+            </form>           
+          </div>
+          <span class="text-center"> 
+           
+            {% if days %}
+              Result for last {{ days }} days
+            {% elif start_date and end_date %}
+               result  from: {{ start_date }} to {{ end_date }}
+            {% endif %} 
+        </span>   
 
-
+        <h4 class="text-center" style="color:blue;font-weight: bold;"></h4>
+        <h4 class="text-center" style="color: rgb(8, 57, 19);font-weight: bold;">
+            Total Stock Value: {{ grand_total_stock_value|add_commas }}&nbsp;&nbsp;
+        <span style="font-size: 14px;">
+        <a href="{% url 'inventory:inventory_executive_sum' %}">Stock value</a>:
+        <a href="{% url 'inventory:inventory_list' %}">Product in warehouse</a>:
+        <a href="{% url 'inventory:inventory_aggregate_list' %}">Stocked Prodcut</a>
+        
+        </span>
+    </h4>
 
         <div class="col-12" style="margin-bottom: 20px;">
             <div class="col-12">
@@ -80,21 +76,15 @@
                         <div class="col">                           
                             <table class="table table-striped">
                                
-                                <thead>
-                                    <tr>
-                                        <h4 style="color: rgb(9, 225, 59);font-weight: bold;">
-                                            Total Stock Value: {{ grand_total_stock_value|add_commas }}
-                                        <span style="font-size: 14px;">
-                                        <a href="{% url 'inventory:inventory_executive_sum' %}">Stock value</a>:
-                                        <a href="{% url 'inventory:inventory_list' %}">Product in warehouse</a>:
-                                        <a href="{% url 'inventory:inventory_aggregate_list' %}">Stocked Prodcut</a>
-                                        
-                                        </span>
-                                    </h4>
+                                <thead>                                   
+                                       
+                                    <tr class="bg-primary text-white">
                                         <th>Product Name</th>
                                         <th>Total Purchase</th>
+                                        <th>Total Existing</th>
                                         <th>Total Manufacture</th>
-                                        <th>Total Sold</th>                                   
+                                        <th>Total Sold</th>   
+                                        <th>Total operations out</th>                                 
                                         <th>Total Transfer In</th>
                                         <th>Total Transfer Out</th>
                                         <th>Total Replacement</th>
@@ -107,11 +97,13 @@
                                     <tr>
                                         <td>{{ product.product }}</td>
                                         <td>{{ product.total_purchase }}</td>
+                                        <td>{{ product.total_existing_in }}</td>
                                         <td>{{ product.total_manufacture }}</td>
-                                        <td>{{ product.total_sold }}</td>                                  
+                                        <td>{{ product.total_sold }}</td>     
+                                        <td>{{ product.total_operations_out }}</td>                               
                                         <td>{{ product.total_transfer_in }}</td>
                                         <td>{{ product.total_transfer_out }}</td>
-                                        <td>{{ product.total_replacement }}</td>
+                                        <td>{{ product.total_replacement_out }}</td>
                                         <td>{{ product.total_available }}</td>
                                         <td>{{ product.total_stock_value|add_commas }}</td>
                                     </tr>
@@ -189,24 +181,29 @@
     // Parse the JSON data passed from the view
     const chartData = JSON.parse('{{ warehouse_json|escapejs }}');
 // Initialize arrays for each dataset
-const totalPurchase = [];
+    const totalPurchase = [];
     const totalManufacture = [];
+    const totalExistingIn = [];
+    const totalOperationsOut = [];
     const totalSold = [];
     const totalAvailable = [];
     const totalTransferIn = [];
     const totalTransferOut = [];
-    const totalReplacement = [];
+    const totalReplacementOut = [];
     const totalStock= [];
 
     // Populate arrays for each dataset
     chartData.labels.forEach((label, index) => {
         totalPurchase.push(chartData.total_purchase[index] || 0);
         totalManufacture.push(chartData.total_manufacture[index] || 0);
+        totalExistingIn.push(chartData.total_existing_in[index] || 0);
+        totalOperationsOut.push(chartData.total_operations_out[index] || 0);
+       
         totalSold.push(chartData.total_sold[index] || 0);
         totalAvailable.push(chartData.total_available[index] || 0);
         totalTransferIn.push(chartData.total_transfer_in[index] || 0);
         totalTransferOut.push(chartData.total_transfer_out[index] || 0);
-        totalReplacement.push(chartData.total_replacement[index] || 0);
+        totalReplacementOut.push(chartData.total_replacement_out[index] || 0);
         totalStock.push(chartData.total_stock[index] || 0);
     });
 
@@ -218,7 +215,7 @@ const totalPurchase = [];
         ...totalManufacture,
         ...totalTransferIn,
         ...totalTransferOut,
-        ...totalReplacement,
+        ...totalReplacementOut,
         ...totalStock,
     ) * 1.4;
 
@@ -245,6 +242,13 @@ const totalPurchase = [];
                     borderWidth: 1
                 },
                 {
+                    label: 'Total Existing',
+                    data: totalExistingIn,
+                    backgroundColor: 'rgba(0, 188, 212, 0.5)', // Teal
+                    borderColor: 'rgba(0, 188, 212, 1)',       // Dark Teal
+                    borderWidth: 1
+                },
+                {
                     label: 'Total Manufacture',
                     data: totalManufacture,
                     backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
@@ -260,17 +264,17 @@ const totalPurchase = [];
                     borderWidth: 1
                 },
 
-                {
-                    label: 'Total Available',
-                    data: totalAvailable,
-                    backgroundColor: 'rgba(233, 30, 99, 0.5)',  // Pink
-                    borderColor: 'rgba(233, 30, 99, 1)',        // Dark Pink
-                    borderWidth: 1
-                },
-               
+                             
                 {
                     label: 'Total Sold',
                     data: totalSold,
+                    backgroundColor: 'rgba(255, 87, 34, 0.5)',  // Deep Orange
+                    borderColor: 'rgba(255, 87, 34, 1)',        // Dark Deep Orange
+                    borderWidth: 1
+                },
+                {
+                    label: 'Total Operations Out',
+                    data: totalOperationsOut,
                     backgroundColor: 'rgba(255, 87, 34, 0.5)',  // Deep Orange
                     borderColor: 'rgba(255, 87, 34, 1)',        // Dark Deep Orange
                     borderWidth: 1
@@ -284,12 +288,19 @@ const totalPurchase = [];
                     borderWidth: 1
                 },
                 {
-                    label: 'Total Replacement',
-                    data: totalReplacement,
+                    label: 'Total Replacement out',
+                    data: totalReplacementOut,
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
                     borderWidth: 1
-                }
+                },
+                {
+                    label: 'Total Available',
+                    data: totalAvailable,
+                    backgroundColor: 'rgba(0, 150, 136, 1)',  // Pink
+                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Pink
+                    borderWidth: 1
+                },
             ]
         },
         options: {

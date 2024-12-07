@@ -51,7 +51,8 @@
         <h4 class="text-center" style="color:green;margin-top:10px"><strong>DOPS Inventory management system</strong></h6>  
             
 
-        <div class="col-12">                
+        <div class="col-12">    
+                        
             <form method="GET" action="{% url 'reporting:warehouse_report' %}">
                 <div class="container-fluid">
                     <div class="row">
@@ -72,12 +73,12 @@
                         </div> 
                         <div class="col-md-3 col-sm-6 mt-2">
                             <button type="submit" class="btn btn-primary">Generate Data</button> 
-                            <h6>  Data for
+                            <span>  Data for
                                 {% if days %}
                                     the last {{ days }} days
                                 {% elif start_date and end_date %}
                                     from: {{ start_date }} to {{ end_date }}
-                                {% endif %} </h6>                     
+                                {% endif %} </span>                    
                         
                         </div>
                     </div>

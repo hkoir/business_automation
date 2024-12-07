@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+
+.table th{
+    text-align: center;
+}
+.table td{
+    text-align: center;
+}
+
+       
+       .select2-container {
+           width: 60% !important; /* Ensure the container is 100% wide */
+       }
+       
+       .select2-container .select2-selection--single {
+           width: 100% !important; /* Ensure the selection area is also 100% wide */
+       }
+       
+       .select2-dropdown {
+           width: auto !important; 
+       }
+       
+       .select2-search__field {
+           width: 80% !important; 
+       }
+       
+       .main-content {   
+           overflow-y: auto;
+           margin-left:0px;
+           position: absolute;
+           width: 100%;
+           left: 0;
+               }
+       </style>
+   
+
+
+   <div class="container-fluid main-content">
+    <div class="row">       
+
+           <div class="col-12">     
+            <div class="container">
+                <div class="row">
+                    <div class="col-7">
+                        <form method ="GET" action="">
+                            <label for="id_operations_request_order_id"> Request Order id</label>
+                             {{ form.operations_request_order_id}}
+                            <button type="Submit" class="btn btn-primary">Search</button>                           
+                        </form>           
+                    </div>
+                    <div class="col-5">                  
+                        {% if request_order %}
+                            Search result for sale order: <b>{{ request_order }}</b>
+                            {% else %}
+                        <span> ID does not match</span>
+                        {% endif %}  
+                    
+                    </div>
+                </div>
+            </div>
+
+        </div>      
+        <hr class="mt-2">
+        <div class="col-12 col-md-12">
+          
+                <table class="table table-striped">
+                    <thead>                        
+                    <h4>Operations Request Order</h4>
+                        <tr class="bg-primary text-white">
+                            
+                            <th>Request Number</th>                            
+                            <th style="white-space: nowrap;">Total amount</th>
+                            <th style="white-space: nowrap;">Requested items</th>
+                            <th style="white-space: nowrap;">Requested by</th>
+                            <th style="white-space: nowrap;">Create Delivery</th>
+                         
+                                              
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in page_obj%}
+                        <tr>
+                            <td style="white-space: nowrap;">{{ order.order_id }}</td>                             
+                            <td style="white-space: nowrap;">{{ order.total_amount }}</td> 
+                            <td style="white-space: nowrap;">
+                                <a href="{% url 'operations:operations_request_order_items' order.id %}">Requested items</a>
+                            </td>  
+                            <td style="white-space: nowrap;">{{ order.user}}</td> 
+                            <td>
+                             <a href="{% url 'operations:create_operations_items_delivery' order.id %}" class="btn btn-sm btn-primary">Create delivery</a></td>                    
+                            
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No deliveries found yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+         
+        </div>
+    </div>
+
+    
+ <div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
+</div>
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div style="height:800px"></div>
+
+<script>
+    $(document).ready(function() {
+        $('#id_operations_request_order_id').select2({
+            width: '70%',
+            placeholder: 'Search order...',
+            allowClear: true,
+            ajax: {
+                url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data.results, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Search for order',
+            allowClear: true
+        });
+    });
+
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
+            const modalInstance = new bootstrap.Modal(messageModal);
+            modalInstance.show();
+            setTimeout(() => {
+                    modalInstance.hide();
+                }, 5000)
+        }
+    });
+    </script>
+    
+
+
+
+{% endblock %}

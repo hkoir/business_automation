@@ -1,5 +1,4 @@
 
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 
@@ -9,52 +8,68 @@ import uuid
 from django.db.models import Sum
 from django.db import IntegrityError
 
-
-
-from sales.models import SaleOrder
 from.models import ReturnOrRefund,FaultyProduct, Replacement
-from .forms import ReturnOrRefundForm,ReplacementProductForm,ReturnOrRefundFormInternal
+from sales.models import SaleOrder,SaleOrderItem
+from .forms import ReturnOrRefundForm,ReplacementProductForm,ReturnOrRefundFormInternal,FaultyProductForm
 from inventory.models import Inventory
 from django.utils import timezone
-from.forms import FaultyProductForm,ReturnOrRefundForm,ReplacementProductForm,ReturnOrRefundFormInternal
 
 from django.core.paginator import Paginator
-
-from sales.models import SaleOrder
+from inventory.models import Inventory,InventoryTransaction
+from utils import create_notification,CommonFilterForm
 
 
 def repair_return_dashboard(request):
     return render(request,'repairreturn/dashboard.html')
 
+
+
 def sale_order_list(request):
-    sale_orders = SaleOrder.objects.all()
-    return render(request, 'repairreturn/sale_order_list.html',{'sale_orders':sale_orders})
+    sale_order_number=None
+    form = CommonFilterForm(request.GET or None)
+    sale_orders = SaleOrder.objects.all().order_by('-created_at')
+
+    if form.is_valid():
+        sale_order_number = form.cleaned_data['sale_order_id']
+        if sale_order_number:
+            sale_orders = sale_orders.filter(order_id = sale_order_number)
+
+    paginator = Paginator(sale_orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    form=CommonFilterForm()
+
+    return render(request, 'repairreturn/sale_order_list.html',
+        {
+            'sale_orders':sale_orders,
+            'form':form,
+            'sale_order_number':sale_order_number,
+            'page_obj':page_obj,
+            'sale_order_number':sale_order_number
+        })
 
 
-from sales.models import SaleOrderItem
+
 
 def create_return_request(request, sale_order_id):
     sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
-    sales = sale_order.sale_order.all() 
- 
+    sales = sale_order.sale_order.all()  
     return_requests = ReturnOrRefund.objects.prefetch_related('faulty_products__faulty_replacement').all()
    
     if request.method == 'POST':
-        form = ReturnOrRefundForm(request.POST)
-   
-
+        form = ReturnOrRefundForm(request.POST)  
         sale_id = request.POST.get('sale')
         sale = get_object_or_404(SaleOrderItem, id=sale_id)
-
         if form.is_valid():
             return_refund = form.save(commit=False)
             return_refund.sale = sale
             return_refund.save()
+            create_notification(request.user,f'Customer{sale_order.customer} has placed a repair/return request for:{sale.product}')
             messages.success(request, 'Return/Refund request submitted successfully!')
             return redirect('repairreturn:sale_order_list')  
     else:
-        form = ReturnOrRefundForm()
-
+        form = ReturnOrRefundForm(sale_order_id = sale_order_id)
 
     paginator =Paginator(return_requests,10)
     page_number = request.GET.get('page')
@@ -69,18 +84,44 @@ def create_return_request(request, sale_order_id):
     })
 
 
+def return_request_progress(request, sale_order_id):
+    sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
+    sales = sale_order.sale_order.all()  
+    return_requests = ReturnOrRefund.objects.prefetch_related('faulty_products__faulty_replacement').all()
+      
+    paginator =Paginator(return_requests,10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'repairreturn/refund_return//return_request_progress.html', {
+        'sale_order': sale_order,
+        'sales': sales,
+        'return_requests':return_requests,
+        'page_obj':page_obj
+    })
 
 
 
 def return_request_list(request):
-    returns = ReturnOrRefund.objects.all()
+    return_id=None
+    returns = ReturnOrRefund.objects.all().order_by('-created_at')
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        return_id = form.cleaned_data['sale_order_id']
+        if return_id:
+            returns = returns.filter(sale__sale_order__order_id = return_id)
 
     paginator =Paginator(returns ,10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'repairreturn/refund_return//user_return_request_list.html', {'page_obj': page_obj})
-
-
+    form=CommonFilterForm()
+    return render(request, 'repairreturn/refund_return//user_return_request_list.html',
+         {
+             'page_obj': page_obj,
+             'form':form,
+             'page_obj':page_obj,
+             'return_id':return_id
+        })
 
 
 def manage_return_request(request, return_id):
@@ -116,27 +157,45 @@ def manage_return_request(request, return_id):
 
 
 def faulty_product_list(request):
-    faulty_products = FaultyProduct.objects.all()
+    faulty_product_id=None
+    faulty_products = FaultyProduct.objects.all().order_by('-created_at')
+
+    form=CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        faulty_product_id= form.cleaned_data['sale_order_id']
+        if faulty_product_id:
+              faulty_products =  faulty_products.filter(sale__sale_order__order_id= faulty_product_id)
+
 
     paginator = Paginator(faulty_products,10)
     page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number
-                                  )
+    page_obj = paginator.get_page(page_number)
+    form = CommonFilterForm()
     return render(request, 'repairreturn/refund_return//faulty_product_list.html', 
     {
         'faulty_products':faulty_products,
-        'page_obj':page_obj
+        'page_obj':page_obj,
+        'form':form,
+        'faulty_product_id':faulty_product_id
      })
 
 
 
 def repair_faulty_product(request, faulty_product_id):
     faulty_product = get_object_or_404(FaultyProduct, id=faulty_product_id)
+    product = faulty_product.product
     if request.method == 'POST':
         form = FaultyProductForm(request.POST, instance=faulty_product)
         if form.is_valid():
+            status = form.cleaned_data['status']
             faulty_product = form.save(commit=False)                               
             faulty_product.save()
+            if status == 'REPAIRED_AND_READY':
+                create_notification(request.user, f'Product {product} has been repaired and ready to return')
+
+            if status in ['UNREPAIRABLE','SCRAPPED']:                
+                create_notification(request.user, f'Product {product} can not be repaired.')
+
 
             messages.success(request, f'{faulty_product.product.name} has been processed.')
             return redirect('repairreturn:faulty_product_list')  
@@ -148,7 +207,7 @@ def repair_faulty_product(request, faulty_product_id):
         'form': form
     })
 
-from inventory.models import Inventory,InventoryTransaction
+
 
 def replacement_return_repaired_product(request, faulty_product_id):
     faulty_product = get_object_or_404(FaultyProduct, id=faulty_product_id)
@@ -174,34 +233,29 @@ def replacement_return_repaired_product(request, faulty_product_id):
                             quantity=calculated_replacement_qty,
                             remarks=f"Replacement for Faulty Product ID {faulty_product.id}"
                         )
-                        
-                        # Check if inventory can support the transaction
-                        if inventory_transaction.update_inventory():  # Assume update_inventory checks stock and updates.
+
+                        if inventory_transaction.update_inventory():  
                             replacement.faulty_product = faulty_product
                             replacement.save()
                             messages.success(request, "Replacement process successfully completed and inventory updated.")
+                            create_notification(request.user,f'a replacement for {faulty_product.product} has been given from{faulty_product.sale.warehouse} warehouse ')
                             return redirect('repairreturn:faulty_product_list')
                         else:
-                            inventory_transaction.delete()  # Rollback the transaction
+                            inventory_transaction.delete() 
                             messages.warning(request, "Not enough stock in the inventory for replacement.")
-                            return redirect('repairreturn:faulty_product_list')
-                    
+                            return redirect('repairreturn:faulty_product_list')                    
                     except Exception as e:
                         messages.error(request, f"An error occurred: {e}")
-                        return redirect('repairreturn:faulty_product_list')
-                
+                        return redirect('repairreturn:faulty_product_list')                
                 else:
                     messages.warning(request, "Item has already been processed for repair/replacement.")
-                    return redirect('repairreturn:faulty_product_list')
-            
+                    return redirect('repairreturn:faulty_product_list')            
             elif faulty_product.status == 'REPAIRED':
                 messages.warning(request, "Item has been repaired, so a replacement cannot be made.")
-                return redirect('repairreturn:faulty_product_list')
-                
+                return redirect('repairreturn:faulty_product_list')                
             else:
                 messages.warning(request, "Unexpected product status for replacement.")
-                return redirect('repairreturn:faulty_product_list')
-                
+                return redirect('repairreturn:faulty_product_list')                
         else:
             messages.error(request, "Please correct the errors in the form.")
     else:
@@ -215,16 +269,26 @@ def replacement_return_repaired_product(request, faulty_product_id):
 
 
 def replacement_product_list(request):
+    replacement_ID = None
     replacement_products =Replacement.objects.all()
+    
+    form=CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        replacement_ID= form.cleaned_data['sale_order_id']
+        if replacement_ID:
+              replacement_products =  replacement_products.filter(faulty_product__sale__sale_order__order_id= replacement_ID)
 
     paginator = Paginator(replacement_products,10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    form=CommonFilterForm()
 
     return render(request, 'repairreturn/refund_return//replacement_product_list.html', {
     
     'replacement_products':replacement_products,
-    'page_obj':page_obj
+    'page_obj':page_obj,
+    'form':form,
+    'replacement_ID':replacement_ID
     
     })
 

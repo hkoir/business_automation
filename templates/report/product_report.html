@@ -47,7 +47,7 @@
 
 <div class="container-fluid main-content">
     <div class="row">
-        <h4 class="text-center" style="color:green;margin-bottom:20px;"><strong>DOPS Inventory management system</strong></h6>   
+        <h4 class="text-center" style="color:rgb(240, 145, 12);margin-bottom:20px;"><strong>DOPS Inventory management system</strong></h6>   
                            
             <div class="col-12">  
                 <div class="container-fluid">
@@ -55,18 +55,20 @@
                         <div class="col"></div>
                         <div class="col">
                             <table class="table table-striped">
-                                <h4 style="color:blue">Report for Product: {{ product.name }}:
-                                    <span style="color:rgb(238, 13, 24);font-weight: bold;font-size: 14px;">
+                                <h4 style="color:blue">Product: {{ product.name }}:
+                                    <span style="color:rgb(9, 109, 30);font-weight: bold;font-size: 24px;">
                                         Current stock value: {{ grand_total_stock|add_commas }}
                                     </span></h4>
                                 <thead>
-                                    <tr>
+                                    <tr class="bg-primary text-white">
                                         <th>Warehouse</th>
                                         <th>Total inventory</th>                                     
                                         <th>Total Purchased</th>
+                                        <th>Total Existing</th>
                                         <th>Total Manufacture</th>
                                         <th>Transfer IN</th>
                                         <th>Total Sold</th>
+                                        <th>Operations Out</th>
                                         <th>Total refund</th>
                                         <th>Transfer OUT</th>
                                         <th>Available Quantity</th>
@@ -83,9 +85,11 @@
                                         <td>{{ warehouse.warehouse_name }}</td>
                                         <td>{{ warehouse.total_stock}}</td>
                                         <td>{{ warehouse.total_purchased }}</td>
+                                        <td>{{ warehouse.total_existing_in }}</td>
                                         <td>{{ warehouse.total_manufacture }}</td>
                                         <td>{{ warehouse.total_incoming }}</td>
                                         <td>{{ warehouse.total_sold }}</td>
+                                        <td>{{ warehouse.total_operations_out }}</td>
                                         <td>{{ warehouse.total_refund }}</td>                                     
                                         <td>{{ warehouse.total_outgoing }}</td>
                                         <td>{{ warehouse.total_quantity }}</td>
@@ -105,7 +109,7 @@
         </div>
         <div class="col-12">
             <div class="container-fluid">
-                <div class="row" style="width:1000px">
+                <div class="row">
                     <div class="col-8">
                         <div>
                             <!-- Canvas for the bar chart -->
@@ -146,10 +150,12 @@
     const labels = warehouseData.map(data => data.warehouse_name);
     const totalStock = warehouseData.map(data => data.total_stock);   
     const totalPurchased = warehouseData.map(data => data.total_purchased);
+    const totalExistingIn = warehouseData.map(data => data.total_existing_in);
     const incomingTransfers = warehouseData.map(data => data.total_incoming);
     const totalManufacture = warehouseData.map(data => data.total_manufacture);
 
     const totalSold = warehouseData.map(data => data.total_sold); 
+    const totalOperationsOut = warehouseData.map(data => data.total_operations_out); 
     const outgoingTransfers = warehouseData.map(data => data.total_outgoing);
     const totalRefund = warehouseData.map(data => data.total_refund);  
 
@@ -178,10 +184,17 @@
                         borderWidth: 1
                     },
                     {
+                        label: 'Total Existing',
+                        data: totalExistingIn,
+                        backgroundColor: 'rgba(33, 150, 243, 0.5)', // Blue
+                        borderColor: 'rgba(33, 150, 243, 1)',       // Dark Blue
+                        borderWidth: 1
+                    },
+                    {
                         label: 'Production',
                         data: totalManufacture,
-                        backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
-                        borderColor: 'rgba(255, 193, 7, 1)',        // Dark Amber
+                        backgroundColor: 'rgba(0, 188, 212, 0.5)', // Teal
+                        borderColor: 'rgba(0, 188, 212, 1)',       // Dark Teal
                         borderWidth: 1
                     },
                     {
@@ -194,6 +207,13 @@
                     {
                         label: 'Total Sold',
                         data: totalSold,
+                        backgroundColor: 'rgba(233, 30, 99, 0.5)',  // Pink
+                        borderColor: 'rgba(233, 30, 99, 1)',        // Dark Pink
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Operations out',
+                        data: totalOperationsOut,
                         backgroundColor: 'rgba(233, 30, 99, 0.5)',  // Pink
                         borderColor: 'rgba(233, 30, 99, 1)',        // Dark Pink
                         borderWidth: 1
@@ -215,8 +235,8 @@
                     {
                         label: 'Available Quantity',
                         data: availableQuantities,
-                        backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
-                        borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
+                        backgroundColor: 'rgba(0, 80, 0, 1)',  
+                        borderColor: 'rgba(0, 80, 0, 1)',        
                         borderWidth: 1
                     }
                 ]
@@ -258,9 +278,12 @@
 const doughnutCtx = document.getElementById('warehouseDoughnutChart').getContext('2d');
 const totalStockSum = totalStock.reduce((a, b) => a + b, 0);
 const totalPurchasedSum = totalPurchased.reduce((a, b) => a + b, 0);
+const totalExistingInSum = totalExistingIn.reduce((a, b) => a + b, 0);
 const totalManufactureSum = totalManufacture.reduce((a, b) => a + b, 0);
+
 const incomingSum = incomingTransfers.reduce((a, b) => a + b, 0);
 const totalSoldSum = totalSold.reduce((a, b) => a + b, 0);
+const totalOperationsOutSum = totalOperationsOut.reduce((a, b) => a + b, 0);
 const totalRefundSum = totalRefund.reduce((a, b) => a + b, 0);
 const outgoingSum = outgoingTransfers.reduce((a, b) => a + b, 0);
 const totalQuantitiesSum = availableQuantities.reduce((a, b) => a + b, 0);
@@ -271,9 +294,11 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
         labels: [
             'Total Inventory',
             'Total Purchased',
+            'Total existing',
             'Total Production',
             'Incoming Transfers',
             'Total Sold',
+            'Operations Out',
             'Outgoing Transfers',
             'Total Refund',
             'Available Quantity'
@@ -282,9 +307,12 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
             data: [
                 totalStockSum,
                 totalPurchasedSum,
+                totalExistingInSum,
                 totalManufactureSum,
+
                 incomingSum,
                 totalSoldSum,
+                totalOperationsOutSum,
                 outgoingSum,
                 totalRefundSum,
                 totalQuantitiesSum
@@ -292,22 +320,26 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
             backgroundColor: [
                 '#4CAF50', // Green for "Total Inventory"
                 '#2196F3', // Blue for "Total Purchased"
+                '#00BCD4',  // Teal for existing
                 '#FF9800', // Orange for "Total Production"
                 '#FFC107', // Yellow for "Incoming Transfers"
                 '#E91E63', // Pink for "Total Sold"
+                '#00BCD4',  // Teal for "Operations Quantity"
                 '#9C27B0', // Purple for "Outgoing Transfers"
                 '#607D8B', // Gray for "Total Refund"
-                '#00BCD4'  // Teal for "Available Quantity"
+                '#004e00'  // Teal for "Available Quantity"
             ],
             borderColor: [
                 '#388E3C', // Darker Green
                 '#1976D2', // Darker Blue
+                '#00BCD4',  // Teal for existing
                 '#F57C00', // Darker Orange
                 '#FFA000', // Darker Yellow
                 '#C2185B', // Darker Pink
+                '#00BCD4',  // Teal for "Available Quantity"
                 '#7B1FA2', // Darker Purple
                 '#455A64', // Darker Gray
-                '#0097A7'  // Darker Teal
+                '#004e00'  // Darker Teal
             ],
             borderWidth: 1
         }]

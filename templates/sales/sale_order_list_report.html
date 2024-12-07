@@ -19,7 +19,7 @@ table {
     }
     
     th, td {
-        border: 1px solid black; /* Set border color for individual cells */
+       
         vertical-align: middle;
         padding: 0px;
     }
@@ -64,14 +64,25 @@ table {
 
 
 <div class="container-fluid main-content">
-    <div class="row">    
+    <div class="row">   
+        <h6 class="text-center mb-2">
+            <form method ="GET" action="">
+                Sale Order {{ form.ID_number }}
+                <button type="Submit" class="btn btn-primary">Search</button>
+                {% if sale_order %}
+                Search result for sale order: <b>{{ sale_order }}</b>
+                {% endif %}
+            </form>    
+          
+            </h6>
+            <hr class="mt-2"> 
         
         <div class="col">       
 
             <h4> Placed Sale orders</h4>
             <table class="table table-striped">
                 <thead>
-                    <tr>
+                    <tr class="btn-primary text-white">
                    
                         <th class="text-center p-2">Request Order Number</th>
                         <th class="text-center p-2">Sale Order Number</th>                    
@@ -85,7 +96,7 @@ table {
                     </tr>
                 </thead>
                 <tbody>
-                    {% for order in sale_orders%}
+                    {% for order in page_obj %}
                         <tr>                         
                             <td class="text-center p-1" style="white-space: nowrap;">{{ order.sale_request_order.order_id }}</td>
                             <td class="text-center p-1" style="white-space: nowrap;">{{ order.order_id }}</td>                            

@@ -10,6 +10,7 @@ from django.apps import apps
 
 class Customer(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    logo = models.ImageField(upload_to='company_logo/',blank=True, null=True)
     name = models.CharField(max_length=150,null=True,blank=True)
     customer_id = models.CharField(max_length=150, null=True, blank=True)
     contact_person = models.CharField(max_length=255,null=True,blank=True)
@@ -18,7 +19,7 @@ class Customer(models.Model):
     website = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+ 
     
     def save(self, *args, **kwargs):
         if not self.customer_id:
@@ -43,7 +44,7 @@ class Location(models.Model):
     postal_code = models.CharField(max_length=20,null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
 
     def save(self, *args, **kwargs):
@@ -69,7 +70,7 @@ class CustomerPerformance(models.Model):
     feedback = models.TextField(blank=True, null=True)  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     def get_sale_order(self):
         SaleOrder = apps.get_model('sales', 'SaleOrder')

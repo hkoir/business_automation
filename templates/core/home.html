@@ -2,6 +2,8 @@
 
 {% block content %}
 
+
+
 <h6 class="text-center" style="margin-top: 40px;">User authentication management<br>
     <button class="btn btn-primary">
         <a href="{% url 'accounts:login' %}" style="color:white;text-decoration: none;">Login</a>
@@ -19,7 +21,7 @@
         <a href="{% url 'accounts:password_change' %}" style="color:white;text-decoration: none;">Password Change</a>
     </button>
     <button class="btn btn-info">
-        <a href="{% url 'accounts:password_reset' %}" style="color:white;text-decoration: none;">Forgot password?</a>
+        <a href="{% url 'accounts:pwdreset' %}" style="color:white;text-decoration: none;">Forgot password?</a>
     </button>
 </h6>
 
@@ -88,6 +90,12 @@
         <div class="col-4 col-md-3">  
             <div class="card">     
                 <a href="{% url 'reporting:report_dashboard' %}" class="btn btn-primary">Reports</a> 
+            </div> 
+        </div>
+
+        <div class="col-4 col-md-3">  
+            <div class="card">     
+                <a href="{% url 'operations:operations_dashboard' %}" class="btn btn-primary">Operations</a> 
             </div> 
         </div>
 

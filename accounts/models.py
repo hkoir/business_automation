@@ -13,7 +13,7 @@ class UserProfile(models.Model):
     country = models.CharField(max_length=100, blank=True, null=True)   
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
-    history = HistoricalRecords()
+
 
     def __str__(self):
         return f"{self.user.username}'s Profile"

@@ -1,0 +1,17 @@
+# Virtual environments
+venv/
+myenv/
+*.pyc
+__pycache__/
+
+# Environment variables
+.env
+
+# Django migrations
+*.sqlite3
+
+# Static files
+staticfiles/
+
+# Logs
+*.log

@@ -1,5 +1,7 @@
 {% extends 'base.html' %}  
 
+{% load custom_filters %}
+
 {% block content %}
 
 
@@ -19,7 +21,7 @@ table {
     }
     
     th, td {
-        border: 1px solid black; /* Set border color for individual cells */
+       
         vertical-align: middle;
         padding: 0px;
     }
@@ -68,7 +70,33 @@ table {
 
 
 <div class="container-fluid main-content">
-    <div class="row">    
+    <div class="row">     
+
+        <div class="col-12">     
+            <div class="container">
+                <div class="row">
+                    <div class="col-7">
+                        <form method="GET" action="" class="mb-2">
+                            <label for="id_sale_request_order_id">Sale request order</label>
+                            {{ form.sale_request_order_id }}
+                        <button type="Submit" class="btn btn-sm btn-primary">Search</button>
+                    </form>        
+                    </div>
+                    <div class="col-5">                  
+                        <h6 class="text-center mb-4">
+                            {% if sale_request_order %}
+                            Search result for request order: <b>{{ sale_request_order }}</b>
+                            {% else %}
+                        </h6>
+                        <span> ID does not match</span>
+                        {% endif %}  
+                    
+                    </div>
+                </div>
+            </div>
+
+        </div>      
+        <hr class="mt-2">
         
         <div class="col">       
 
@@ -76,7 +104,7 @@ table {
 
             <table class="table table-striped">
                 <thead>
-                    <tr>
+                    <tr class="btn-primary text-white">
                    
                         <th class="text-center p-2">Order Number</th>
                         <th class="text-center p-2">Total amount</th> 
@@ -95,19 +123,26 @@ table {
                     </tr>
                 </thead>
                 <tbody>
-                    {% for order in sale_request_orders %}
+                    {% for order in page_obj %}
                  
                     <tr>
                          
                     <td class="text-center p-1" style="white-space: nowrap;">{{ order.order_id }}</td>
-                    <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount}}</td>
+                    <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount|add_commas}}</td>
                     <td class="text-center p-2" style="white-space: nowrap;">
                         <a href="{% url 'sales:sale_request_items' order.id %}" style="text-decoration: None;">Items</a>
                     </td>
 
 
                     <td class="text-center p-2" style="white-space: nowrap;">{{order.created_at}}</td>
-                    <td class="text-center p-2" style="white-space: nowrap;">{{order.status}}</td>
+                    
+                    <td class="text-center p-2" style="white-space: nowrap;">
+                        {% if order.status == "DELIVERED" %}                        
+                       <i class="fas fa-check" style="color:green;font-weight: bold;"> {{order.status}}</i>
+                       {% else %}
+                       <span style="color:red;font-weight: bold;">In process</span>
+                       {% endif %}
+                    </td>
                     <td class="text-center p-2" style="white-space: nowrap;">{{order.user}}</td>
 
 
@@ -199,8 +234,8 @@ table {
 
                 <td>
                     {% if order.is_fully_ordered %}                             
-                    <i class="fas fa-check" style="color:green;font-weight: bold;">Fully ordered</i>
-                        {% else %}
+                    <i class="fas fa-check" style="color:green;font-weight: bold;">Fully ordered</i>                   
+                    {% else %}
                     <a href="{% url 'sales:create_sale_order' order.id %}" class="btn btn-sm btn-primary">Create Purchase Order</a>
                     {% endif %}
                 </td>
@@ -263,27 +298,52 @@ table {
 
 
 <script>
-  
-
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal) {
-            const messagesContainer = document.getElementById('messagesContainer');
-            if (messagesContainer && messagesContainer.children.length > 0) {
-                const modalInstance = new bootstrap.Modal(messageModal);
-                modalInstance.show();
-
-                // Optional: Close the modal on hidden event for cleanup
-                messageModal.addEventListener('hidden.bs.modal', function () {
-                    modalInstance.dispose(); // Reset modal instance if needed
-                });
-            }
-        }
+    $(document).ready(function() {
+        $('#id_sale_request_order_id').select2({
+            width: '70%',
+            placeholder: 'Search sale request ID...',
+            allowClear: true,
+            ajax: {
+                url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data.results, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Search for sale request ID',
+            allowClear: true
+        });
     });
 
 
-
-</script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
+            const modalInstance = new bootstrap.Modal(messageModal);
+            modalInstance.show();
+            setTimeout(() => {
+                    modalInstance.hide();
+                }, 5000)
+        }
+    });
+    </script>
+    
 
 
 

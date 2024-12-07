@@ -1,0 +1,178 @@
+
+
+html, body { 
+       font-family: Verdana, sans-serif; 
+      background-color: aliceblue;
+  }
+
+  
+table {
+    border-collapse: collapse;
+    width: 100%;
+
+}
+
+th, td {
+
+    vertical-align: middle;
+    padding: 0px;
+}
+
+th {
+    background-color: rgb(118, 242, 10);
+    
+}
+
+table thead th,td { 
+    text-align: center;
+    vertical-align: middle;
+    }
+
+.table td{   
+    white-space: nowrap;
+    }
+
+
+.select2-container {
+    width: 60% !important; 
+}
+
+.select2-container .select2-selection--single {
+    width: 100% !important; 
+}
+
+.select2-dropdown {
+    width: auto !important; 
+}
+
+.select2-search__field {
+    width: 80% !important; 
+}
+
+
+  .main-content {   
+    overflow-y: auto;
+    margin-left:0px;
+    position: absolute;
+    width: 100%;
+    left: 0;
+        }
+
+
+.custom_navbar{
+    background-color: orange;
+    padding:10px;
+
+    }
+
+    .navbar-brand {
+        font-size: 40px;
+        font-weight: 700;
+        color: #0AEDED;
+        -webkit-text-stroke: #fff 1px;
+
+    }
+
+    .navbar-brand:hover {
+        color: #f0d108;
+
+    }
+
+
+    .menu-color{
+        color:blue;
+        font-size: 20px;;
+    }
+  
+    .dropdown-menu {
+        background-color: white;
+        color:white;
+        font-size: 20px;
+        padding:10px;
+    }
+
+ .navbar-fixed-top {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000; /* Keep it on top of everything */
+}
+
+
+.user-info {
+    text-align: center; 
+}
+
+.profile-picture {
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+}
+
+.welcome-message {
+    font-size: 14px;
+    white-space: nowrap;
+    color: black;
+}
+
+.navbar .nav-link .fas.fa-bell {
+    color: #333;  
+    font-size: 20px;
+}
+
+
+.navbar .nav-link .fas.fa-bell.new-notification {
+    color: #FF5733; 
+}
+
+.navbar .nav-link .badge {
+    font-size: 12px;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: red;
+    color: white;
+}
+
+
+.notification.unread {
+    background-color: #f8d7da; 
+}
+
+/* Add a pulse animation to the bell when there are new notifications */
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+@keyframes rotate {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(15deg); }
+}
+
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.navbar .nav-link .fas.fa-bell.new-notification {
+    color: #FF5733; 
+    animation: shake 1s ease-in-out infinite;
+    /* animation: spin 1.5s linear infinite; */
+}
+
+

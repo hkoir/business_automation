@@ -19,7 +19,7 @@ urlpatterns = [
 
     path('get_locations/', views.get_locations, name='get_locations'), 
     path('complete_quality_control/<int:qc_id>/', views.complete_quality_control, name='complete_quality_control'),    
-    path('complete_sale_quality_control/<int:qc_id>/', views.complete_sale_quality_control, name='complete_sale_quality_control'),
+   # path('complete_sale_quality_control/<int:qc_id>/', views.complete_sale_quality_control, name='complete_sale_quality_control'),
 
     path('inventory_list/', views.inventory_list, name='inventory_list'),
     path('inventory_aggregate_list/', views.inventory_aggregate_list, name='inventory_aggregate_list'),
@@ -33,7 +33,6 @@ urlpatterns = [
   path('transfer_order_list/', views.transfer_order_list, name='transfer_order_list'),
   path('transfer_order_detail/<int:transfer_order_id>/', views.transfer_order_detail, name='transfer_order_detail'),
 
-  path('transfer_report/', views.warehouse_transfer_report, name='transfer_report'),
   
   
 ]

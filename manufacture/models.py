@@ -1,7 +1,5 @@
 
 from django.db import models
-from product.models import Product,Component,BOM
-
 from django.contrib.auth.models import User
 from django.utils import timezone
 import uuid
@@ -9,6 +7,8 @@ from simple_history.models import HistoricalRecords
 from django.core.exceptions import ValidationError
 from django.apps import apps
 
+
+from product.models import Product,Component,BOM
 
 
 
@@ -41,26 +41,21 @@ class MaterialsRequestOrder(models.Model):
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     history=HistoricalRecords()
-    remarks=models.TextField(null=True,blank=True)
-   
+    remarks=models.TextField(null=True,blank=True)   
     approval_data = models.JSONField(default=dict,null=True,blank=True)
-
     requester_approval_status = models.CharField(max_length=20, null=True, blank=True)
     reviewer_approval_status = models.CharField(max_length=20, null=True, blank=True)
     approver_approval_status = models.CharField(max_length=20, null=True, blank=True)
-
     Requester_remarks=models.TextField(null=True,blank=True)
     Reviewer_remarks=models.TextField(null=True,blank=True)
     Approver_remarks=models.TextField(null=True,blank=True)
     
-
     class Meta:
         permissions = [
             ("can_request", "can request"),
             ("can_review", "Can review"),
             ("can_approve", "Can approve"),
         ]
-
   
     def save(self, *args, **kwargs):
         if not self.order_id:
@@ -89,14 +84,12 @@ class MaterialsRequestItem(models.Model):
         ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+ 
 
     def save(self, *args, **kwargs):
         if not self.item_id:
             self.item_id= f"CAT-{uuid.uuid4().hex[:8].upper()}"
-        super().save(*args, **kwargs)
-
-   
+        super().save(*args, **kwargs)   
 
     def __str__(self):
         return self.item_id
@@ -123,7 +116,7 @@ class MaterialsDeliveryItem(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
 
     def get_warehouse(self):
         Warehouse = apps.get_model('inventory', 'Warehouse')
@@ -131,9 +124,7 @@ class MaterialsDeliveryItem(models.Model):
 
     def get_location(self):
         Location = apps.get_model('inventory', 'Location')
-        return Location.objects.get(id=self.location.id) if self.location else None
-
-     
+        return Location.objects.get(id=self.location.id) if self.location else None    
 
     def save(self, *args, **kwargs):
         if not self.item_id:
@@ -142,9 +133,7 @@ class MaterialsDeliveryItem(models.Model):
 
     def __str__(self):
         return f"{self.item_id} for product {self.product}" 
-
-
-
+    
 
 
 class FinishedGoodsReadyFromProduction(models.Model):
@@ -160,7 +149,9 @@ class FinishedGoodsReadyFromProduction(models.Model):
         ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
     remarks = models.TextField(blank=True, null=True)
-    history = HistoricalRecords()
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateField(auto_now=True)
+ 
 
     def save(self, *args, **kwargs):
         if not self.goods_id:
@@ -169,8 +160,6 @@ class FinishedGoodsReadyFromProduction(models.Model):
 
     def __str__(self):
         return f"{self.product} is ready {self.quantity} nos"
-
-
 
 
 class ManufactureQualityControl(models.Model):
@@ -185,7 +174,7 @@ class ManufactureQualityControl(models.Model):
     comments = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history = HistoricalRecords()
+
       
 
     def save(self,*args,**kwargs):
@@ -219,7 +208,7 @@ class ReceiveFinishedGoods(models.Model):
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateField(auto_now=True)
     remarks = models.TextField(null=True, blank=True)
-    history = HistoricalRecords()
+
 
     def get_warehouse(self):
         Warehouse = apps.get_model('inventory', 'Warehouse')
@@ -252,41 +241,3 @@ class ReceiveFinishedGoods(models.Model):
 
 
 
-
-
-# class MaterialsRequestOrder(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)   
-#     order_id = models.CharField(max_length=50,null=True,blank=True)
-  
-# class MaterialsRequestItem(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-#     item_id = models.CharField(max_length=20, unique=True)   
-#     material_request_order = models.ForeignKey(MaterialsRequestOrder, related_name='material_request_order_for_item', on_delete=models.CASCADE, null=True, blank=True)
-#     product = models.ForeignKey(Product,on_delete=models.CASCADE,related_name='product_request',null=True,blank=True)
-#     quantity = models.PositiveIntegerField()
-
-# class MaterialsDeliveryItem(models.Model):
-#     materials_request_order = models.ForeignKey(MaterialsRequestOrder, related_name='materials_request_delivery', on_delete=models.CASCADE,null=True, blank=True)
-#     materials_request_item = models.ForeignKey(MaterialsRequestItem, related_name='materials_request_items', on_delete=models.CASCADE,null=True, blank=True)
-
-# class FinishedGoodsReadyFromProduction(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-#     goods_id = models.CharField(max_length=20)
-#     materials_request_order = models.ForeignKey(MaterialsRequestOrder, on_delete=models.CASCADE)
-#     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-#     quantity = models.DateField(auto_now_add=True)
-
-# class QualityControl(models.Model):
-#     finish_goods_from_production = models.ForeignKey(FinishedGoodsReadyFromProduction, on_delete=models.CASCADE)
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-#     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
-#     total_quantity = models.PositiveIntegerField(null=True, blank=True)
-#     good_quantity = models.PositiveIntegerField(null=True, blank=True)
-#     bad_quantity = models.PositiveIntegerField(null=True, blank=True)
-
-# class ReceiveFinishedGoods(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-#     quality_control=models.ForeignKey(QualityControl,on_delete=models.CASCADE,related_name='quality_received')
-#     receiving_id = models.CharField(max_length=20)   
-#     quality_control = models.ForeignKey(QualityControl, on_delete=models.CASCADE, related_name='qc_goods')
-#     product = models.ForeignKey(Product, on_delete=models.CASCADE)  

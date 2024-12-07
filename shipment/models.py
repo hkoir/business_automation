@@ -16,7 +16,7 @@ class SaleShipmentTracking(models.Model):
     remarks = models.TextField(null=True,blank=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
+
 
            
     def save(self, *args, **kwargs):
@@ -38,7 +38,7 @@ class PurchaseShipmentTracking(models.Model):
     remarks = models.TextField(null=True,blank=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
+
 
             
     def save(self, *args, **kwargs):

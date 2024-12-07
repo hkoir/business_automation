@@ -1,66 +1,58 @@
 {% extends 'base.html' %}  
 
 {% load custom_filters %}
+{% load static %}
 
 {% block content %}
-
-
-<style>
-
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    }
-
-    
-    .table th, td {
-
-        /* border: 1px solid black;  */
-        vertical-align: middle;
-        padding: 0px;
-        text-align: center;
-        font-size: 14px;
-        padding:10px;
-    }
-
-    .table td{
-        white-space: nowrap;
-    }
-       
-    
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
 
 
 
 <div class="container-fluid main-content">
     <div class="row">
-        <h4 class="text-center" style="color:blue;font-weight: bold;">DOPS Inventor Summary<br>
+        <h4 class="text-center mb-4" style="color:blue;font-weight: bold;">DOPS Inventor Summary</h4>
+            
+        <div class="col-12">   
+                       
+            <form method="GET" action="{% url 'inventory:inventory_list' %}">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Start Date: {{ form.start_date }}
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            End Date: {{ form.end_date }}
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Days: {{ form.days }}
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Warehouse Name: {{ form.warehouse_name }}
+                        </div> 
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            Product Name: {{ form.product_name }}
+                        </div> 
+                        <div class="col-md-3 col-sm-6 mt-2">
+                            <button type="submit" class="btn btn-primary">Generate Data</button> 
+                           
+                        </div>
+                    </div>
+                </div>                    
+            </form>                         
+        
+        </div>
+        <h6 class="text-center">  
+               
+            {% if days %}
+              Result for last {{ days }} days
+            {% elif start_date and end_date %}
+                Result data from: {{ start_date }} to {{ end_date }}
+            {% endif %} 
+        </h6>      
+        
+        <h4 class="text-center" style="color:blue;font-weight: bold;">
             <span style="font-size: 14px;">
+                <span style="color:rgb(0, 128, 102);font-weight: bold; font-size: 20px;">Current Stock Value: {{ grand_total_stock_value|add_commas }}</span>
+                &nbsp;&nbsp;
             <a href="{% url 'inventory:inventory_executive_sum' %}">Stock value</a>:
             <a href="{% url 'inventory:inventory_list' %}">Product in warehouse</a>:
             <a href="{% url 'inventory:inventory_aggregate_list' %}">Stocked Product</a>
@@ -83,10 +75,8 @@
 
         {% if grouped_data %}
         <div class="col-12 mt-4">
-            <div class="container-fluid">               
-
-                <h4 style="color:blue;font-weight: bold;">Current Total Stock Value: {{ grand_total_stock_value|add_commas }}</h4>
-                
+            <div class="container-fluid">            
+                               
                 {% for warehouse, products, warehouse_total_stock_value in grouped_data %}
                 <div class="row mt-4">
                     <div class="col">
@@ -99,11 +89,13 @@
                         
                         <table class="table table-striped">
                             <thead>
-                                <tr>
+                                <tr class="bg-primary text-white">
                                     <th>Product Name</th>
                                     <th>Total Purchase</th>
                                     <th>Total Manufacture</th>
+                                    <th>Total Existing</th>
                                     <th>Total Sold</th>
+                                    <th>Total operations out</th>
                                     <th>Total Transfer In</th>
                                     <th>Total Transfer Out</th>
                                     <th>Total Replacement</th>
@@ -118,7 +110,9 @@
                                     <td>{{ product.product }}</td>
                                     <td>{{ product.total_purchase|default:"0" }}</td>
                                     <td>{{ product.total_manufacture|default:"0" }}</td>
+                                    <td>{{ product.total_existing_in|default:"0" }}</td>
                                     <td>{{ product.total_sold|default:"0" }}</td>
+                                    <td>{{ product.total_operations_out|default:"0" }}</td>
                                     <td>{{ product.total_transfer_in|default:"0" }}</td>
                                     <td>{{ product.total_transfer_out|default:"0" }}</td>
                                     <td>{{ product.total_replacement|default:"0" }}</td>
@@ -204,29 +198,35 @@
 
 
 
-
 <script>
-    // Parse the JSON data passed from the view
+
+
+
+// Parse the JSON data passed from the view
     const chartData = JSON.parse('{{ warehouse_json|escapejs }}');
 // Initialize arrays for each dataset
-const totalPurchase = [];
+    const totalPurchase = [];
     const totalManufacture = [];
+    const totalExistingIn = [];
+    const totalOperationsOut = [];
     const totalSold = [];
     const totalAvailable = [];
     const totalTransferIn = [];
     const totalTransferOut = [];
-    const totalReplacement = [];
+    const totalReplacementOut = [];
     const totalStock = [];
 
     // Populate arrays for each dataset
     chartData.labels.forEach((label, index) => {
         totalPurchase.push(chartData.total_purchase[index] || 0);
         totalManufacture.push(chartData.total_manufacture[index] || 0);
+        totalExistingIn.push(chartData.total_existing_in[index] || 0);
+        totalOperationsOut.push(chartData.total_operations_out[index] || 0);
         totalSold.push(chartData.total_sold[index] || 0);
         totalAvailable.push(chartData.total_available[index] || 0);
         totalTransferIn.push(chartData.total_transfer_in[index] || 0);
         totalTransferOut.push(chartData.total_transfer_out[index] || 0);
-        totalReplacement.push(chartData.total_replacement[index] || 0);
+        totalReplacementOut.push(chartData.total_replacement_out[index] || 0);
         totalStock.push(chartData.total_stock[index] || 0);
     });
 
@@ -238,7 +238,7 @@ const totalPurchase = [];
         ...totalManufacture,
         ...totalTransferIn,
         ...totalTransferOut,
-        ...totalReplacement,
+        ...totalReplacementOut,
         ...totalStock,
     ) * 1.4;
 
@@ -267,6 +267,14 @@ const totalPurchase = [];
                     borderColor: 'rgba(33, 150, 243, 1)',       // Dark Blue
                     borderWidth: 1
                 },
+
+                {
+                    label: 'Total Existing',
+                    data: totalExistingIn,
+                    backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
+                    borderColor: 'rgba(255, 193, 7, 1)',        // Dark Amber
+                    borderWidth: 1
+                },
                 {
                     label: 'Total Manufacture',
                     data: totalManufacture,
@@ -281,18 +289,19 @@ const totalPurchase = [];
                     borderColor: 'rgba(0, 188, 212, 1)',       // Dark Teal
                     borderWidth: 1
                 },
-                {
-                    label: 'Total Available',
-                    data: totalAvailable,
-                    backgroundColor: 'rgba(233, 30, 99, 0.5)',  // Pink
-                    borderColor: 'rgba(233, 30, 99, 1)',        // Dark Pink
-                    borderWidth: 1
-                },
+               
                 {
                     label: 'Total Sold',
                     data: totalSold,
                     backgroundColor: 'rgba(255, 87, 34, 0.5)',  // Deep Orange
                     borderColor: 'rgba(255, 87, 34, 1)',        // Dark Deep Orange
+                    borderWidth: 1
+                },
+                {
+                    label: 'Total Operations Out',
+                    data: totalOperationsOut,
+                    backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
+                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
                     borderWidth: 1
                 },
                 
@@ -305,10 +314,17 @@ const totalPurchase = [];
                     borderWidth: 1
                 },
                 {
-                    label: 'Total Replacement',
-                    data: totalReplacement,
+                    label: 'Total Replacement Out',
+                    data: totalReplacementOut,
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
+                    borderWidth: 1
+                },
+                {
+                    label: 'Total Available',
+                    data: totalAvailable,
+                    backgroundColor: 'rgba(0, 150, 136, 1)',  // Pink
+                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Pink
                     borderWidth: 1
                 },
               
@@ -325,17 +341,11 @@ const totalPurchase = [];
         }
     });
 
-    
-</script>
 
 
-
-
-<script>
-
-     // Show Django message modal if there are messages
-     document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+     const messageModal = document.getElementById('messageModal');
         if (messageModal) {
             const messagesContainer = document.getElementById('messagesContainer');
             if (messagesContainer && messagesContainer.children.length > 0) {
@@ -350,7 +360,14 @@ const totalPurchase = [];
 
 
 
+
+
+
 {% endblock %}
+
+
+
+
 
 
 
