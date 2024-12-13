@@ -236,7 +236,7 @@ table {
                     {% if order.is_fully_ordered %}                             
                     <i class="fas fa-check" style="color:green;font-weight: bold;">Fully ordered</i>                   
                     {% else %}
-                    <a href="{% url 'sales:create_sale_order' order.id %}" class="btn btn-sm btn-primary">Create Purchase Order</a>
+                    <a href="{% url 'sales:create_sale_order' order.id %}" class="btn btn-sm btn-primary">Create Sale Order</a>
                     {% endif %}
                 </td>
             </tr>

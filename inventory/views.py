@@ -157,7 +157,9 @@ def complete_quality_control(request, qc_id):
 
             update_purchase_order(purchase_order.id)
             update_shipment_status(purchase_shipment.id)
-            update_purchase_request_order(purchase_request_order.id)        
+            update_purchase_request_order(purchase_request_order.id)  
+            # update_inventory_status(user=request.user)
+
 
             messages.success(request, "Quality control completed and product added to inventory.")
             return redirect('purchase:qc_dashboard')
@@ -582,8 +584,7 @@ def inventory_list(request):
 
 
 
-def inventory_aggregate_list(request):
-    products = Product.objects.all().distinct()
+def inventory_aggregate_list(request):   
     aggregated_data = []
     grand_total_stock_value = 0
     days = None
@@ -591,6 +592,7 @@ def inventory_aggregate_list(request):
     end_date = None
     warehouse_name=None
     product_name=None
+    products = None
 
     form = SummaryReportChartForm(request.GET or None)
 
@@ -601,26 +603,28 @@ def inventory_aggregate_list(request):
         product_name = form.cleaned_data.get('product_name')
         warehouse_name = form.cleaned_data.get('warehouse_name')
 
-        if product_name:
-            products = products.filter(id=product_name.id)
+        products = Product.objects.all().distinct()
+        if products:
+            if product_name:
+                products = products.filter(id=product_name.id)
 
-        if start_date and end_date:
-            products = products.filter(
-                product_inventories__created_at__range=(start_date, end_date)
-            ).distinct()
-        elif days:
-            end_date = timezone.now()
-            start_date = end_date - timedelta(days=days)
-            products = products.filter(
-                product_inventories__created_at__range=(start_date, end_date)
-            ).distinct()
+            if start_date and end_date:
+                products = products.filter(
+                    product_inventories__created_at__range=(start_date, end_date)
+                ).distinct()
+            elif days:
+                end_date = timezone.now()
+                start_date = end_date - timedelta(days=days)
+                products = products.filter(
+                    product_inventories__created_at__range=(start_date, end_date)
+                ).distinct()
 
-    for product in products:
-        inventories = product.product_inventories.all()  
-        if start_date and end_date:
-            inventories = inventories.filter(created_at__range=(start_date, end_date))
-        elif days:
-            inventories = inventories.filter(created_at__range=(start_date, end_date))
+            for product in products:
+                inventories = product.product_inventories.all()  
+                if start_date and end_date:
+                    inventories = inventories.filter(created_at__range=(start_date, end_date))
+                elif days:
+                    inventories = inventories.filter(created_at__range=(start_date, end_date))
 
         stock_data = calculate_stock_value2(product)
         total_available = stock_data['total_available']
@@ -666,7 +670,7 @@ def inventory_aggregate_list(request):
 
     form=SummaryReportChartForm()
     context = {
-        'aggregated_data': page_obj,
+        'page_obj': page_obj,
         'warehouse_json': warehouse_json,
         'grand_total_stock_value': grand_total_stock_value,
         'form': form,

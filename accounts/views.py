@@ -27,26 +27,13 @@ def home(request):
 
 def register_view(request):
     if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST, request.FILES)
+        form = UserRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
-
-            user = form.save()
-
-            UserProfile.objects.create(
-                user=user,
-                address=form.cleaned_data['address'],
-                city=form.cleaned_data['city'],
-                state=form.cleaned_data['state'],
-                postal_code=form.cleaned_data['postal_code'],
-                country=form.cleaned_data['country'],
-                phone_number=form.cleaned_data['phone_number'],
-                profile_picture=form.cleaned_data['profile_picture'],
-            )
-
+            user = form.save()          
             login(request, user) 
             return redirect('accounts:home') 
     else:
-        form = CustomUserCreationForm()
+        form =  UserRegistrationForm()
     return render(request, 'accounts/registration/register.html', {'form': form})
 
 

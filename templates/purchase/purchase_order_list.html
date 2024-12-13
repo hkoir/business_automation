@@ -148,7 +148,7 @@ table {
 
                         <th class="text-center p-2">Payment Status</th>
                         <th class="text-center p-2">Make payment</th>
-                        <th class="text-center p-2">Dispatch Items</th> 
+                        <th class="text-center p-2">Update Dispatch Status</th> 
                         <th class="text-center p-2">Download invoice</th> 
                         <th class="text-center p-2">Upload invoice</th> 
                         <th class="text-center p-2">Upload Payment Docs</th> 
@@ -416,7 +416,7 @@ table {
                         {% if order.approver_approval_status != 'APPROVED' %}
                             <span>Approval Pending</span>>
                         {% else %}
-                            <a href="{% url 'logistics:dispatch_item_list' order.id %}">View Item List</a>
+                            <a href="{% url 'logistics:dispatch_item_list' order.id %}">Update shipment</a>
                         {% endif %}
                     </td>
 

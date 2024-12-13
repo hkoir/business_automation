@@ -350,10 +350,8 @@ table {
                             {% endwith %}
                         </td>
 
-
-                        <!-- <td><a href="{% url 'finance:add_sale_invoice_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">Upload signed invoice</a></td>
-                        <td><a href="{% url 'finance:add_sale_payment_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">Upload payment docs</a></td>
-     -->
+                        
+                       
                         <td>
                             {% if order.sale_shipment.first.sale_shipment_invoices.first %}
                             <a href="{% url 'finance:add_sale_invoice_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">Upload signed invoice</a>

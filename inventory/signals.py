@@ -96,7 +96,8 @@ def update_inventory_status(sender, instance, **kwargs):
 
     for product in Product.objects.all():
         average_usage = calculate_average_usage(product)
-        required_stock = average_usage * product.lead_time
+        if average_usage is not None and product.lead_time is not None:
+            required_stock = average_usage * product.lead_time
         warehouse_stocks = Inventory.objects.filter(product=product)
 
         for stock in warehouse_stocks:

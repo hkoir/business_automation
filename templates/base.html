@@ -92,6 +92,47 @@ html, body {
  z-index: 1000; /* Keep it on top of everything */
 }
 
+
+
+.notification-dropdown {
+    max-height: 400px; 
+    overflow-y: auto; 
+    width: 500px; 
+    padding: 10px; 
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); 
+    border-radius: 8px; 
+    background-color: #fff; 
+}
+
+.notification-scroll {
+    max-height: 300px; 
+    overflow-y: auto; 
+}
+
+.notification.unread {
+    font-weight: bold; 
+    background-color: #f8f9fa; 
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 5px; 
+}
+
+.notification p {
+    margin: 0; 
+    white-space: normal; 
+    word-break: break-word; 
+}
+
+.badge.bg-danger {
+    position: absolute;
+    top: 8px; 
+    right: 5px;
+    font-size: 0.75rem;
+    padding: 0.3em 0.4em;
+    border-radius: 50%;
+}
+
+
 </style>
 
 
@@ -110,31 +151,31 @@ html, body {
         
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">  <!-- master ul start -->
 
-                    <!-- notification menue -->
-                    <ul class="navbar-nav ms-auto">
+                
+                     <!-- notification menue -->
+                     <ul class="navbar-nav ms-auto">
                         {% if request.user.is_authenticated %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fas fa-bell {% if unread_notifications|length > 0 %}new-notification{% endif %}"></i>
-                                   
                                     {% if unread_notifications|length > 0 %}
                                         <span class="badge bg-danger">{{ unread_notifications|length }}</span>
                                     {% endif %}
-                                 
                                 </a>
-                                <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                    {% for unread_notification in unread_notifications %}                                 
-                                        <li class="notification {% if not notification.is_read %}unread{% endif %}">
-                                            <a class="dropdown-item" href="{% url 'reporting:mark_notification_read' %}">
-                                                <p>{{ unread_notification.message }}</p>
-                                            </a>
-                                        </li>
-                                    
-                                      
-                                    {% empty %}
-                                        <li><a class="dropdown-item" href="#">No new notifications</a></li>
-                                    {% endfor %}
+                                <ul class="dropdown-menu notification-dropdown" aria-labelledby="navbarDropdown">
+                                    <div class="notification-scroll">
+                                        {% for notification in unread_notifications %}
+                                            <li class="notification {% if not notification.is_read %}unread{% endif %}">
+                                                <a href="#" class="dropdown-item mark-as-read" data-id="{{ notification.id }}">
+                                                    <p>{{ notification.message }}</p>
+                                                </a>
+                                            </li>
+                                        {% empty %}
+                                            <li><a class="dropdown-item" href="#">No new notifications</a></li>
+                                        {% endfor %}
+                                    </div>
                                 </ul>
+                                
                             </li>
                         {% else %}
                             <li class="nav-item">
@@ -271,6 +312,48 @@ html, body {
 
 
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+         const notifications = document.querySelectorAll('.mark-as-read');
+         
+         notifications.forEach(notification => {
+             notification.addEventListener('click', (e) => {
+                 e.preventDefault();
+                 const notificationElement = e.target.closest('.notification');
+                 const notificationId = notificationElement.querySelector('.mark-as-read').dataset.id;
+     
+                 fetch(`/reporting/notification/read/${notificationId}/`, {
+                     method: 'POST',
+                     headers: {
+                         'X-CSRFToken': '{{ csrf_token }}',
+                         'Content-Type': 'application/json'
+                     }
+                 })
+                 .then(response => {
+                     if (response.ok) {
+                         notificationElement.remove();
+                         const badge = document.querySelector('.nav-link .badge');
+                         if (badge) {
+                             let count = parseInt(badge.textContent, 10);
+                             count = Math.max(count - 1, 0);
+                             if (count === 0) {
+                                 badge.remove();
+                             } else {
+                                 badge.textContent = count;
+                             }
+                         }
+                     } else {
+                         console.error('Failed to mark notification as read');
+                     }
+                 })
+                 .catch(error => console.error('Error:', error));
+             });
+         });
+     });
+     
+     
+     </script>
+     
 
 </body>
 </html>

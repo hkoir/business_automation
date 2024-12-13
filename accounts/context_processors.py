@@ -19,8 +19,11 @@ def user_info(request):
 from reporting.models import Notification
 
 def notifications_context(request):
+    notifications = None
+    unread_notifications = None
     if request.user.is_authenticated: 
-        notifications = Notification.objects.filter(user=request.user, is_read=False)
+        notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+        unread_notifications = Notification.objects.filter(user=request.user, is_read=False).order_by('-created_at')
     else:
         notifications = []
-    return {'notifications': notifications}
+    return {'notifications': notifications,'unread_notifications':unread_notifications}

@@ -227,6 +227,13 @@ const totalPurchase = [];
         data: {
             labels: chartData.labels,
             datasets: [
+            {
+                    label: 'Total Available',
+                    data: totalAvailable,
+                    backgroundColor: 'rgba(255, 159, 64, 0.6)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 1
+                },
                 {
                     label: 'Total Purchase',
                     data: totalPurchase,
@@ -248,13 +255,7 @@ const totalPurchase = [];
                     borderColor: 'rgba(255, 99, 132, 1)',
                     borderWidth: 1
                 },
-                {
-                    label: 'Total Available',
-                    data: totalAvailable,
-                    backgroundColor: 'rgba(255, 159, 64, 0.6)',
-                    borderColor: 'rgba(255, 159, 64, 1)',
-                    borderWidth: 1
-                },
+               
                 {
                     label: 'Total Transfer In',
                     data: totalTransferIn,

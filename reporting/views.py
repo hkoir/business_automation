@@ -25,7 +25,6 @@ from repairreturn.models import Replacement
 from sales.models import SaleOrder
 from.models import Notification
 
-from inventory.signals import inventory_update_signal
 from utils import mark_notification_as_read,calculate_stock_value2
 
 from django.core.mail import send_mail

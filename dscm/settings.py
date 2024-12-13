@@ -144,7 +144,6 @@ DATABASES = {
 
 
 import os
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -173,37 +172,16 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
-            'level': 'ERROR',
+            'handlers': ['file', 'console'],  # Logs errors to file and console
+            'level': 'ERROR',  # Log ERROR level and above
             'propagate': True,
         },
-        'inventory': {  # Replace 'myapp' with your app's name or leave generic
-            'handlers': ['file', 'console'],
+        'inventory': {  # Replace 'inventory' with your app's name
+            'handlers': ['file', 'console'],  # Logs DEBUG and above for this app
             'level': 'DEBUG',
             'propagate': False,
         },
     },
-
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'inventory': {  # Replace 'inventory' with your app name
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-    },
-    
 }
 
 

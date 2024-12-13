@@ -23,9 +23,9 @@
                         <div class="col-md-3 col-sm-6 mb-2">
                             Days: {{ form.days }}
                         </div>
-                        <div class="col-md-3 col-sm-6 mb-2">
+                        <!-- <div class="col-md-3 col-sm-6 mb-2">
                             Warehouse Name: {{ form.warehouse_name }}
-                        </div> 
+                        </div>  -->
                         <div class="col-md-3 col-sm-6 mb-2">
                             Product Name: {{ form.product_name }}
                         </div> 
@@ -93,7 +93,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for product in aggregated_data %}
+                                    {% for product in page_obj %}
                                     <tr>
                                         <td>{{ product.product }}</td>
                                         <td>{{ product.total_purchase }}</td>
@@ -234,6 +234,14 @@
                     borderColor: 'rgba(76, 175, 80, 1)',        // Dark Green
                     borderWidth: 1
                 },
+
+                {
+                    label: 'Total Available',
+                    data: totalAvailable,
+                    backgroundColor: 'rgba(0, 150, 136, 1)',  // Pink
+                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Pink
+                    borderWidth: 1
+                },
                 {
                     label: 'Total Purchase',
                     data: totalPurchase,
@@ -294,13 +302,7 @@
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
                     borderWidth: 1
                 },
-                {
-                    label: 'Total Available',
-                    data: totalAvailable,
-                    backgroundColor: 'rgba(0, 150, 136, 1)',  // Pink
-                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Pink
-                    borderWidth: 1
-                },
+               
             ]
         },
         options: {

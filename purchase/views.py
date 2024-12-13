@@ -233,19 +233,19 @@ def process_purchase_request(request, order_id):
                 order.remarks = remarks
                 order.Reviewer_remarks = remarks
                
-        if request.user.groups.filter(name="Approver").exists(): 
-            if (
-                order.requester_approval_status != "SUBMITTED"
-                or order.requester_approval_status == "CANCELLED"
-                or order.reviewer_approval_status != "REVIEWED"
-                or order.reviewer_approval_status == "CANCELLED"
-            ):
-                messages.error(request, "Contact your line manager.")
-                return redirect('purchase:purchase_request_order_list')
-            else:
-                order.approver_approval_status = approver_approval_status 
-                order.remarks = remarks
-                order.Approver_remarks = remarks               
+        # if request.user.groups.filter(name="Approver").exists(): 
+        #     if (
+        #         order.requester_approval_status != "SUBMITTED"
+        #         or order.requester_approval_status == "CANCELLED"
+        #         or order.reviewer_approval_status != "REVIEWED"
+        #         or order.reviewer_approval_status == "CANCELLED"
+        #     ):
+        #         messages.error(request, "Contact your line manager.")
+        #         return redirect('purchase:purchase_request_order_list')
+        #     else:
+        #         order.approver_approval_status = approver_approval_status 
+        #         order.remarks = remarks
+        #         order.Approver_remarks = remarks               
                                                                          
         if role:
                 order.approval_data[role] = {
