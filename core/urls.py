@@ -16,7 +16,11 @@ urlpatterns = [
     # path('delete_employee/<int:employee_id>/', views.delete_employee, name='delete_employee'),
 
 
-
+    path('manage_department/', views.manage_department, name='manage_department'),
+    path('update_department/<int:id>/', views.manage_department, name='update_department'),
+    
+    path('manage_position/', views.manage_position, name='manage_position'),
+    path('update_position/<int:id>/', views.manage_position, name='update_position'),
   
     path('create_employee/', views.manage_employee, name='create_employee'),
     path('update_employee/<int:id>/', views.manage_employee, name='update_employee'),
@@ -35,7 +39,7 @@ urlpatterns = [
      
      path('add_notice/', views.add_notice, name='add_notice'), 
      path('view_notices/', views.view_notices, name='view_notices'),  
-
+     path('all_qc/', views.all_qc, name='all_qc'),
 
 
       path('view_attendance/', views.view_attendance, name='view_attendance'),

@@ -21,7 +21,7 @@ from purchase.models import PurchaseOrder
 from .models import PurchaseInvoice,SaleInvoice, PurchasePayment,SalePayment
 from .forms import PurchaseInvoiceForm, PurchasePaymentForm,SaleInvoiceForm,SalePaymentForm
 
-from utils import CommonFilterForm
+from core.forms import CommonFilterForm
 from django.core.paginator import Paginator
 
 from .models import PurchaseInvoice, PurchaseInvoiceAttachment
@@ -183,14 +183,17 @@ def generate_purchase_invoice(purchase_order):
 
 def generate_purchase_invoice_pdf(purchase_order,mode="download"):      
     supplier = purchase_order.supplier
+    supplier_address = 'Unknown'
     supplier_info = Supplier.objects.filter(id=purchase_order.supplier_id).first()
-    supplier_name = supplier_info.name
-    supplier_phone = supplier_info.phone
-    supplier_email = supplier_info.email
-    supplier_website = supplier_info.website
-    supplier_address = supplier_info.supplier_locations.first().address
-    supplier_logo_path = supplier_info.logo.path if supplier_info.logo else 'D:/SCM/dscm/media/default_logo.png'
-    
+    if supplier_info:
+        supplier_name = supplier_info.name
+        supplier_phone = supplier_info.phone
+        supplier_email = supplier_info.email
+        supplier_website = supplier_info.website
+        if supplier_info.supplier_locations.first():
+            supplier_address = supplier_info.supplier_locations.first().address
+        supplier_logo_path = supplier_info.logo.path if supplier_info.logo else 'D:/SCM/dscm/media/company_logo/Logo.png'
+        
     company_name=None
     company_address =None
     company_email =None
@@ -198,16 +201,17 @@ def generate_purchase_invoice_pdf(purchase_order,mode="download"):
     company_website =None  
     logo_path=None
 
-    cfo_employee = Employee.objects.filter(position='CFO').first()    
-    HQ_entity = cfo_employee.hq_employee_name.first()
-    if  HQ_entity:
-        location = HQ_entity.company_locations.first()
-        company_name = HQ_entity.name
-        company_address = location.address
-        company_email = location.email
-        company_phone = location.phone
-        company_website = HQ_entity.website
-        company_logo_path = HQ_entity.logo.path if HQ_entity.logo else 'D:/SCM/dscm/media/default_logo.png'
+    cfo_employee = Employee.objects.filter(position__name='CFO').first()  
+    if cfo_employee:  
+        HQ_entity = cfo_employee.hq_employee_name.first()
+        if  HQ_entity:
+            location = HQ_entity.company_locations.first()
+            company_name = HQ_entity.name
+            company_address = location.address
+            company_email = location.email
+            company_phone = location.phone
+            company_website = HQ_entity.website
+            company_logo_path = HQ_entity.logo.path if HQ_entity.logo else 'D:/SCM/dscm/media/company_logo/Logo.png'
 
     invoice_data = generate_purchase_invoice(purchase_order)
     buffer = BytesIO()

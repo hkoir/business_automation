@@ -20,5 +20,15 @@ urlpatterns = [
   path('replacement_product_list/', views.replacement_product_list, name='replacement_product_list'),
   path('sale_order_list/', views.sale_order_list, name='sale_order_list'),
   path('return_dashboard/', views.repair_return_dashboard, name='return_dashboard'),
+
+
+  path('create_scrap_request/', views.create_scrap_request, name='create_scrap_request'),
+  path('confirm_scrap_request/', views.confirm_scrap_request, name='confirm_scrap_request'),
+  path('scrap_order_list/', views.scrap_order_list, name='scrap_order_list'),
+   path('scrap_request_items/<int:order_id>/', views.scrap_request_items, name='scrap_request_items'),
+  path('process_scrap_order/<int:order_id>/', views.process_scrap_order, name='process_scrap_order'),
+  path('scrap_confirmation/<int:order_id>/', views.scrap_confirmation, name='scrap_confirmation'),
+
+
 ]
 

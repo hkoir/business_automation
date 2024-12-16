@@ -17,7 +17,7 @@ from logistics.models import PurchaseDispatchItem
 from supplier.models import Supplier
 from inventory.models import Warehouse,Location
 from purchase.models import PurchaseOrder,PurchaseOrderItem,PurchaseRequestOrder
-from utils import CommonFilterForm
+from core.forms import CommonFilterForm
 from django.core.paginator import Paginator
 
 
@@ -94,6 +94,8 @@ def create_purchase_request(request):
     return render(request, 'purchase/create_purchase_request.html', {'form': form, 'basket': basket})
 
 
+
+
 def confirm_purchase_request(request):
     basket = request.session.get('basket', [])
     if not basket:
@@ -137,7 +139,7 @@ def confirm_purchase_request(request):
 
 
 
-def purchase_request_order_list(request):
+def purchase_request_order_list2(request):
     request_order =None
     purchase_request_orders = PurchaseRequestOrder.objects.all().order_by("-created_at")
 
@@ -146,19 +148,16 @@ def purchase_request_order_list(request):
         request_order = form.cleaned_data['purchase_request_order_id']
         if request_order:
             purchase_request_orders = purchase_request_orders.filter(order_id=request_order)
-       
-    
+           
     is_requester = request.user.groups.filter(name="Requester").exists()
     is_reviewer = request.user.groups.filter(name="Reviewer").exists()
     is_approver = request.user.groups.filter(name="Approver").exists()
-
 
     paginator = Paginator(purchase_request_orders, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     form=CommonFilterForm()
-
     return render (request, 'purchase/purchase_request_order_list.html',                   
         {'purchase_request_orders':purchase_request_orders,
          
@@ -172,94 +171,111 @@ def purchase_request_order_list(request):
          })
 
 
+
+def purchase_request_order_list(request):
+    request_order = None
+    purchase_request_orders = PurchaseRequestOrder.objects.all().order_by("-created_at")
+
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        request_order = form.cleaned_data['purchase_request_order_id']
+        if request_order:
+            purchase_request_orders = purchase_request_orders.filter(order_id=request_order)
+
+    is_requester = request.user.groups.filter(name="Requester").exists()
+    is_reviewer = request.user.groups.filter(name="Reviewer").exists()
+    is_approver = request.user.groups.filter(name="Approver").exists()
+
+    paginator = Paginator(purchase_request_orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'purchase/purchase_request_order_list.html', {
+        'purchase_request_orders': purchase_request_orders,           
+        'user': request.user,
+        'form': form,
+        'page_obj': page_obj,
+        'request_order': request_order,
+        'is_requester': is_requester,
+        'is_reviewer': is_reviewer,
+        'is_approver': is_approver
+    })
+
+
+
 def purchase_request_items(request,order_id):
     order_instance = get_object_or_404(PurchaseRequestOrder,id=order_id)
     return render(request,'purchase/purchase_request_items.html',{'order_instance':order_instance})
 
 
 
+
 @login_required
 def process_purchase_request(request, order_id):
-    order = get_object_or_404(PurchaseRequestOrder, id=order_id)    
+    order = get_object_or_404(PurchaseRequestOrder, id=order_id)
+
+    role_status_map = {
+        "Requester": ["SUBMITTED", "CANCELLED"],
+        "Reviewer": ["REVIEWED", "CANCELLED"],
+        "Approver": ["APPROVED", "CANCELLED"],
+    }
 
     if request.method == 'POST':
         form = PurchaseStatusForm(request.POST)
         if form.is_valid():
             if order.approval_data is None:
-                 order.approval_data = {}
-            role = None
+                order.approval_data = {}
+
             approval_status = form.cleaned_data['approval_status']
             remarks = form.cleaned_data['remarks']
+            role = None
 
-            requester_approval_status = form.cleaned_data['approval_status']
-            reviewer_approval_status = form.cleaned_data['approval_status']
-            approver_approval_status = form.cleaned_data['approval_status']
 
+            user_roles = []
             if request.user.groups.filter(name="Requester").exists():
-                if approval_status not in ["SUBMITTED", "CANCELLED"]:
-                    messages.error(request, "Requester can only submit or cancel.")
-                    return redirect('purchase:purchase_request_order_list')
-                role = "requester"
-                order.approval_status = approval_status
-            elif request.user.groups.filter(name="Reviewer").exists():
-                if approval_status not in ["REVIEWED", "CANCELLED"]:
-                    messages.error(request, "Reviewers can only review orders.")
-                    return redirect('purchase:purchase_request_order_list')
-                role = "reviewer"
-            elif request.user.groups.filter(name="Approver").exists():
-                if approval_status not in ["APPROVED", "CANCELLED"]:
-                    messages.error(request, "Approvers can only approve orders.")
-                    return redirect('purchase:purchase_request_order_list')
-                role = "approver"
-            else:
-                messages.error(request, "You do not have permission to process this order.")
+                user_roles.append("Requester")
+            if request.user.groups.filter(name="Reviewer").exists():
+                user_roles.append("Reviewer")
+            if request.user.groups.filter(name="Approver").exists():
+                user_roles.append("Approver")
+
+            for user_role in user_roles:
+                if approval_status in role_status_map[user_role]:
+                    role = user_role
+                    break
+
+            if not role:
+                messages.error(
+                    request,
+                    "You do not have permission to perform this action or invalid status."
+                )
                 return redirect('purchase:purchase_request_order_list')
 
-        if request.user.groups.filter(name="Requester").exists():
-            if order.requester_approval_status in ["SUBMITTED", "CANCELLED"]:
-                messages.error(request, "Already completed.")
-                return redirect('purchase:purchase_request_order_list')
-            else:
-                order.requester_approval_status = requester_approval_status  
-                order.remarks = remarks
+            if role == "Requester":
+                order.requester_approval_status = approval_status
                 order.Requester_remarks = remarks
-
-        if request.user.groups.filter(name="Reviewer").exists(): 
-            if order.requester_approval_status != "SUBMITTED" or order.requester_approval_status == "CANCELLED":
-                messages.error(request, "Contact Requester's line manager.")
-                return redirect('purchase:purchase_request_order_list')
-            else:
-                order.reviewer_approval_status = reviewer_approval_status  
-                order.remarks = remarks
+            elif role == "Reviewer":
+                order.reviewer_approval_status = approval_status
                 order.Reviewer_remarks = remarks
-               
-        # if request.user.groups.filter(name="Approver").exists(): 
-        #     if (
-        #         order.requester_approval_status != "SUBMITTED"
-        #         or order.requester_approval_status == "CANCELLED"
-        #         or order.reviewer_approval_status != "REVIEWED"
-        #         or order.reviewer_approval_status == "CANCELLED"
-        #     ):
-        #         messages.error(request, "Contact your line manager.")
-        #         return redirect('purchase:purchase_request_order_list')
-        #     else:
-        #         order.approver_approval_status = approver_approval_status 
-        #         order.remarks = remarks
-        #         order.Approver_remarks = remarks               
-                                                                         
-        if role:
-                order.approval_data[role] = {
-                    'status': approval_status,
-                    'remarks': remarks,
-                    'date': timezone.now().isoformat(),
-                    'approval_status':approval_status
-                }           
-        order.save()
-        messages.success(request, f"Order {order.id} successfully updated.")
-        return redirect('purchase:purchase_request_order_list')
+            elif role == "Approver":
+                order.approver_approval_status = approval_status
+                order.Approver_remarks = remarks
+
+            order.approval_data[role] = {
+                'status': approval_status,
+                'remarks': remarks,
+                'date': timezone.now().isoformat(),
+            }
+
+            order.save()
+            messages.success(request, f"Order {order.id} successfully updated.")
+            return redirect('purchase:purchase_request_order_list')
+        else:
+            messages.error(request, "Invalid form submission.")
     else:
         form = PurchaseStatusForm()
     return render(request, 'purchase/purchase_order_approval_form.html', {'form': form, 'order': order})
+
 
 
 
@@ -426,51 +442,36 @@ def confirm_purchase_order(request):
     return render(request, 'purchase/confirm_purchase_order.html', {'basket': basket})
 
 
+
 def purchase_order_list(request):
-    order_id =None
-    form_submitted = False
-    purchase_orders = PurchaseOrder.objects.all().order_by("-created_at")     
+    purchase_order = None
+    purchase_orders = PurchaseOrder.objects.all().order_by("-created_at")
 
-    form=CommonFilterForm(request.GET or None)
+    form = CommonFilterForm(request.GET or None)
     if form.is_valid():
-        form_submitted = True
-        order_id = form.cleaned_data['purchase_order_id'] 
-        if order_id:            
-            purchase_orders = purchase_orders.filter(order_id = order_id)
-            
-
+        purchase_order = form.cleaned_data['purchase_order_id']
+        if purchase_order:
+            purchase_orders = purchase_orders.filter(order_id=purchase_order)
+    
     is_requester = request.user.groups.filter(name="Requester").exists()
     is_reviewer = request.user.groups.filter(name="Reviewer").exists()
     is_approver = request.user.groups.filter(name="Approver").exists()
-    
-
-       
-    for order in purchase_orders:
-        order.has_payment_attachment = (
-            order.purchase_shipment.first()
-            and order.purchase_shipment.first().shipment_invoices.first()
-            and order.purchase_shipment.first().shipment_invoices.first().purchase_payment_invoice.exists()
-        )
 
     paginator = Paginator(purchase_orders, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
 
-    form = CommonFilterForm()
-    return render (request, 'purchase/purchase_order_list.html',
-    {'purchase_orders':purchase_orders,   
-    'user': request.user,
-    'is_request':is_requester,
-    'is_reviewer':is_reviewer,
-    'is_approver':is_approver,
-    'form':form,
-    'page_obj':page_obj,
-    'order_id':order_id,
-    'form_submitted':form_submitted
-     }
-     
-    )
+    return render(request, 'purchase/purchase_order_list.html', {
+        'purchase_orders': purchase_orders,           
+        'user': request.user,
+        'form': form,
+        'page_obj': page_obj,
+        'purchase_order': purchase_order,
+        'is_requester': is_requester,
+        'is_reviewer': is_reviewer,
+        'is_approver': is_approver
+    })
+
 
 
 def purchase_order_items(request,order_id):
@@ -481,86 +482,75 @@ def purchase_order_items(request,order_id):
 
 @login_required
 def process_purchase_order(request, order_id):
-    order = get_object_or_404(PurchaseOrder, id=order_id)    
+    order = get_object_or_404(PurchaseOrder, id=order_id)
+
+    role_status_map = {
+        "Requester": ["SUBMITTED", "CANCELLED"],
+        "Reviewer": ["REVIEWED", "CANCELLED"],
+        "Approver": ["APPROVED", "CANCELLED"],
+    }
+
     if request.method == 'POST':
         form = PurchaseStatusForm(request.POST)
         if form.is_valid():
             if order.approval_data is None:
-                 order.approval_data = {}
-            role = None
+                order.approval_data = {}
+
+            # Extract form data
             approval_status = form.cleaned_data['approval_status']
             remarks = form.cleaned_data['remarks']
+            role = None
 
-            requester_approval_status = form.cleaned_data['approval_status']
-            reviewer_approval_status = form.cleaned_data['approval_status']
-            approver_approval_status = form.cleaned_data['approval_status']
-
+            # Determine the user's role(s)
+            user_roles = []
             if request.user.groups.filter(name="Requester").exists():
-                if approval_status not in ["SUBMITTED", "CANCELLED"]:
-                    messages.error(request, "Requester can only submit or cancel.")
-                    return redirect('purchase:purchase_order_list')
-                role = "requester"
-                order.approval_status = approval_status
-            elif request.user.groups.filter(name="Reviewer").exists():
-                if approval_status not in ["REVIEWED", "CANCELLED"]:
-                    messages.error(request, "Reviewers can only review orders.")
-                    return redirect('purchase:purchase_order_list')
-                role = "reviewer"
-            elif request.user.groups.filter(name="Approver").exists():
-                if approval_status not in ["APPROVED", "CANCELLED"]:
-                    messages.error(request, "Approvers can only approve orders.")
-                    return redirect('purchase:purchase_order_list')
-                role = "approver"
-            else:
-                messages.error(request, "You do not have permission to process this order.")
+                user_roles.append("Requester")
+            if request.user.groups.filter(name="Reviewer").exists():
+                user_roles.append("Reviewer")
+            if request.user.groups.filter(name="Approver").exists():
+                user_roles.append("Approver")
+
+            # Validate based on roles and approval status
+            for user_role in user_roles:
+                if approval_status in role_status_map[user_role]:
+                    role = user_role
+                    break
+
+            if not role:
+                messages.error(
+                    request,
+                    "You do not have permission to perform this action or invalid status."
+                )
                 return redirect('purchase:purchase_order_list')
 
-        if request.user.groups.filter(name="Requester").exists():
-            if order.requester_approval_status in ["SUBMITTED", "CANCELLED"]:
-                messages.error(request, "Already completed.")
-                return redirect('purchase:purchase_order_list')
-            else:
-                order.requester_approval_status = requester_approval_status  
-                order.remarks = remarks
+            if role == "Requester":
+                order.requester_approval_status = approval_status
                 order.Requester_remarks = remarks
+            elif role == "Reviewer":
+                order.reviewer_approval_status = approval_status
+                order.Reviewer_remarks = remarks
+            elif role == "Approver":
+                order.approver_approval_status = approval_status
+                order.Approver_remarks = remarks
 
-        if request.user.groups.filter(name="Reviewer").exists(): 
-            if order.requester_approval_status != "SUBMITTED" or order.requester_approval_status == "CANCELLED":
-                messages.error(request, "Contact Requester's line manager.")
-                return redirect('purchase:purchase_order_list')
-            else:
-                order.reviewer_approval_status = reviewer_approval_status  
-                order.remarks = remarks
-                order.Reviewer_remarks = remarks               
+            order.approval_data[role] = {
+                'status': approval_status,
+                'remarks': remarks,
+                'date': timezone.now().isoformat(),
+            }
 
-        if request.user.groups.filter(name="Approver").exists(): 
-            if (
-                order.requester_approval_status != "SUBMITTED"
-                or order.requester_approval_status == "CANCELLED"
-                or order.reviewer_approval_status != "REVIEWED"
-                or order.reviewer_approval_status == "CANCELLED"
-            ):
-                messages.error(request, "Contact your line manager.")
-                return redirect('purchase:purchase_order_list')
-            else:
-                order.approver_approval_status = approver_approval_status 
-                order.remarks = remarks
-                order.Approver_remarks = remarks                            
-                                                           
-        if role:
-                order.approval_data[role] = {
-                    'status': approval_status,
-                    'remarks': remarks,
-                    'date': timezone.now().isoformat(),
-                    'approval_status':approval_status
-                }
-           
-        order.save()
-        messages.success(request, f"Order {order.id} successfully updated.")
-        return redirect('purchase:purchase_order_list')
+            order.save()
+            messages.success(request, f"Order {order.id} successfully updated.")
+            return redirect('purchase:purchase_order_list')
+        else:
+            messages.error(request, "Invalid form submission.")
     else:
         form = PurchaseStatusForm()
+
     return render(request, 'purchase/purchase_order_approval_form.html', {'form': form, 'order': order})
+
+
+
 
 
 @login_required
@@ -575,7 +565,7 @@ def qc_dashboard(request, purchase_order_id=None):
         pending_items = PurchaseDispatchItem.objects.filter(status__in=['REACHED', 'OBI'])
         purchase_order = None
     if not pending_items:
-        messages.info(request, "No items pending for quality control inspection.")
+        messages.info(request, "No items pending for quality control inspection.No new goods arrived yet")
     return render(request, 'purchase/qc_dashboard.html', {'pending_items': pending_items, 'purchase_order': purchase_order})
 
 

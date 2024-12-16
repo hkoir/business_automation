@@ -18,7 +18,8 @@ from logistics.models import PurchaseDispatchItem
 from.models import MaterialsRequestOrder,MaterialsRequestItem,MaterialsDeliveryItem,FinishedGoodsReadyFromProduction,ReceiveFinishedGoods
 from.forms import MaterialsRequestForm,MaterialsDeliveryForm,QualityControlForm,MaterialsStatusForm,MaterialsOrderSearchForm,FinishedGoodsForm
 
-from utils import create_notification,CommonFilterForm
+from utils import create_notification
+from core.forms import CommonFilterForm
 
 from django.core.paginator import Paginator
 
@@ -178,86 +179,67 @@ def materials_request_items(request,order_id):
 
 @login_required
 def process_materials_request(request, order_id):
-    order = get_object_or_404(MaterialsRequestOrder, id=order_id)    
+    order = get_object_or_404(MaterialsRequestOrder, id=order_id) 
+    form = MaterialsStatusForm(request.POST)
+    role_status_map = {
+        "Requester": ["SUBMITTED", "CANCELLED"],
+        "Reviewer": ["REVIEWED", "CANCELLED"],
+        "Approver": ["APPROVED", "CANCELLED"],
+    }
 
-    if request.method == 'POST':
-        form = MaterialsStatusForm(request.POST)
+    if request.method == 'POST':        
         if form.is_valid():
             if order.approval_data is None:
-                 order.approval_data = {}
-            role = None
+                order.approval_data = {}
+
             approval_status = form.cleaned_data['approval_status']
             remarks = form.cleaned_data['remarks']
+            role = None
 
-            requester_approval_status = form.cleaned_data['approval_status']
-            reviewer_approval_status = form.cleaned_data['approval_status']
-            approver_approval_status = form.cleaned_data['approval_status']
+            user_roles = []
             if request.user.groups.filter(name="Requester").exists():
-                if approval_status not in ["SUBMITTED", "CANCELLED"]:
-                    messages.error(request, "Requester can only submit or cancel.")
-                    return redirect('manufacture:materials_request_order_list')
-                role = "requester"
-                order.approval_status = approval_status
-            elif request.user.groups.filter(name="Reviewer").exists():
-                if approval_status not in ["REVIEWED", "CANCELLED"]:
-                    messages.error(request, "Reviewers can only review orders.")
-                    return redirect('manufacture:materials_request_order_list')
-                role = "reviewer"
-            elif request.user.groups.filter(name="Approver").exists():
-                if approval_status not in ["APPROVED", "CANCELLED"]:
-                    messages.error(request, "Approvers can only approve orders.")
-                    return redirect('manufacture:materials_request_order_list')
-                role = "approver"
-            else:
-                messages.error(request, "You do not have permission to process this order.")
-                return redirect('manufacture:materials_request_order_list')
- 
-        if request.user.groups.filter(name="Requester").exists():
-            if order.requester_approval_status in ["SUBMITTED", "CANCELLED"]:
-                messages.error(request, "Already completed.")
-                return redirect('manufacture:materials_request_order_list')
-            else:
-                order.requester_approval_status = requester_approval_status  
-                order.remarks = remarks
-                order.Requester_remarks = remarks
+                user_roles.append("Requester")
+            if request.user.groups.filter(name="Reviewer").exists():
+                user_roles.append("Reviewer")
+            if request.user.groups.filter(name="Approver").exists():
+                user_roles.append("Approver")
 
-        if request.user.groups.filter(name="Reviewer").exists(): 
-            if order.requester_approval_status != "SUBMITTED" or order.requester_approval_status == "CANCELLED":
-                messages.error(request, "Contact Requester's line manager.")
+            for user_role in user_roles:
+                if approval_status in role_status_map[user_role]:
+                    role = user_role
+                    break
+
+            if not role:
+                messages.error(
+                    request,
+                    "You do not have permission to perform this action or invalid status."
+                )
                 return redirect('manufacture:materials_request_order_list')
-            else:
-                order.reviewer_approval_status = reviewer_approval_status  
-                order.remarks = remarks
+
+            if role == "Requester":
+                order.requester_approval_status = approval_status
+                order.Requester_remarks = remarks
+            elif role == "Reviewer":
+                order.reviewer_approval_status = approval_status
                 order.Reviewer_remarks = remarks
-               
-        if request.user.groups.filter(name="Approver").exists(): 
-            if (
-                order.requester_approval_status != "SUBMITTED"
-                or order.requester_approval_status == "CANCELLED"
-                or order.reviewer_approval_status != "REVIEWED"
-                or order.reviewer_approval_status == "CANCELLED"
-            ):
-                messages.error(request, "Contact your line manager.")
-                return redirect('manufacture:materials_request_order_list')
-            else:
-                order.approver_approval_status = approver_approval_status 
-                order.remarks = remarks
-                order.Approver_remarks = remarks              
-                                                                         
-        if role:
-                order.approval_data[role] = {
-                    'status': approval_status,
-                    'remarks': remarks,
-                    'date': timezone.now().isoformat(),
-                    'approval_status':approval_status
-                }
-           
-        order.save()
-        messages.success(request, f"Order {order.id} successfully updated.")
-        return redirect('manufacture:materials_request_order_list')
-    else:
-        form = MaterialsStatusForm()
+            elif role == "Approver":
+                order.approver_approval_status = approval_status
+                order.Approver_remarks = remarks
+
+            order.approval_data[role] = {
+                'status': approval_status,
+                'remarks': remarks,
+                'date': timezone.now().isoformat(),
+            }
+
+            order.save()
+            messages.success(request, f"Order {order.id} successfully updated.")
+            return redirect('manufacture:materials_request_order_list')
+        else:
+            MaterialsStatusForm()
+
     return render(request, 'manufacture/materials_order_approval_form.html', {'form': form, 'order': order})
+
 
 
 
@@ -377,6 +359,7 @@ def create_materials_delivery(request, request_id):
     return render(request, 'manufacture/create_materials_delivery.html', {'form': form, 'basket': basket})
 
 
+from inventory.models import Inventory,InventoryTransaction
 
 def confirm_materilas_delivery(request):
     request_id = request.GET.get('request_id')
@@ -417,6 +400,40 @@ def confirm_materilas_delivery(request):
                     )
                     purchase_item.save()
 
+                    if InventoryTransaction.objects.filter(
+                        manufacture_order=materials_request_order,
+                        transaction_type='MANUFACTURE_OUT',
+                        product=product,
+                    ).exists():
+                        messages.error(request, "This transaction has already been recorded.")
+                        return redirect('manufacture:qc_dashboard')
+
+                    inventory_transaction = InventoryTransaction.objects.create(
+                        user=request.user,
+                        warehouse=warehouse,
+                        location=location,
+                        product=product,
+                        transaction_type='MANUFACTURE_OUT',
+                        quantity=quantity,
+                        manufacture_order=materials_request_order,
+                    )
+                    inventory, created = Inventory.objects.get_or_create(
+                        warehouse=warehouse,
+                        location=location,
+                        product=product,
+                       
+                        defaults={
+                            'quantity': 0
+                        }
+                    )
+        
+                    if not created:
+                        inventory.quantity -= quantity
+                        inventory.save()
+                        messages.success(request, "Inventory updated successfully.")
+                    else:                       
+                        messages.success(request, "something went wrong. inventory not updated.")
+
                 request.session['basket'] = []
                 request.session.modified = True
                 messages.success(request, "Delivery request created successfully!")
@@ -440,12 +457,12 @@ def qc_dashboard(request, material_request_order_id=None):
     if material_request_order_id:
         pending_items = FinishedGoodsReadyFromProduction.objects.filter(
             materials_request_order=material_request_order_id,
-            status__in=['SUBMITTED']
+            status__in=['SUBMITTED','DELIVERED']
         ).select_related('materials_request_order')  
         materials_request_order = get_object_or_404(MaterialsRequestOrder, id=material_request_order_id)
     else:
         pending_items = FinishedGoodsReadyFromProduction.objects.filter(
-            status__in=['SUBMITTED']
+            status__in=['SUBMITTED','DELIVERED']
         ).select_related('materials_request_order')  
         materials_request_order = None
 
@@ -482,15 +499,18 @@ def qc_inspect_item(request, item_id):
                     quality_control=qc_entry,
                     product=finish_goods_item.product,                    
                     quantity=good_quantity,
-                    status='RECEIVED',
+                    status='DELIVERED',
                     remarks=f"Received {good_quantity} after QC inspection.",
                 )
+                finish_goods_item.status = "DELIVERED"
+                finish_goods_item.save()
               
                 messages.success(
                     request, f"QC inspection recorded. {good_quantity} items received."
                 )
             else:
                 messages.warning(request, "No good quantity to receive.")
+            
 
             return redirect('manufacture:qc_dashboard')
         else:
@@ -528,7 +548,7 @@ def submit_finished_goods(request, request_id):
     if request.method == 'POST':
         form = FinishedGoodsForm(request.POST, request_order_queryset=MaterialsRequestOrder.objects.filter(id=request_id))
         if form.is_valid():
-            product = form.cleaned_data('product')
+            product = form.cleaned_data['product']
             finished_goods = form.save(commit=False)
             finished_goods.user = request.user  
             finished_goods.save()
@@ -606,3 +626,34 @@ def update_purchase_order_status(request, order_id):
         messages.info(request, "Not all items have been delivered yet. Status remains unchanged.")
     
     return redirect('purchase:purchase_order_list')
+
+
+
+
+def direct_submit_finished_goods(request):   
+    finished_goods = FinishedGoodsReadyFromProduction.objects.all().order_by('-created_at')
+
+    if request.method == 'POST':
+        form = FinishedGoodsForm(request.POST)
+        if form.is_valid():
+            product = form.cleaned_data['product']
+            finished_goods = form.save(commit=False)
+            finished_goods.user = request.user   
+            finished_goods.status = 'SUBMITTED'
+            finished_goods.save()
+            messages.success(request, 'Finished goods submitted successfully!')
+            create_notification(request.user,f'Production department has submitted{product} to receive')
+            return redirect('manufacture:materials_request_order_list')  
+    else:
+        form = FinishedGoodsForm()
+
+    form = FinishedGoodsForm()
+    paginator = Paginator(finished_goods,10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'manufacture/direct_submit_finished_goods.html', {
+        'form': form,
+        'finished_goods':finished_goods,
+        'page_obj':page_obj
+    })

@@ -21,6 +21,7 @@ urlpatterns = [
     path('complete_quality_control/<int:qc_id>/', views.complete_quality_control, name='complete_quality_control'),    
    # path('complete_sale_quality_control/<int:qc_id>/', views.complete_sale_quality_control, name='complete_sale_quality_control'),
 
+    path('all_inventory/', views.all_inventory, name='all_inventory'),
     path('inventory_list/', views.inventory_list, name='inventory_list'),
     path('inventory_aggregate_list/', views.inventory_aggregate_list, name='inventory_aggregate_list'),
     path('inventory_executive_sum/', views.inventory_executive_sum, name='inventory_executive_sum'),

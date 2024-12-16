@@ -16,7 +16,14 @@ from django.utils import timezone
 
 from django.core.paginator import Paginator
 from inventory.models import Inventory,InventoryTransaction
-from utils import create_notification,CommonFilterForm
+from utils import create_notification
+from core.forms import CommonFilterForm
+from.forms import ScrapProductForm,ScrapOrderListForm
+from.models import ScrappedOrder,ScrappedItem
+from product.models import Product
+from inventory.models import Inventory, InventoryTransaction,Warehouse,Location
+from django.core.paginator import Paginator
+from purchase.forms import PurchaseStatusForm
 
 
 def repair_return_dashboard(request):
@@ -50,38 +57,50 @@ def sale_order_list(request):
         })
 
 
-
-
 def create_return_request(request, sale_order_id):
     sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
-    sales = sale_order.sale_order.all()  
+    sales = sale_order.sale_order.all()
     return_requests = ReturnOrRefund.objects.prefetch_related('faulty_products__faulty_replacement').all()
-   
+
     if request.method == 'POST':
-        form = ReturnOrRefundForm(request.POST)  
+        form = ReturnOrRefundForm(request.POST, sale_order_id=sale_order_id)  
+
         sale_id = request.POST.get('sale')
-        sale = get_object_or_404(SaleOrderItem, id=sale_id)
+        try:
+            sale = get_object_or_404(SaleOrderItem, id=sale_id)
+        except:
+            messages.error(request, "Invalid sale item selected.")
+            return redirect(request.path)
+        
         if form.is_valid():
             return_refund = form.save(commit=False)
             return_refund.sale = sale
             return_refund.save()
-            create_notification(request.user,f'Customer{sale_order.customer} has placed a repair/return request for:{sale.product}')
-            messages.success(request, 'Return/Refund request submitted successfully!')
-            return redirect('repairreturn:sale_order_list')  
-    else:
-        form = ReturnOrRefundForm(sale_order_id = sale_order_id)
 
-    paginator =Paginator(return_requests,10)
+            create_notification(
+                request.user,
+                f"Customer {sale_order.customer} has placed a repair/return request for: {sale.product}"
+            )
+            messages.success(request, "Return/Refund request submitted successfully!")
+            return redirect('repairreturn:return_dashboard')
+        else:
+            messages.error(request, "There was an error with your submission. Please check the form.")
+    else:
+        form = ReturnOrRefundForm(sale_order_id=sale_order_id) 
+
+    paginator = Paginator(return_requests, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'repairreturn/refund_return//user_create_return_request.html', {
+    return render(request, 'repairreturn/refund_return/user_create_return_request.html', {
         'form': form,
         'sale_order': sale_order,
         'sales': sales,
-        'return_requests':return_requests,
-         'page_obj':page_obj
+        'return_requests': return_requests,
+        'page_obj': page_obj
     })
+
+
 
 
 def return_request_progress(request, sale_order_id):
@@ -215,6 +234,8 @@ def replacement_return_repaired_product(request, faulty_product_id):
     if request.method == 'POST':
         form = ReplacementProductForm(request.POST)
         if form.is_valid():
+            warehouse = form.cleaned_data['warehouse']
+            location = form.cleaned_data['location']
             replacement = form.save(commit=False)
             replacement.customer = faulty_product.sale.sale_order.customer
             replacement.user = request.user
@@ -228,22 +249,29 @@ def replacement_return_repaired_product(request, faulty_product_id):
                     try:
                         inventory_transaction = InventoryTransaction.objects.create(
                             product=faulty_product.sale.product,
-                            warehouse=faulty_product.sale.warehouse,
+                            warehouse=warehouse,
+                            location = location,
                             transaction_type='REPLACEMENT_OUT',
                             quantity=calculated_replacement_qty,
                             remarks=f"Replacement for Faulty Product ID {faulty_product.id}"
                         )
 
-                        if inventory_transaction.update_inventory():  
-                            replacement.faulty_product = faulty_product
-                            replacement.save()
-                            messages.success(request, "Replacement process successfully completed and inventory updated.")
-                            create_notification(request.user,f'a replacement for {faulty_product.product} has been given from{faulty_product.sale.warehouse} warehouse ')
-                            return redirect('repairreturn:faulty_product_list')
+                        inventory, created = Inventory.objects.get_or_create(
+                            warehouse=warehouse,
+                            location=location,
+                            product=faulty_product.sale.product,
+                            defaults={
+                                'quantity': 0,
+                                'inventory_transaction': inventory_transaction
+                            }
+                        )
+            
+                        if not created:
+                            inventory.quantity -= replacement.replacement_quantity
+                            inventory.save()
+                            messages.success(request, "Inventory updated successfully.")
                         else:
-                            inventory_transaction.delete() 
-                            messages.warning(request, "Not enough stock in the inventory for replacement.")
-                            return redirect('repairreturn:faulty_product_list')                    
+                            messages.success(request, "Inventory created successfully.")                  
                     except Exception as e:
                         messages.error(request, f"An error occurred: {e}")
                         return redirect('repairreturn:faulty_product_list')                
@@ -292,3 +320,301 @@ def replacement_product_list(request):
     
     })
 
+################### Sarapping product #########################################################
+
+def create_scrap_request(request):
+    if 'basket' not in request.session:
+        request.session['basket'] = []
+
+    form = ScrapProductForm(request.POST or None)
+
+    if request.method == 'POST':
+        if 'add_to_basket' in request.POST:
+            if form.is_valid():
+
+                product_obj = form.cleaned_data['scrapped_product']
+                quantity = form.cleaned_data['quantity']               
+                source_inventory = form.cleaned_data['source_inventory']
+           
+                basket = request.session.get('basket', [])
+                product_in_basket = next((item for item in basket if item['id'] == product_obj.id), None)
+                total_amount = float(quantity) * float(product_obj.unit_price)
+              
+                if product_in_basket:
+                    product_in_basket['quantity'] += quantity
+                else:
+                    basket.append({
+                        'id': product_obj.id,
+                        'name': product_obj.name,
+                        'quantity': quantity,
+                        'unit_price': float(product_obj.unit_price),
+                        'total_amount': total_amount,                       
+                        'source_inventory_id':source_inventory.id
+
+                    })
+
+                request.session['basket'] = basket
+                request.session.modified = True
+                messages.success(request, f"Added '{product_obj.name}' to the purchase basket")
+                return redirect('repairreturn:create_scrap_request')
+            else:
+                messages.error(request, "Form is invalid. Please check the details and try again.")
+
+
+        elif 'action' in request.POST:
+            action = request.POST['action']
+            product_id = int(request.POST.get('product_id', 0))
+
+            if action == 'update':
+                new_quantity = int(request.POST.get('quantity', 1))
+                for item in request.session['basket']:
+                    if item['id'] == product_id:
+                        item['quantity'] = new_quantity  
+
+            elif action == 'delete':
+                request.session['basket'] = [
+                    item for item in request.session['basket'] if item['id'] != product_id
+                ]  
+
+            request.session.modified = True
+            messages.success(request, "Sale basket updated successfully.")
+            return redirect('repairreturn:create_scrap_request')
+
+        elif 'confirm_purchase' in request.POST:
+            basket = request.session.get('basket', [])
+            if not basket:
+                messages.error(request, "Sale basket is empty. Add products before confirming the purchase.")
+                return redirect('repairreturn:create_scrap_request')
+            return redirect('repairreturn:confirm_scrap_request')
+
+    basket = request.session.get('basket', [])
+    return render(request, 'repairreturn/create_scrap_request.html', {'form': form, 'basket': basket})
+
+
+
+
+def confirm_scrap_request(request):
+    basket = request.session.get('basket', [])    
+    if not basket:
+        messages.error(request, "basket is empty. Cannot confirm purchase.")
+        return redirect('repairreturn:create_scrap_request')
+    
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic(): 
+                total_amount = sum(item['quantity'] * item['unit_price'] for item in basket)               
+                source_inventory_id = basket[0].get('source_inventory_id')               
+                source_inventory = get_object_or_404(Inventory, id=source_inventory_id) 
+              
+                scrap_request_order = ScrappedOrder(
+                    total_amount=total_amount,
+                    status='PENDING',  
+                    user=request.user,                    
+                )
+                scrap_request_order.save()  
+               
+                for item in basket:
+                    product = get_object_or_404(Product, id=item['id'])
+                    quantity = item['quantity']          
+                 
+                    scrapped_request_item = ScrappedItem(
+                        scrapped_order=scrap_request_order,
+                        scrapped_product=product,
+                        quantity=quantity,
+                        user=request.user,   
+                        warehouse=source_inventory.warehouse,
+                        location=source_inventory.location,
+                        source_inventory= source_inventory                     
+                    )
+                    scrapped_request_item.save()
+
+                request.session['basket'] = []
+                request.session.modified = True
+                messages.success(request, "Sale order created successfully!")
+                return redirect('repairreturn:create_scrap_request')
+        except Exception as e:  
+            messages.error(request, f"An error occurred while creating the sale order: {str(e)}")
+            return redirect('repairreturn:create_scrap_request')
+    return render(request, 'repairreturn/confirm_scrap_request.html', {'basket': basket})
+
+
+
+def scrap_order_list(request):
+    scrapped_orders = ScrappedOrder.objects.all().order_by('-created_at')
+    form = ScrapOrderListForm(request.GET)
+
+    if form.is_valid():
+        order_id = form.cleaned_data['order_id']
+        warehouse = form.cleaned_data['warehouse']
+
+        if order_id:
+            scrapped_orders = scrapped_orders.filter(order_id=order_id)
+        if warehouse:
+            scrapped_orders = scrapped_orders.filter(warehouse__name=warehouse)  
+   
+    paginator = Paginator (scrapped_orders,8)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    form=ScrapOrderListForm()       
+    return render(request, 'repairreturn/scrap_order_list.html',{'scrapped_orders':scrapped_orders,'form':form,'page_obj':page_obj})
+
+
+
+def scrap_request_items(request,order_id):
+    order_instance = get_object_or_404(ScrappedOrder,id=order_id)
+    return render(request,'repairreturn/scrap_request_items.html',{'order_instance':order_instance})
+
+
+
+@login_required
+def process_scrap_order(request, order_id):
+    order = get_object_or_404(ScrappedOrder, id=order_id)
+
+    role_status_map = {
+        "Requester": ["SUBMITTED", "CANCELLED"],
+        "Reviewer": ["REVIEWED", "CANCELLED"],
+        "Approver": ["APPROVED", "CANCELLED"],
+    }
+
+    if request.method == 'POST':
+        form = PurchaseStatusForm(request.POST)
+        if form.is_valid():
+            if order.approval_data is None:
+                order.approval_data = {}
+            approval_status = form.cleaned_data['approval_status']
+            remarks = form.cleaned_data['remarks']
+            role = None
+
+            user_roles = []
+            if request.user.groups.filter(name="Requester").exists():
+                user_roles.append("Requester")
+            if request.user.groups.filter(name="Reviewer").exists():
+                user_roles.append("Reviewer")
+            if request.user.groups.filter(name="Approver").exists():
+                user_roles.append("Approver")
+
+            for user_role in user_roles:
+                if approval_status in role_status_map[user_role]:
+                    role = user_role
+                    break
+
+            if not role:
+                messages.error(
+                    request,
+                    "You do not have permission to perform this action or invalid status."
+                )
+                return redirect('repairreturn:scrap_order_list')
+
+            if role == "Requester":
+                order.requester_approval_status = approval_status
+                order.Requester_remarks = remarks
+            elif role == "Reviewer":
+                order.reviewer_approval_status = approval_status
+                order.Reviewer_remarks = remarks
+            elif role == "Approver":
+                order.approver_approval_status = approval_status
+                order.Approver_remarks = remarks
+
+            order.approval_data[role] = {
+                'status': approval_status,
+                'remarks': remarks,
+                'date': timezone.now().isoformat(),
+            }
+
+            order.save()
+            messages.success(request, f"Order {order.id} successfully updated.")
+            return redirect('repairreturn:scrap_order_list')
+        else:
+            messages.error(request, "Invalid form submission.")
+    else:
+        form = PurchaseStatusForm()
+    return render(request, 'purchase/purchase_order_approval_form.html', {'form': form, 'order': order})
+
+
+
+
+def scrap_confirmation(request, order_id):
+    request_instance = get_object_or_404(ScrappedOrder, id=order_id)
+    scrap_items = request_instance.scrap_request_items.all()
+
+    if request.method == 'GET':
+        return render(
+            request,
+            'repairreturn/scrap_deletion_message.html',
+            {'scrap_items': scrap_items}
+        )
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                for item in scrap_items:
+                    if not item.source_inventory:
+                        messages.warning(
+                            request,
+                            "No source inventory linked to this scrap order. Please review the order before confirming."
+                        )
+                        return redirect('repairreturn:scrap_order_list')
+
+                    warehouse = item.source_inventory.warehouse
+                    location = item.source_inventory.location
+                    quantity = item.quantity
+                    product = item.scrapped_product
+
+                    inventory_item = Inventory.objects.filter(
+                        warehouse=warehouse,
+                        location=location,
+                        product=product,
+                    ).first()
+
+                    if inventory_item:
+                        if inventory_item.quantity < quantity:
+                            messages.warning(
+                                request,
+                                f"Insufficient quantity for {product.name} in {warehouse.name}. "
+                                "Scrap process aborted."
+                            )
+                            raise ValueError(
+                                f"Insufficient inventory for {product.name} in {warehouse.name}."
+                            )
+
+                        inventory_item.quantity -= quantity
+                        inventory_item.save()
+                        messages.success(
+                            request,
+                            f"Inventory updated for {product.name} in {warehouse.name}."
+                        )
+                    else:
+                      
+                        messages.error(
+                            request,
+                            f"Inventory not found for {product.name} in {warehouse.name}. "
+                            "Please review the source inventory."
+                        )
+                        raise ValueError(
+                            f"Inventory not found for {product.name} in {warehouse.name}."
+                        )
+                  
+                    InventoryTransaction.objects.create(
+                        user=request.user,
+                        warehouse=warehouse,
+                        location=location,
+                        product=product,
+                        transaction_type='SCRAPPED_OUT',
+                        quantity=quantity,
+                        scrapped_order=request_instance,
+                    )
+
+                request_instance.status = 'SCRAPPED_OUT'
+                request_instance.save()
+
+                messages.success(request, "Scrapped order processed successfully.")
+                return redirect('repairreturn:scrap_order_list')
+
+        except Exception as e:
+            messages.error(request, f"An error occurred: {str(e)}")
+            return redirect('repairreturn:scrap_order_list')
+
+        
+############### end of product scrapping #################################################

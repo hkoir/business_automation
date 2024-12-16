@@ -156,94 +156,42 @@ table {
                             <td class="text-center p-2" style="white-space: nowrap;">
                               <a href="{% url 'sales:sale_order_items' order.id%}">Requested items</a>
                             </td>
-                            
+
+
                             <!-- Rquester Button -->
                             <td>
-                                {% if order.approval_data %}
-                                    {% with order.approval_data.requester as approval_data %}
-                                        {% if approval_data %}
-
-                                            {% if approval_data.status == 'SUBMITTED' %}
-                                            <strong><i class="fas fa-check" style="color:green">Submitted</i></strong>
-                                            {% elif approval_data.status == 'CANCELLED' %}
-                                            <strong><i class="fas fa-times" style="color:red;"></i> Cancelled</strong>
-
-                                            {% else %}
-                                                <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Submit Request</a>
-                                            {% endif %}
-                                        {% else %}
-                                            <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Submit Request</a>
-                                        {% endif %}
-                                    {% endwith %}
+                                {% if order.requester_approval_status == 'SUBMITTED' %}
+                                <strong><i class="fas fa-check" style="color:green">Submitted</i></strong>
                                 {% else %}
-                                    <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Submit Request</a>
+                                <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Submit</a>
                                 {% endif %}
+
                             </td>                            
-                        
+
                             <!-- Review Button -->
                             <td>
-                            {% if order.requester_approval_status == 'CANCELLED' %}
-                                <button class="btn btn-secondary" disabled>Cancelled</button>
-                            {% elif order.requester_approval_status != 'SUBMITTED' %}
-                                <button class="btn btn-secondary" disabled>Pending Actions</button>
-                            {% else %}
-                                <!-- Enable Approve Request button only if all conditions are met -->
-                             {% if order.approval_data %}                          
-
-                                 {% with order.approval_data.reviewer as approval_data %}
-                                     {% if approval_data %}
-
-                                            {% if approval_data.status == 'REVIEWED' %}
-                                            <strong><i class="fas fa-check" style="color:green">Reviewed</i></strong>
-                                            {% elif approval_data.status == 'CANCELLED' %}
-                                            <strong><i class="fas fa-times" style="color:red;"></i> Cancelled</strong>
-
-                                            {% else %}
-                                                <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Review Request</a>
-                                            {% endif %}
-
-                                        {% else %}
-                                            <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Review Request</a>
-                                     {% endif %}
-                                    {% endwith %}
+                                {% if order.requester_approval_status != 'SUBMITTED' %}
+                                <strong><i class="fas fa-times" style="color:rgb(128, 21, 0)" class="btn btn-secondary">Submission Pending</i></strong>
+                                {% elif order.requester_approval_status == 'SUBMITTED' and order.reviewer_approval_status != 'REVIEWED'  %}
+                                <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Review</a>
                                 {% else %}
-                                    <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Review Request</a>
+                                <strong><i class="fas fa-check" style="color:green" class="btn btn-secondary">Reviewed</i></strong>
                                 {% endif %}
-                                {% endif %}
-                           
-                            </td>     
 
-                         <!-- Approver Button -->                                                
-                        <td>
-                            {% if order.requester_approval_status == 'CANCELLED' or order.reviewer_approval_status == 'CANCELLED' %}
-                                <button class="btn btn-secondary" disabled>Cancelled</button>
-                            {% elif order.requester_approval_status != 'SUBMITTED' or order.reviewer_approval_status != 'REVIEWED' %}
-                                <button class="btn btn-secondary" disabled>Pending Actions</button>
+
+                            </td>                          
+                                                    
+                            <!-- Approver Button -->                                                
+                            <td>
+                            {% if order.reviewer_approval_status != 'REVIEWED' %}
+                            <strong><i class="fas fa-times" style="color:rgb(128, 21, 0)" class="btn btn-secondary">Review Pending</i></strong>
+                            {% elif order.reviewer_approval_status == 'REVIEWED' and order.approver_approval_status != 'APPROVED'  %}
+                            <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Approve</a>
                             {% else %}
-                                <!-- Enable Approve Request button only if all conditions are met -->
-                                {% if order.approval_data %}
-                                    {% with order.approval_data.approver as approval_data %}
-                                        {% if approval_data %}
-                                            {% if approval_data.status == 'APPROVED' %}
-                                                <strong><i class="fas fa-check" style="color:green">Approved</i></strong>
-                                            {% elif approval_data.status == 'CANCELLED' %}
-                                                <strong><i class="fas fa-times" style="color:red;"></i> Cancelled</strong>
-                                            {% else %}
-                                                <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Approve Request</a>
-                                            {% endif %}
-                                        {% else %}
-                                            <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Approve Request</a>
-                                        {% endif %}
-                                    {% endwith %}
-                                {% else %}
-                                    <a href="{% url 'sales:process_sale_order' order.id %}" class="btn btn-primary">Approve Request</a>
-                                {% endif %}
+                            <strong><i class="fas fa-check" style="color:green">Approved</i></strong> 
                             {% endif %}
-                        </td>
-                      
 
-
-
+                            </td>
 
 
                             {% if not order.sale_shipment.first %}

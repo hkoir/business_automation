@@ -28,7 +28,7 @@ from.models import Notification
 from utils import mark_notification_as_read,calculate_stock_value2
 
 from django.core.mail import send_mail
-from utils import CommonFilterForm
+from core.forms import CommonFilterForm
 
 
 
@@ -94,15 +94,19 @@ def product_report(request, product_id):
         warehouse_entry = {
             'warehouse_name': warehouse.name,
             'warehouse_id': warehouse.id,
-            'total_quantity': stock_data['total_available'],
+            'total_available': stock_data['total_available'],
             'total_purchased': stock_data['total_purchase'],
-            'total_manufacture': stock_data['total_manufacture'],
+            'total_manufacture_in': stock_data['total_manufacture_in'],
+            'total_manufacture_out': stock_data['total_manufacture_out'],
             'total_existing_in': stock_data['total_existing_in'],
 
             'total_sold': stock_data['total_sold'],
-            'total_refund': stock_data['total_replacement_out'],
+            'total_refund_out': stock_data['total_replacement_out'],
+            'total_refund_in': stock_data['total_replacement_in'],
             'total_incoming': stock_data['total_transfer_in'],
             'total_outgoing': stock_data['total_transfer_out'],
+            'total_scrapped_in': stock_data['total_scrapped_in'],
+            'total_scrapped_out': stock_data['total_scrapped_out'],
             'total_operations_out': stock_data['total_operations_out'],
 
             'total_stock_value': stock_data['total_available'] * float(product.unit_price),

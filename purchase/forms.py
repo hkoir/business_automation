@@ -21,7 +21,7 @@ class AssignRolesForm(forms.Form):
 class PurchaseRequestForm(forms.ModelForm):
     class Meta:
         model = PurchaseRequestOrder  
-        fields = ['category', 'product', 'product_type', 'quantity','requester']  
+        fields = ['category', 'product', 'product_type', 'quantity']  
 
     category = forms.ModelChoiceField(
         queryset=Category.objects.all(),

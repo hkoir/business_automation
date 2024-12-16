@@ -16,9 +16,9 @@ from .models import  PurchaseDispatchItem, PurchaseOrderItem,SaleDispatchItem,Wa
 from sales.models import SaleOrderItem,SaleQualityControl,SaleOrder
 from purchase.models import  QualityControl,PurchaseOrder
 
-from utils import CommonFilterForm,create_notification
+from utils import create_notification
 from django.core.paginator import Paginator
-
+from core.forms import CommonFilterForm
 
 
 
@@ -341,7 +341,7 @@ def create_sale_shipment(request, sale_order_id):
 
 def sale_shipment_list(request):
     shipment_id = None
-    sale_shipments = SaleShipment.objects.all()
+    sale_shipments = SaleShipment.objects.all().order_by('-created_at')
     form = CommonFilterForm(request.GET or None)
     if form.is_valid():
         shipment_id = form.cleaned_data['sale_shipment_id']
@@ -518,7 +518,7 @@ def confirm_sale_dispatch_item(request):
 
 
 @login_required
-def sale_dispatch_item_list(request, sale_order_id):
+def sale_dispatch_item_list(request, sale_order_id):  
     sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
     dispatch_items = SaleDispatchItem.objects.filter(dispatch_item__sale_order=sale_order)
 
@@ -542,7 +542,7 @@ def sale_dispatch_item_list(request, sale_order_id):
         product_wise_totals[product_name]['order_quantity'] += dispatch_item.dispatch_item.quantity or 0
         product_wise_totals[product_name]['dispatch_quantity'] += dispatch_item.dispatch_quantity or 0
 
-        qc_entry = SaleQualityControl.objects.filter(sale_dispatch_item=dispatch_item.dispatch_item.product.id).first()
+        qc_entry = dispatch_item.sale_quality_control.first()
         if qc_entry:
             good_quantity = qc_entry.good_quantity or 0
             bad_quantity = qc_entry.bad_quantity or 0
@@ -555,6 +555,7 @@ def sale_dispatch_item_list(request, sale_order_id):
                 'bad_quantity': bad_quantity,
                 'created_at': qc_entry.created_at
             }
+          
         else:
             product_wise_totals[product_name]['good_quantity'] += 0
             product_wise_totals[product_name]['bad_quantity'] += 0

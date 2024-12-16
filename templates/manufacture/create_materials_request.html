@@ -45,7 +45,7 @@
         <div class="col-12 col-md-3">
             <div class="card shadow" style="padding:10px;background-color:aliceblue;">
                 <div class="card-body">
-                    <h6 class="card-title text-center"><strong>CreateMaterials request</strong> </h6>
+                    <h4 class="card-title text-center"><strong>Create Materials request</strong> </h4>
                     <form method="post" enctype="multipart/form-data" action="{% url 'manufacture:create_materials_request' %}" id="add_category">
                         {% csrf_token %}
                         {{ form.as_p }}
@@ -97,7 +97,7 @@
         
                 <form method="post">
                     {% csrf_token %}
-                    <button type="submit" name="confirm_purchase" class="btn btn-success">Confirm Purchase</button>
+                    <button type="submit" name="confirm_purchase" class="btn btn-success">Confirm request</button>
                 </form>
             {% else %}
                 <p>No products added to the list yet.</p>

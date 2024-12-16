@@ -6,8 +6,8 @@ from accounts.models import UserProfile
 from decimal import Decimal
 from django.utils import timezone
 from datetime import datetime
-
-
+from core.utils import DEPARTMENT_CHOICES,EMPLOYEE_LEVEL_CHOICES,POSITION_CHOICES
+import uuid
 
 
 class Notice(models.Model):
@@ -21,10 +21,35 @@ class Notice(models.Model):
         return self.title
 
 
+class Department(models.Model):
+    name = models.CharField(max_length=100,choices=DEPARTMENT_CHOICES)
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Position(models.Model):
+    name = models.CharField(max_length=100,choices=POSITION_CHOICES)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="positions")
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['name', 'department'], name='unique_position_in_department')
+        ]
+
+    def __str__(self):
+        return self.name
+
 
 
 class Employee(models.Model):    
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='employee_user')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='employee_user')
     user_profile = models.ForeignKey(UserProfile,on_delete=models.CASCADE,null=True, blank=True)
     employee_code = models.CharField(max_length=100, unique=True, null=True, blank=True, default='None')
     name = models.CharField(max_length=100, null=True, blank=True,default="Nome")
@@ -47,63 +72,9 @@ class Employee(models.Model):
     gender = models.CharField(max_length=20,choices= gender_choices,null=True, blank=True,default="Nome")
     joining_date = models.DateField(null=True,blank=True)
     resignation_date = models.DateField(null=True, blank=True, default=timezone.now, help_text="Format: YYYY-MM-DD")
-
-    position_choices=[
-
-        ('Chairman','Chairman'),
-        ('MD','MD'),
-        ('CEO','CEO'),
-        ('CFO','CFO'),
-        ('CMO','CMO'),
-        ('CTO','CTO'),
-        ('Specialist','Specialist'),
-        ('Manager','Manager'),
-        ('Sr.Manager','Sr.Manager'),
-        ('DGM','DGM'),
-        ('GM','GM'),
-        ('SrGM','SrGM'),
-        ('Director','Director'),
-        ('HOD','HOD'),
-        ('Specialist','Specialist'),
-
-        ('HSS_manager','HSS_manager'),
-        ('Driver','Driver'),
-        ('Peon','Peon'),
-        ('General staff','General staff'),
-     
-
-        
-    ]
-    position = models.CharField(max_length=100,null=True, blank=True,choices= position_choices,default="Nome")
-
-    department_choices=[
-
-        ('Engineering','Engineering'),
-        ('Marketting','Marketing'),
-        ('Finance','Finance'),
-        ('Accounting','Accounting'),
-        ('Technology','Technology'),
-        ('Admin','Admin'),
-        ('HR','HR'),
-        ('Business_Development','Business_Development'),
-        
-    ]
-    department = models.CharField(max_length=100,null=True, blank=True,choices=department_choices,default="Nome")
-    
-    
-    employee_level_choices=[
-        ('SeniorManagement','SeniorManagement'),
-        ('MidLevelManager','MidLevelManager'),
-        ('FirstLevelmanager','FirstLevelManager'),
-        ('Executive','Executive'),
-        ('Engineer','Engineer'),
-        ('Doctor','Doctor'),
-        ('Specialist','Specialist'),
-        ('Officer','Officer'),
-        ('FieldForce','FieldForce'),
-        ('General_Staffs','General_Staffs'),
-    ]
-    employe_level= models.CharField(max_length=100, choices=employee_level_choices, default='executive',null=True, blank=True)
+    position = models.ForeignKey(Position,on_delete=models.CASCADE,null=True, blank=True,default="Nome")
+    department = models.ForeignKey(Department,on_delete=models.CASCADE,null=True, blank=True,default="Nome")            
+    employe_level= models.CharField(max_length=100, choices=EMPLOYEE_LEVEL_CHOICES, default='executive',null=True, blank=True)
    
     basic_salary = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True,default=0.00)
     house_allowance = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,default=0.00)
@@ -115,9 +86,10 @@ class Employee(models.Model):
     gross_monthly_salary = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True, default=0.00)
     created_at=models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-  
 
     def save(self, *args, **kwargs):
+        if not self.employee_code:
+            self.employee_code= f"EMP-{uuid.uuid4().hex[:8].upper()}"
 
         percentage_40 = Decimal('0.4')
         percentage_30 = Decimal('0.3')

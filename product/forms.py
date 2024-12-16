@@ -22,8 +22,17 @@ class AddCategoryForm(forms.ModelForm):
 
 
 
-class AddProductForm(forms.ModelForm):      
+class AddProductForm(forms.ModelForm):  
+    description = forms.CharField(
+        widget=forms.Textarea(
+            attrs={
+                'class': 'form-control custom-textarea',
+                'rows': 3, 
+                'style': 'height: 20px;', 
+            }
+        )
+    )    
     class Meta:
         model = Product
-        fields= ['category','product_type','name','sku','unit_price']
+        exclude=['user']
 

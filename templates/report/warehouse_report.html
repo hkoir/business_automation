@@ -117,6 +117,7 @@
                     <h6 style="color:blue;margin-top: 40px;">Warehouse: {{ warehouse.warehouse_name }}</h6>
                     <table class="table table-striped">
                         <thead>
+                            <a href="{% url 'inventory:all_inventory' %}" class="btn btn-sm btn-primary">All Stocks</a>
                             <tr>
                                 <th>Product Name</th>
                                 <th>Total Available</th>

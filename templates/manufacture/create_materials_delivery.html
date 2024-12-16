@@ -45,7 +45,7 @@
         <div class="col-12 col-md-3">
             <div class="card shadow" style="padding:10px;background-color:aliceblue;">
                 <div class="card-body">
-                    <h6 class="card-title text-center"><strong>Create Purchase Order</strong> </h6>
+                    <h6 class="card-title text-center"><strong>Create Materials delivery order</strong> </h6>
                     <form method="post" enctype="multipart/form-data" action="" id="add_category">
                         {% csrf_token %}
                         {{ form.as_p }}
@@ -59,7 +59,7 @@
             {% if basket %}
                 <table class="table table-striped">
                     <thead>                        
-                    <h4>Items to be purchased</h4>
+                    <h4>Items to be delivered</h4>
                         <tr>
                             <th>Product</th>
                             <th>Category</th>
@@ -102,7 +102,7 @@
         
                 <form method="post">
                     {% csrf_token %}
-                    <button type="submit" name="confirm_purchase" class="btn btn-success">Confirm Purchase</button>
+                    <button type="submit" name="confirm_purchase" class="btn btn-success">Confirm Delivery</button>
                 </form>
             {% else %}
                 <p>No products added to the list yet.</p>

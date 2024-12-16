@@ -1,5 +1,8 @@
 {% extends 'base.html' %}  
 
+
+{% load custom_filters %}
+
 {% block content %}
 
 
@@ -137,91 +140,43 @@ table {
                     <td class="text-center p-1" style="white-space: nowrap;">
                         <a href="{% url 'purchase:purchase_request_items' order.id %}">Items</a>
                     </td>  
-                    
-                            
-                    <!-- Rquester Button -->
-                    <td>
-                        {% if order.approval_data %}
-                            {% with order.approval_data.requester as approval_data %}
-                                {% if approval_data %}
+        <!-- Requester Button -->
+<td>
+    {% if order.requester_approval_status == 'SUBMITTED' %}
+    <strong><i class="fas fa-check" style="color:green">Submitted</i></strong>   
+   {% else %}
+   <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Submit Request</a>
+   {% endif %}
+</td>
 
-                                    {% if approval_data.status == 'SUBMITTED' %}
-                                    <strong><i class="fas fa-check" style="color:green">Submitted</i></strong>
-                                    {% elif approval_data.status == 'CANCELLED' %}
-                                    <strong><i class="fas fa-times" style="color:red;"></i> Cancelled</strong>
+<!-- Reviewer Button -->
+<td>
+    {% if order.requester_approval_status != 'SUBMITTED'  %}   
+    <button class="btn btn-secondary" disabled>Pending Submission</button>
+    {% elif order.reviewer_approval_status == 'CANCELLED'  %}  
+    <strong><i class="fas fa-times" style="color:rgb(236, 17, 6)">Cancelled</i></strong> 
+   {% elif order.reviewer_approval_status == 'REVIEWED' %}
+   <strong><i class="fas fa-check" style="color:green">Reviewed</i></strong>  
+   {% else %}
+   <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Review Request</a>
+   {% endif %}
+</td>
 
-                                    {% else %}
-                                        <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Submit Request</a>
-                                    {% endif %}
-                                {% else %}
-                                    <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Submit Request</a>
-                                {% endif %}
-                            {% endwith %}
-                        {% else %}
-                            <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Submit Request</a>
-                        {% endif %}
-                    </td>                            
-                        
-                    <!-- Review Button -->
-                    <td>
-                    {% if order.requester_approval_status == 'CANCELLED' %}
-                        <button class="btn btn-secondary" disabled>Cancelled</button>
-                    {% elif order.requester_approval_status != 'SUBMITTED' %}
-                        <button class="btn btn-secondary" disabled>Pending Actions</button>
-                    {% else %}
-                        <!-- Enable Approve Request button only if all conditions are met -->
-                        {% if order.approval_data %}                          
+<!-- Approver Button -->
+<td>
+    {% if order.reviewer_approval_status != 'REVIEWED'  %}
+    <button class="btn btn-secondary" disabled>Pending review</button>
+   {% elif order.approver_approval_status == 'APPROVED'  %}
+   <strong><i class="fas fa-check" style="color:green">Approved</i></strong> 
+   {% elif order.approver_approval_status == 'CANCELLED'  %}
+   <strong><i class="fas fa-check" style="color:rgb(235, 9, 9)">Cancelled</i></strong> 
+   {% else %}
+   <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Approve Request</a>
+   {% endif %}
+</td>
 
-                            {% with order.approval_data.reviewer as approval_data %}
-                                {% if approval_data %}
 
-                                    {% if approval_data.status == 'REVIEWED' %}
-                                    <strong><i class="fas fa-check" style="color:green">Reviewed</i></strong>
-                                    {% elif approval_data.status == 'CANCELLED' %}
-                                    <strong><i class="fas fa-times" style="color:red;"></i> Cancelled</strong>
 
-                                    {% else %}
-                                        <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Review Request</a>
-                                    {% endif %}
-
-                                {% else %}
-                                    <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Review Request</a>
-                                {% endif %}
-                            {% endwith %}
-                        {% else %}
-                            <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Review Request</a>
-                        {% endif %}
-                        {% endif %}                    
-                    </td>     
-
-                        <!-- Approver Button -->                                                
-                    <td>
-                        {% if order.requester_approval_status == 'CANCELLED' or order.reviewer_approval_status == 'CANCELLED' %}
-                            <button class="btn btn-secondary" disabled>Cancelled</button>
-                        {% elif order.requester_approval_status != 'SUBMITTED' or order.reviewer_approval_status != 'REVIEWED' %}
-                            <button class="btn btn-secondary" disabled>Pending Actions</button>
-                        {% else %}
-                            <!-- Enable Approve Request button only if all conditions are met -->
-                            {% if order.approval_data %}
-                                {% with order.approval_data.approver as approval_data %}
-                                    {% if approval_data %}
-                                        {% if approval_data.status == 'APPROVED' %}
-                                            <strong><i class="fas fa-check" style="color:green">Approved</i></strong>
-                                        {% elif approval_data.status == 'CANCELLED' %}
-                                            <strong><i class="fas fa-times" style="color:red;"></i> Cancelled</strong>
-                                        {% else %}
-                                            <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Approve Request</a>
-                                        {% endif %}
-                                    {% else %}
-                                        <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Approve Request</a>
-                                    {% endif %}
-                                {% endwith %}
-                            {% else %}
-                                <a href="{% url 'purchase:process_purchase_request' order.id %}" class="btn btn-primary">Approve Request</a>
-                            {% endif %}
-                        {% endif %}
-                    </td>
-                    
                             
 
                       {% if order.purchase_order_request_order.first %}

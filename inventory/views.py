@@ -34,7 +34,7 @@ from utils import update_sale_shipment_status,update_sale_order,update_sale_requ
 from utils import get_warehouse_stock,calculate_stock_value,calculate_stock_value2
 from utils import update_purchase_order,update_purchase_request_order,update_shipment_status
 
-from utils import CommonFilterForm
+from core.forms import CommonFilterForm
 from reporting.forms import SummaryReportChartForm
 from django.utils import timezone
 from datetime import timedelta
@@ -149,8 +149,23 @@ def complete_quality_control(request, qc_id):
                 purchase_order=purchase_dispatch_item.dispatch_item.purchase_order
             )
 
-            if not inventory_transaction.update_inventory():
-                raise ValueError(f"Failed to update stock for {quality_control.product.name} in {warehouse.name}")
+            inventory, created = Inventory.objects.get_or_create(
+                warehouse=warehouse,
+                location=location,
+                product=quality_control.product,
+                defaults={
+                    'quantity': good_quantity 
+                }
+            )
+   
+            if not created:
+                inventory.quantity += good_quantity
+                inventory.save()
+                messages.success(request, "Inventory updated successfully.")
+            else:
+                messages.success(request, "Inventory created successfully.")
+        
+
          
             purchase_dispatch_item.status = 'DELIVERED'
             purchase_dispatch_item.save()   
@@ -158,13 +173,13 @@ def complete_quality_control(request, qc_id):
             update_purchase_order(purchase_order.id)
             update_shipment_status(purchase_shipment.id)
             update_purchase_request_order(purchase_request_order.id)  
-            # update_inventory_status(user=request.user)
+       
 
 
             messages.success(request, "Quality control completed and product added to inventory.")
             return redirect('purchase:qc_dashboard')
-        else:
-            print("Form errors:", form.errors)
+        else:          
+            messages.error(request, "Failed to update inventory. Form is not valid.")
     else:
         form = QualityControlCompletionForm()
 
@@ -228,10 +243,12 @@ def complete_quality_control(request, qc_id):
 #     })
 
 
-
+import uuid
+from manufacture.models import MaterialsRequestOrder
 
 @login_required
 def complete_manufacture_quality_control(request, qc_id):
+
     quality_control = get_object_or_404(ManufactureQualityControl, id=qc_id)
 
     total_quantity = quality_control.total_quantity
@@ -243,6 +260,14 @@ def complete_manufacture_quality_control(request, qc_id):
         return redirect('manufacture:qc_dashboard')
 
     materials_request_order = quality_control.finish_goods_from_production.materials_request_order
+    if not materials_request_order:
+       materials_request_order = MaterialsRequestOrder.objects.create(
+        order_id=f"DFGS-{uuid.uuid4().hex[:8].upper()}"
+    )
+   
+    finish_goods_from_production = quality_control.finish_goods_from_production
+    finish_goods_from_production.materials_request_order = materials_request_order
+    finish_goods_from_production.save()
 
     if request.method == 'POST':
         selected_warehouse_id = request.POST.get('warehouse')
@@ -270,10 +295,23 @@ def complete_manufacture_quality_control(request, qc_id):
                 quantity=good_quantity,
                 manufacture_order=materials_request_order,
             )
-            if not inventory_transaction.update_inventory():
-                raise ValueError(f"Failed to update stock for {quality_control.product.name} in {warehouse.name}")
+            inventory, created = Inventory.objects.get_or_create(
+                warehouse=warehouse,
+                location=location,
+                product=quality_control.product,
+                defaults={
+                    'quantity': good_quantity 
+                }
+            )
+   
+            if not created:
+                inventory.quantity += good_quantity
+                inventory.save()
+                messages.success(request, "Inventory updated successfully.")
+            else:
+                messages.success(request, "Inventory created successfully.")
          
-            quality_control.finish_goods_from_production.status = 'DELIVERED'
+            quality_control.finish_goods_from_production.status = 'RECEIVED'
             quality_control.finish_goods_from_production.save()
 
             messages.success(request, "Quality control completed and product added to inventory.")
@@ -402,8 +440,22 @@ def confirm_transfer(request):
                         transaction_date=now(),
                         remarks=f"Transferred {transfer_quantity} units of {product.name} to {target_warehouse.name}"
                     )
-                    if not transaction_out.update_inventory():
-                        raise ValueError(f"Failed to update stock for {product.name} in {source_warehouse.name}.")
+                    source_inventory, created = Inventory.objects.get_or_create(
+                    warehouse=source_warehouse,
+                    product=product,                    
+                    defaults={'quantity': 0} )
+
+                    if not created:
+                        if source_inventory.quantity >= transfer_quantity:
+                            source_inventory.quantity -= transfer_quantity
+                            source_inventory.save()  
+                        else:
+                            raise ValueError(f"Insufficient quantity in {source_warehouse.name} for {product.name}")
+                    else:
+                       
+                        source_inventory.quantity -= transfer_quantity
+                        source_inventory.save()
+
 
                     transaction_in = InventoryTransaction.objects.create(
                         user=request.user,
@@ -414,8 +466,18 @@ def confirm_transfer(request):
                         transaction_date=now(),
                         remarks=f"Received {transfer_quantity} units of {product.name} from {source_warehouse.name}"
                     )
-                    if not transaction_in.update_inventory():
-                        raise ValueError(f"Failed to update stock for {product.name} in {target_warehouse.name}.")
+                    target_inventory, created = Inventory.objects.get_or_create(
+                    warehouse=target_warehouse,
+                    product=product,                  
+                    defaults={'quantity': 0} )
+
+                    if not created:
+                        target_inventory.quantity += transfer_quantity  
+                                           
+                    else:
+                        target_inventory.quantity = transfer_quantity
+                    target_inventory.save()
+                   
 
                     TransferItem.objects.create(
                         product=product,
@@ -475,9 +537,10 @@ def transfer_order_detail(request,transfer_order_id):
     })
 
 
+def all_inventory(request):
+    return redirect(request,'inventory/all_inventory.html')
 
-
-def inventory_list(request):
+def inventory_list(request):   
     products = Product.objects.all()
     warehouses = Warehouse.objects.all()
     data = []
@@ -488,6 +551,10 @@ def inventory_list(request):
     date_filter = {}
     warehouse_name=None
     product_name=None
+    grouped_data = []
+    chart_data={}
+  
+  
 
     form = SummaryReportChartForm(request.GET or None)
 
@@ -512,49 +579,66 @@ def inventory_list(request):
         else:
             date_filter = {}
 
-    for product in products:
-        inventories = product.product_inventories.filter(**date_filter)  
-        if warehouse_name:
-            inventories = inventories.filter(warehouse=warehouse_name)  
+        for product in products:
+            inventories = product.product_inventories.filter(**date_filter)  
+            if warehouse_name:
+                inventories = inventories.filter(warehouse=warehouse_name)  
 
-        for inventory in inventories:
-            stock_data = calculate_stock_value(product, inventory.warehouse)
+            for inventory in inventories:
+                stock_data = calculate_stock_value(product, inventory.warehouse)
 
-            total_available = stock_data['total_available']
-            total_stock_value = total_available * float(product.unit_price)
+                total_available = stock_data['total_available']
+                total_stock_value = total_available * float(product.unit_price)
 
-            grand_total_stock_value += total_stock_value
+                grand_total_stock_value += total_stock_value
+                
 
-            data.append({
-                'product': product.name,
-                'warehouse': inventory.warehouse,
-                'total_purchase': stock_data['total_purchase'],
-                'total_manufacture': stock_data['total_manufacture'],
-                'total_existing_in': stock_data['total_existing_in'],
-                'total_transfer_in': stock_data['total_transfer_in'],
-                'total_sold': stock_data['total_sold'],
-                'total_replacement_out': stock_data['total_replacement_out'],
-                'total_operations_out': stock_data['total_operations_out'],
-                'total_transfer_out': stock_data['total_transfer_out'],
-                'total_available': total_available,
-                'total_stock': stock_data['total_stock'],
-                'total_stock_value': total_stock_value,
-            })
+                data.append({
+                    'product': product.name,
+                    'warehouse': inventory.warehouse,
 
-    chart_data = {
-        'labels': [f"{item['product']} ({item['warehouse'].name})" for item in data],
-        'total_purchase': [item['total_purchase'] for item in data],
-        'total_manufacture': [item['total_manufacture'] for item in data],
-        'total_existing_in': [item['total_existing_in'] for item in data],
-        'total_transfer_in': [item['total_transfer_in'] for item in data],
-        'total_sold': [item['total_sold'] for item in data],
-        'total_operations_out': [item['total_operations_out'] for item in data],
-        'total_replacement_out': [item['total_replacement_out'] for item in data],
-        'total_transfer_out': [item['total_transfer_out'] for item in data],
-        'total_available': [item['total_available'] for item in data],
-        'total_stock': [item['total_stock'] for item in data],
-        'total_stock_value': [item['total_stock_value'] for item in data],
-    }
+                    'total_stock': stock_data['total_stock'],
+                    'total_purchase': stock_data['total_purchase'],
+                    'total_sold': stock_data['total_sold'],
+
+                    'total_manufacture_in': stock_data['total_manufacture_in'],
+                    'total_manufacture_out': stock_data['total_manufacture_out'],
+
+                    'total_existing_in': stock_data['total_existing_in'],
+                    'total_operations_out': stock_data['total_operations_out'],
+                    'total_transfer_out': stock_data['total_transfer_out'],
+                    'total_transfer_in': stock_data['total_transfer_in'],
+               
+                    'total_replacement_out': stock_data['total_replacement_out'],
+                    'total_replacement_in': stock_data['total_replacement_in'], 
+                    'total_scrapped_out': stock_data['total_scrapped_out'],
+                    'total_scrapped_in': stock_data['total_scrapped_in'],                     
+              
+                    'total_available': total_available,            
+                    'total_stock_value': total_stock_value,
+                })
+
+        chart_data = {
+            'labels': [f"{item['product']} ({item['warehouse'].name})" for item in data],
+
+            'total_stock': [item['total_stock'] for item in data],
+            'total_purchase': [item['total_purchase'] for item in data],  
+            'total_sold': stock_data['total_sold'],
+            'total_manufacture_in': [item['total_manufacture_in'] for item in data],
+            'total_manufacture_out': [item['total_manufacture_out'] for item in data],
+
+            'total_existing_in': [item['total_existing_in'] for item in data],
+            'total_operations_out': [item['total_operations_out'] for item in data],
+            'total_transfer_in': [item['total_transfer_in'] for item in data],
+            'total_transfer_out': [item['total_transfer_out'] for item in data],
+
+            'total_replacement_out': [item['total_replacement_out'] for item in data],
+            'total_replacement_in': [item['total_replacement_in'] for item in data],
+            'total_scrapped_out': [item['total_scrapped_out'] for item in data],
+            'total_scrapped_in': [item['total_scrapped_in'] for item in data],
+            'total_available': [item['total_available'] for item in data],  
+            'total_stock_value': [item['total_stock_value'] for item in data],
+        }
 
     warehouse_json = json.dumps(chart_data)
     paginator = Paginator(data, 10)
@@ -631,35 +715,56 @@ def inventory_aggregate_list(request):
         total_stock_value = total_available * float(product.unit_price)
 
         grand_total_stock_value += total_stock_value
+        product_name = product
+
+
 
         aggregated_data.append({
             'product': product.name,
-            'total_purchase': stock_data['total_purchase'],
-            'total_manufacture': stock_data['total_manufacture'],
-            'total_existing_in': stock_data['total_existing_in'],
-            'total_transfer_in': stock_data['total_transfer_in'],
-            'total_sold': stock_data['total_sold'],
-            'total_replacement_out': stock_data['total_replacement_out'],
-            'total_operations_out': stock_data['total_operations_out'],
-            'total_transfer_out': stock_data['total_transfer_out'],
-            'total_available': total_available,
+
             'total_stock': stock_data['total_stock'],
+            'total_purchase': stock_data['total_purchase'],
+            'total_sold': stock_data['total_sold'],
+            'total_available': total_available,
+
+            'total_manufacture_in': stock_data['total_manufacture_in'],
+            'total_manufacture_out': stock_data['total_manufacture_out'],
+            'total_existing_in': stock_data['total_existing_in'],
+            'total_operations_out': stock_data['total_operations_out'],
+
+            'total_transfer_in': stock_data['total_transfer_in'],  
+            'total_transfer_out': stock_data['total_transfer_out'],    
+            
+            'total_scrapped_in': stock_data['total_scrapped_in'],  
+            'total_scrapped_out': stock_data['total_scrapped_out'],      
+            'total_replacement_out': stock_data['total_replacement_out'],
+            'total_replacement_in': stock_data['total_replacement_in'],        
+                             
             'total_stock_value': total_stock_value,
         })
 
     chart_data = {
         'labels': [f"{item['product']}" for item in aggregated_data],
-        'total_purchase': [item['total_purchase'] for item in aggregated_data],
-        'total_manufacture': [item['total_manufacture'] for item in aggregated_data],
-        'total_existing_in': [item['total_existing_in'] for item in aggregated_data],
-        'total_transfer_in': [item['total_transfer_in'] for item in aggregated_data],
-        'total_sold': [item['total_sold'] for item in aggregated_data],
-        'total_operations_out': [item['total_operations_out'] for item in aggregated_data],
-        'total_replacement_out': [item['total_replacement_out'] for item in aggregated_data],
-        'total_transfer_out': [item['total_transfer_out'] for item in aggregated_data],
-        'total_available': [item['total_available'] for item in aggregated_data],
-        'total_stock_value': [item['total_stock_value'] for item in aggregated_data],
+
         'total_stock': [item['total_stock'] for item in aggregated_data],
+        'total_purchase': [item['total_purchase'] for item in aggregated_data],
+        'total_sold': [item['total_sold'] for item in aggregated_data],
+        'total_available': [item['total_available'] for item in aggregated_data],
+
+        'total_manufacture_in': [item['total_manufacture_in'] for item in aggregated_data],
+        'total_manufacture_out': [item['total_manufacture_out'] for item in aggregated_data],
+        'total_existing_in': [item['total_existing_in'] for item in aggregated_data],
+        'total_operations_out': [item['total_operations_out'] for item in aggregated_data],
+
+        'total_transfer_in': [item['total_transfer_in'] for item in aggregated_data],  
+        'total_transfer_out': [item['total_transfer_out'] for item in aggregated_data],  
+        'total_scrapped_in': [item['total_scrapped_in'] for item in aggregated_data],  
+        'total_scrapped_out': [item['total_scrapped_out'] for item in aggregated_data],    
+        'total_replacement_out': [item['total_replacement_out'] for item in aggregated_data],
+        'total_replacement_in': [item['total_replacement_in'] for item in aggregated_data],      
+       
+        'total_stock_value': [item['total_stock_value'] for item in aggregated_data],
+       
     }
 
     warehouse_json = json.dumps(chart_data)
@@ -678,9 +783,11 @@ def inventory_aggregate_list(request):
         'start_date': start_date,
         'end_date': end_date,
         'warehouse_name':warehouse_name,
-        'product_name':product_name
+        'product_name':product_name,
+        'reported_product':product_name
     }
     return render(request, 'inventory/inventory_aggregate_list.html', context)
+
 
 
 

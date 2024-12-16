@@ -3,12 +3,12 @@ from django.db import models
 from accounts.models import User
 from product.models import Product
 from customer.models import Customer
-from inventory.models import Warehouse,Location,Inventory
+from inventory.models import Warehouse,Location
 
 from sales.models import SaleOrder,SaleOrderItem
 from purchase.models import PurchaseOrder,PurchaseOrderItem
-from inventory.models import InventoryTransaction
-
+from django.apps import apps
+import uuid
 
 
 class ReturnOrRefund(models.Model):
@@ -51,13 +51,17 @@ class ReturnOrRefund(models.Model):
         if not self.product and self.sale.product:
             self.product= self.sale.product
         if not self.quantity_sold and self.sale.quantity:
-            self.quantity_sold = self.sale.quantity       
+            self.quantity_sold = self.sale.quantity     
+
+        if not self.return_id:
+            self.return_id= f"RID-{uuid.uuid4().hex[:8].upper()}"  
 
         super().save(*args,**kwargs)
 
     def __str__(self):
         return f"{self.quantity_refund} nos {self.sale.product.name} refund applied by customer"
 
+       
 
 class FaultyProduct(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True,related_name='user_faulty_product')
@@ -108,19 +112,14 @@ class FaultyProduct(models.Model):
 
 
 class Replacement(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)
-    source_inventory = models.ForeignKey(Inventory,on_delete=models.CASCADE,related_name='replacement_source_inventory',null=True, blank=True,)    
+    source_inventory = models.ForeignKey('inventory.Inventory',on_delete=models.CASCADE,related_name='replacement_source_inventory',null=True, blank=True,)    
     faulty_product = models.ForeignKey(FaultyProduct, on_delete=models.CASCADE, related_name='faulty_replacement')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='replacement_users', null=True, blank=True)
     warehouse=models.ForeignKey(Warehouse,on_delete=models.CASCADE,related_name='replacement_warehouse',null=True, blank=True,)
     location=models.ForeignKey(Location,on_delete=models.CASCADE,related_name='replacement_location',null=True, blank=True,)
     replacement_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='replacement_products', null=True, blank=True)  
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='replacement_customers', null=True, blank=True)
-    transaction_type = models.CharField(max_length=20, choices=[
-        ('INBOUND', 'Inbound'),
-        ('OUTBOUND', 'Outbound'),
-    ],null=True, blank=True)
     status = models.CharField(max_length=20, choices=[
         ('PENDING', 'PENDING'),
         ('REPLACED_DONE', 'Replaced'),
@@ -130,7 +129,10 @@ class Replacement(models.Model):
     feedback = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
+    def get_inventory(self):
+            Warehouse = apps.get_model('inventory', 'Inventory')
+            return Warehouse.objects.get(id=self.warehouse.id) if self.warehouse else None
 
 
     def save(self, *args, **kwargs):
@@ -146,25 +148,80 @@ class Replacement(models.Model):
             if not self.location:
                 self.location = self.source_inventory.location
         super().save(*args, **kwargs)
-
-        if self.transaction_type == 'OUTBOUND':
-            InventoryTransaction.objects.create(
-                product=self.faulty_product.product,
-                warehouse=self.warehouse,
-                quantity=self.quantity,
-                transaction_type='OUTBOUND',
-                remarks=self.feedback
-            )
-
-        elif self.transaction_type == 'INBOUND':
-            InventoryTransaction.objects.create(
-                product=self.faulty_product.product,
-                warehouse=self.warehouse,
-                quantity=self.quantity,
-                transaction_type='INBOUND',
-                remarks=self.feedback
-            )        
-        return super().save(*args, **kwargs)    
-       
+             
     def __str__(self):
         return f"Replacement for {self.faulty_product.product.name} in {self.warehouse.name}"
+    
+
+
+class ScrappedOrder(models.Model):
+    order_id = models.CharField(max_length=30)
+    STATUS_CHOICES=[
+        ('SUBMITTED','Submitted'),
+        ('REVIEWED','Reviewed'),
+        ('SCRAPPED_OUT','Scrapped out'),
+        ('CANCELLED','Cancelled'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING',null=True,blank=True)  
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    remarks=models.TextField(null=True,blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scrap_user', null=True, blank=True)
+
+    approval_data = models.JSONField(default=dict,null=True,blank=True)
+    requester_approval_status = models.CharField(max_length=20, null=True, blank=True)
+    reviewer_approval_status = models.CharField(max_length=20, null=True, blank=True)
+    approver_approval_status = models.CharField(max_length=20, null=True, blank=True)
+
+    Requester_remarks=models.TextField(null=True,blank=True)
+    Reviewer_remarks=models.TextField(null=True,blank=True)
+    Approver_remarks=models.TextField(null=True,blank=True)
+
+    def save(self, *args, **kwargs):       
+        if not self.order_id:
+            self.order_id= f"SCRAID-{uuid.uuid4().hex[:8].upper()}"  
+        super().save(*args,**kwargs)
+
+           
+    def __str__(self):
+        return f"Scrapped order-{self.order_id} "
+
+
+
+class ScrappedItem(models.Model):
+    scrapped_item_id =models.CharField(max_length=30)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scrap_item_user', null=True, blank=True)
+    scrapped_order = models.ForeignKey(ScrappedOrder,on_delete=models.CASCADE,null=True,blank=True,related_name='scrap_request_items')
+    scrapped_product =models.ForeignKey(Product, on_delete=models.CASCADE, related_name='scrapped_product')
+    quantity = models.PositiveIntegerField(null=True, blank=True)
+    source_inventory = models.ForeignKey('inventory.Inventory',on_delete=models.CASCADE,related_name='scrapped_source_inventory',null=True, blank=True,)    
+   
+    warehouse=models.ForeignKey(Warehouse,on_delete=models.CASCADE,related_name='scrapped_warehouse',null=True, blank=True,)
+    location=models.ForeignKey(Location,on_delete=models.CASCADE,related_name='scrapped_location',null=True, blank=True,)
+   
+   
+    status = models.CharField(max_length=20, choices=[
+        ('PENDING', 'PENDING'),
+        ('SUBMITTED', 'Submitted'),
+        ('SCRAPPED_OUT', 'Scrapped out'),
+        ('COMPLETED', 'COMPLETED'),
+    ], default='PENDING',null=True, blank=True,)
+
+    feedback = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):       
+        if not self.scrapped_item_id:
+            self.scrapped_item_id= f"SCITEMID-{uuid.uuid4().hex[:8].upper()}"  
+        super().save(*args,**kwargs)
+
+
+    def get_inventory(self):
+        Warehouse = apps.get_model('inventory', 'Inventory')
+        return Warehouse.objects.get(id=self.warehouse.id) if self.warehouse else None
+
+             
+    def __str__(self):
+        return f"Scrapped for {self.scrapped_item_id}"

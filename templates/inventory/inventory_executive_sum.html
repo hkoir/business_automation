@@ -63,9 +63,9 @@
             Current Stock Value: {{ grand_total_stock_value|add_commas }}&nbsp;&nbsp;
            
             <span style="font-size: 14px;">
-                <a href="{% url 'inventory:inventory_executive_sum' %}">Stock value</a>:
-                <a href="{% url 'inventory:inventory_list' %}">Product in warehouse</a>:
-                <a href="{% url 'inventory:inventory_aggregate_list' %}">Stocked Prodcut</a>
+                <a href="{% url 'inventory:inventory_list' %}" class="btn btn-sm btn-primary">Product by warehouse</a>
+                <a href="{% url 'inventory:inventory_aggregate_list' %}" class="btn btn-sm btn-primary">Aggregated Prodcut</a>
+   
             </span>
             
         

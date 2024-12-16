@@ -4,11 +4,14 @@ from.forms import AddCategoryForm,AddProductForm
 
 from.models import Category,Product
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-
 from django.db import ProgrammingError
+
+
 
 def product_dashboard(request):
     return render(request,'product/product_dashboard.html')
+
+
 
 def manage_category(request, id=None):
     try:
@@ -41,7 +44,6 @@ def manage_category(request, id=None):
         'datas': datas,
         'page_obj': page_obj
     })
-
 
 
 

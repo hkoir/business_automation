@@ -18,10 +18,18 @@ class AssignRolesForm(forms.Form):
 
 
 
-class MaterialsRequestForm(forms.ModelForm):
+class MaterialsRequestForm(forms.ModelForm): 
     class Meta:
         model = MaterialsRequestOrder  
-        fields = ['status','order_date']  
+        fields = ['department']  
+        widgets = {
+            'department': forms.Select(  # Use Select widget for choices
+                attrs={
+                    'class': 'form-control',
+                    'style': 'width:250px;',  # Adjust width using inline CSS
+                }
+            )
+        }
 
     category = forms.ModelChoiceField(
         queryset=Category.objects.all(),
@@ -48,12 +56,7 @@ class MaterialsRequestForm(forms.ModelForm):
         min_value=1,
         widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
-    materials_request_order = forms.ModelChoiceField(
-        queryset=MaterialsRequestOrder.objects.all(),
-        label="Request Order",
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        required=False
-    )
+  
 
 
 
@@ -135,7 +138,7 @@ class MaterialsDeliveryForm(forms.ModelForm):
 
 
 class QualityControlForm(forms.ModelForm):
-    comments = forms.CharField(
+    comments = forms.CharField(required=False,
         widget=forms.Textarea(
             attrs={
                 'class': 'form-control custom-textarea',
@@ -167,11 +170,12 @@ class QualityControlForm(forms.ModelForm):
 class FinishedGoodsForm(forms.ModelForm):
     class Meta:
         model = FinishedGoodsReadyFromProduction
-        fields = ['materials_request_order', 'product', 'quantity','remarks']
+        fields = ['materials_request_order', 'product', 'quantity','status','remarks']
         widgets = {           
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'product': forms.Select(attrs={'class': 'form-select'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):

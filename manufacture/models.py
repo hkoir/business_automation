@@ -7,16 +7,16 @@ from simple_history.models import HistoricalRecords
 from django.core.exceptions import ValidationError
 from django.apps import apps
 
-
 from product.models import Product,Component,BOM
 
+from core.utils import DEPARTMENT_CHOICES
 
 
 
 class MaterialsRequestOrder(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)   
     order_id = models.CharField(max_length=50,null=True,blank=True)
-    department = models.CharField(max_length=50,null=True, blank=True)
+    department = models.CharField(max_length=50,null=True, blank=True,choices=DEPARTMENT_CHOICES)
    
     order_date = models.DateField(null=True, blank=True)
     STATUS_CHOICES = [
@@ -29,19 +29,17 @@ class MaterialsRequestOrder(models.Model):
         ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
 
-    STATUS_CHOICES = [
+    APPROVAL_STATUS_CHOICES = [
     ('SUBMITTED', 'Submitted'),
      ('REVIEWED', 'Reviewed'),
     ('APPROVED', 'Approved'),   
     ('CANCELLED','Cancelled'),
         ]
-    approval_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
+    approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
        
     total_amount = models.DecimalField(max_digits=15, decimal_places=2,null=True, blank=True)
-    created_at = models.DateField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    history=HistoricalRecords()
     remarks=models.TextField(null=True,blank=True)   
+
     approval_data = models.JSONField(default=dict,null=True,blank=True)
     requester_approval_status = models.CharField(max_length=20, null=True, blank=True)
     reviewer_approval_status = models.CharField(max_length=20, null=True, blank=True)
@@ -49,6 +47,9 @@ class MaterialsRequestOrder(models.Model):
     Requester_remarks=models.TextField(null=True,blank=True)
     Reviewer_remarks=models.TextField(null=True,blank=True)
     Approver_remarks=models.TextField(null=True,blank=True)
+
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)  
     
     class Meta:
         permissions = [
@@ -60,6 +61,10 @@ class MaterialsRequestOrder(models.Model):
     def save(self, *args, **kwargs):
         if not self.order_id:
             self.order_id= f"MRO-{uuid.uuid4().hex[:8].upper()}"
+
+        if not self.order_date:
+            self.order_date = self.created_at
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -139,12 +144,13 @@ class MaterialsDeliveryItem(models.Model):
 class FinishedGoodsReadyFromProduction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     goods_id = models.CharField(max_length=20)
-    materials_request_order = models.ForeignKey(MaterialsRequestOrder, on_delete=models.CASCADE)
+    materials_request_order = models.ForeignKey(MaterialsRequestOrder, on_delete=models.CASCADE,null=True,blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
     STATUS_CHOICES = [
     ('SUBMITTED', 'Submitted'),
     ('DELIVERED', 'Delivered'),
+    ('RECEIVED', 'Received'),
     ('CANCELLED','Cancelled'),
         ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 

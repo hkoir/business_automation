@@ -2,12 +2,42 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h2>{% if performance %}Update{% else %}Add{% endif %} Customer Performance</h2>
 
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-success">{% if performance %}Update{% else %}Add{% endif %} Performance</button>
-    <a href="{% url 'customer:customer_performance_list' %}" class="btn btn-secondary">Cancel</a>
-  </form>
+
+
+ 
+
+  <div class="conatiner-fluid">
+    <div class="row">
+      <div class="col-12 col-md-3"></div>
+      <div class="col-12 col-md-6">
+        <div class="card shadow m-2 p-4" style="background-color: aliceblue;">
+          <div class="card-body">
+  
+  
+            <h2>{% if performance %}Update{% else %}Add{% endif %} Customer Performance</h2>
+  
+            <form method="post">
+              {% csrf_token %}
+              {{ form.as_p }}
+              <button type="submit" class="btn btn-success">{% if performance %}Update{% else %}Add{% endif %} Performance</button>
+              <a href="{% url 'customer:customer_performance_list' %}" class="btn btn-secondary">Cancel</a>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-3"></div>
+    </div>
+  </div>
+  
+  
+  
+  
+  
+  <div style="height:1000px"></div>
+  
+
+
+
+
 {% endblock %}

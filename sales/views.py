@@ -18,7 +18,7 @@ from product.models import Product
 from customer.models import Customer
 from inventory.models import Warehouse,Location
 from logistics.models import SaleDispatchItem
-from utils import CommonFilterForm
+from core.forms import CommonFilterForm
 from django.core.paginator import Paginator
 from.forms import PurchaseStatusForm
 
@@ -57,10 +57,10 @@ def create_sale_request(request):
                     )
                     .aggregate(
                         total_inbound=Sum(
-                            'quantity', filter=Q(transaction_type__in=['INBOUND', 'TRANSFER_IN','MANUFACTURE','REPLACEMENT_IN'])
+                            'quantity', filter=Q(transaction_type__in=['INBOUND', 'TRANSFER_IN','MANUFACTURE','REPLACEMENT_IN','EXISTING_ITEM_IN'])
                         ),
                         total_outbound=Sum(
-                            'quantity', filter=Q(transaction_type__in=['OUTBOUND', 'TRANSFER_OUT','REPLACEMENT_OUT'])
+                            'quantity', filter=Q(transaction_type__in=['OUTBOUND', 'TRANSFER_OUT','REPLACEMENT_OUT','OPERATIONS_OUT'])
                         ),
                     )
                 )
@@ -207,89 +207,69 @@ def sale_request_items(request,order_id):
 
 @login_required
 def process_sale_request(request, order_id):
-    order = get_object_or_404(SaleRequestOrder, id=order_id)    
+    order = get_object_or_404(SaleRequestOrder, id=order_id)
+
+    role_status_map = {
+        "Requester": ["SUBMITTED", "CANCELLED"],
+        "Reviewer": ["REVIEWED", "CANCELLED"],
+        "Approver": ["APPROVED", "CANCELLED"],
+    }
 
     if request.method == 'POST':
         form = PurchaseStatusForm(request.POST)
         if form.is_valid():
             if order.approval_data is None:
-                 order.approval_data = {}
-            role = None
+                order.approval_data = {}
+
             approval_status = form.cleaned_data['approval_status']
             remarks = form.cleaned_data['remarks']
+            role = None
 
-            requester_approval_status = form.cleaned_data['approval_status']
-            reviewer_approval_status = form.cleaned_data['approval_status']
-            approver_approval_status = form.cleaned_data['approval_status']
-
+            user_roles = []
             if request.user.groups.filter(name="Requester").exists():
-                if approval_status not in ["SUBMITTED", "CANCELLED"]:
-                    messages.error(request, "Requester can only submit or cancel.")
-                    return redirect('sales:sale_request_order_list')
-                role = "requester"
-                order.approval_status = approval_status
-            elif request.user.groups.filter(name="Reviewer").exists():
-                if approval_status not in ["REVIEWED", "CANCELLED"]:
-                    messages.error(request, "Reviewers can only review orders.")
-                    return redirect('sales:sale_request_order_list')
-                role = "reviewer"
-            elif request.user.groups.filter(name="Approver").exists():
-                if approval_status not in ["APPROVED", "CANCELLED"]:
-                    messages.error(request, "Approvers can only approve orders.")
-                    return redirect('sales:sale_request_order_list')
-                role = "approver"
-            else:
-                messages.error(request, "You do not have permission to process this order.")
+                user_roles.append("Requester")
+            if request.user.groups.filter(name="Reviewer").exists():
+                user_roles.append("Reviewer")
+            if request.user.groups.filter(name="Approver").exists():
+                user_roles.append("Approver")
+
+            for user_role in user_roles:
+                if approval_status in role_status_map[user_role]:
+                    role = user_role
+                    break
+
+            if not role:
+                messages.error(
+                    request,
+                    "You do not have permission to perform this action or invalid status."
+                )
                 return redirect('sales:sale_request_order_list')
 
-        if request.user.groups.filter(name="Requester").exists():
-            if order.requester_approval_status in ["SUBMITTED", "CANCELLED"]:
-                messages.error(request, "Already completed.")
-                return redirect('sales:sale_request_order_list')
-            else:
-                order.requester_approval_status = requester_approval_status  
-                order.remarks = remarks
+            if role == "Requester":
+                order.requester_approval_status = approval_status
                 order.Requester_remarks = remarks
-
-        if request.user.groups.filter(name="Reviewer").exists(): 
-            if order.requester_approval_status != "SUBMITTED" or order.requester_approval_status == "CANCELLED":
-                messages.error(request, "Contact Requester's line manager.")
-                return redirect('sales:sale_request_order_list')
-            else:
-                order.reviewer_approval_status = reviewer_approval_status  
-                order.remarks = remarks
+            elif role == "Reviewer":
+                order.reviewer_approval_status = approval_status
                 order.Reviewer_remarks = remarks
-               
-        if request.user.groups.filter(name="Approver").exists(): 
-            if (
-                order.requester_approval_status != "SUBMITTED"
-                or order.requester_approval_status == "CANCELLED"
-                or order.reviewer_approval_status != "REVIEWED"
-                or order.reviewer_approval_status == "CANCELLED"
-            ):
-                messages.error(request, "Contact your line manager.")
-                return redirect('sales:sale_request_order_list')
-            else:
-                order.approver_approval_status = approver_approval_status 
-                order.remarks = remarks
-                order.Approver_remarks = remarks               
-                                                                         
-        if role:
-                order.approval_data[role] = {
-                    'status': approval_status,
-                    'remarks': remarks,
-                    'date': timezone.now().isoformat(),
-                    'approval_status':approval_status
-                }
-           
-        order.save()
+            elif role == "Approver":
+                order.approver_approval_status = approval_status
+                order.Approver_remarks = remarks
 
-        messages.success(request, f"Order {order.id} successfully updated.")
-        return redirect('sales:sale_request_order_list')
+            order.approval_data[role] = {
+                'status': approval_status,
+                'remarks': remarks,
+                'date': timezone.now().isoformat(),
+            }
+
+            order.save()
+            messages.success(request, f"Order {order.id} successfully updated.")
+            return redirect('sales:sale_request_order_list')
+        else:
+            messages.error(request, "Invalid form submission.")
     else:
         form = PurchaseStatusForm()
-    return render(request, 'sales/sale_order_approval_form.html', {'form': form, 'order': order})
 
+    return render(request, 'sales/sale_order_approval_form.html', {'form': form, 'order': order})
 
 
 
@@ -330,10 +310,10 @@ def create_sale_order(request, request_id):
                     )
                     .aggregate(
                         total_inbound=Sum(
-                            'quantity', filter=Q(transaction_type__in=['INBOUND', 'TRANSFER_IN','MANUFACTURE','REPLACEMENT_IN'])
+                            'quantity', filter=Q(transaction_type__in=['INBOUND', 'TRANSFER_IN','MANUFACTURE','REPLACEMENT_IN','EXISTING_ITEM_IN'])
                         ),
                         total_outbound=Sum(
-                            'quantity', filter=Q(transaction_type__in=['OUTBOUND', 'TRANSFER_OUT','REPLACEMENT_OUT'])
+                            'quantity', filter=Q(transaction_type__in=['OUTBOUND', 'TRANSFER_OUT','REPLACEMENT_OUT','OPERATIONS_OUT'])
                         ),
                     )
                 )
@@ -573,257 +553,73 @@ def sale_order_items(request,order_id):
 
 
 
-############Below view is for additional items if needed to add, not implemented yet##########################
-
-def add_items_to_sale_order(request, sale_order_id):
-    sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
-    
-    if 'basket' not in request.session:
-        request.session['basket'] = []
-
-    form = SaleOrderForm(request.POST, request_instance=sale_order.sale_request_order)
-
-    if request.method == 'POST':
-        if 'add_to_basket' in request.POST:
-            if form.is_valid():
-                product_obj = form.cleaned_data['product']
-                quantity = form.cleaned_data['quantity']
-                warehouse = form.cleaned_data['warehouse']
-                location = form.cleaned_data['location']
-                sale_request_item = form.cleaned_data['sale_request_item']
-
-                total_requested_quantity = (
-                    sale_order.sale_request_order.filter(product=product_obj)
-                    .aggregate(total_requested=Sum('quantity'))
-                    .get('total_requested', 0)
-                )
-
-                total_confirmed_quantity = (
-                    SaleOrderItem.objects.filter(sale_order=sale_order, product=product_obj)
-                    .aggregate(total_confirmed=Sum('quantity'))
-                    .get('total_confirmed', 0)
-                )
-
-                remaining_quantity = total_requested_quantity - total_confirmed_quantity
-
-                if remaining_quantity <= 0:
-                    messages.error(
-                        request,
-                        f"All requested quantity for '{product_obj.name}' has already been confirmed."
-                    )
-                    return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
-
-                if quantity > remaining_quantity:
-                    messages.error(
-                        request,
-                        f"Quantity exceeds the remaining requested quantity for '{product_obj.name}'. "
-                        f"Remaining available quantity: {remaining_quantity}."
-                    )
-                    return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
-
-                warehouse_quantity = (
-                    InventoryTransaction.objects.filter(
-                        warehouse=warehouse.id,
-                        product=product_obj.id
-                    )
-                    .aggregate(
-                        total_inbound=Sum(
-                            'quantity', filter=Q(transaction_type__in=['INBOUND', 'TRANSFER_IN', 'MANUFACTURE', 'REPLACEMENT_IN'])
-                        ),
-                        total_outbound=Sum(
-                            'quantity', filter=Q(transaction_type__in=['OUTBOUND', 'TRANSFER_OUT', 'REPLACEMENT_OUT'])
-                        ),
-                    )
-                )
-                warehouse_quantity = (warehouse_quantity['total_inbound'] or 0) - (warehouse_quantity['total_outbound'] or 0)
-
-                if quantity > warehouse_quantity:
-                    messages.error(
-                        request,
-                        f"There is not enough stock in the warehouse for '{product_obj.name}'. "
-                        f"Available: {warehouse_quantity}, Requested: {quantity}."
-                    )
-                    return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
-
-                total_amount = float(quantity) * float(product_obj.unit_price)
-                basket = request.session['basket']
-                product_in_basket = next((item for item in basket if item['id'] == product_obj.id), None)
-
-                if product_in_basket:
-                    product_in_basket['quantity'] += quantity
-                    product_in_basket['total_amount'] += total_amount
-                else:
-                    basket.append({
-                        'sale_request_item_id': sale_request_item.id,
-                        'id': product_obj.id,
-                        'name': product_obj.name,
-                        'product_type': product_obj.product_type,
-                        'category': form.cleaned_data['category'].name,
-                        'warehouse': warehouse.name,
-                        'warehouse_id': warehouse.id,
-                        'location': location.name,
-                        'location_id': location.id,
-                        'quantity': quantity,
-                        'sku': product_obj.sku,
-                        'unit_price': float(product_obj.unit_price),
-                        'customer_id': form.cleaned_data['customer'].id,
-                        'customer': form.cleaned_data['customer'].name,
-                        'total_amount': total_amount,
-                        'sale_request_order_id': sale_order.sale_request_order.id,
-                    })
-
-                request.session['basket'] = basket
-                request.session.modified = True
-                messages.success(request, f"Added '{product_obj.name}' to the sale order basket.")
-                return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
-
-        elif 'confirm_purchase' in request.POST:
-            # Handle final confirmation and saving the items
-            basket = request.session.get('basket', [])
-            if not basket:
-                messages.error(request, "Sale basket is empty. Add products before confirming the purchase.")
-                return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
-
-            return redirect(f"{reverse('sales:confirm_sale_order')}?sale_order_id={sale_order.id}")
-
-    return render(request, 'sales/add_items_to_sale_order.html', {'form': form, 'basket': request.session.get('basket', []), 'sale_order': sale_order})
-
-
-def confirm_add_items_to_sale_order(request):
-    sale_order_id = request.GET.get('sale_order_id')
-    sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
-    basket = request.session.get('basket', [])
-
-    if not basket:
-        messages.error(request, "Sale basket is empty. Cannot confirm purchase.")
-        return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
-
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                total_amount = 0
-                for item in basket:
-                    product = get_object_or_404(Product, id=item['id'])
-                    total_price = item['quantity'] * item['unit_price']
-                    sale_request_item_id = get_object_or_404(SaleRequestItem, id=item['sale_request_item_id'])
-
-                    warehouse = get_object_or_404(Warehouse, id=item['warehouse_id'])
-                    location = get_object_or_404(Location, id=item['location_id'])
-
-                    total_amount += total_price
-
-                    SaleOrderItem.objects.create(
-                        sale_order=sale_order,
-                        product=product,
-                        quantity=item['quantity'],
-                        warehouse=warehouse,
-                        location=location,
-                        total_price=total_price,
-                        user=request.user,
-                        sale_request_item=sale_request_item_id
-                    )
-
-                sale_order.total_amount = total_amount
-                sale_order.status = 'COMPLETED'  # Update status to completed or any other status
-                sale_order.save()
-
-                request.session['basket'] = []  # Clear the basket after finalizing the sale order
-                request.session.modified = True
-                messages.success(request, "Sale order confirmed successfully!")
-                return redirect('sales:view_sale_order', sale_order_id=sale_order.id)
-        except Exception as e:
-            messages.error(request, f"An error occurred while confirming the sale order: {str(e)}")
-            return redirect('sales:add_items_to_sale_order', sale_order_id=sale_order.id)
-
-    return render(request, 'sales/confirm_sale_order.html', {'basket': basket, 'sale_order': sale_order})
-
-##############################################################################################################################
-
 @login_required
 def process_sale_order(request, order_id):
-    order = get_object_or_404(SaleOrder, id=order_id)    
+    order = get_object_or_404(SaleOrder, id=order_id)
+
+    role_status_map = {
+        "Requester": ["SUBMITTED", "CANCELLED"],
+        "Reviewer": ["REVIEWED", "CANCELLED"],
+        "Approver": ["APPROVED", "CANCELLED"],
+    }
 
     if request.method == 'POST':
         form = PurchaseStatusForm(request.POST)
         if form.is_valid():
             if order.approval_data is None:
-                 order.approval_data = {}
-            role = None
+                order.approval_data = {}
+
+            # Extract form data
             approval_status = form.cleaned_data['approval_status']
             remarks = form.cleaned_data['remarks']
+            role = None
 
-            requester_approval_status = form.cleaned_data['approval_status']
-            reviewer_approval_status = form.cleaned_data['approval_status']
-            approver_approval_status = form.cleaned_data['approval_status']
-
-            # Determine role based on group
+            # Determine the user's role(s)
+            user_roles = []
             if request.user.groups.filter(name="Requester").exists():
-                if approval_status not in ["SUBMITTED", "CANCELLED"]:
-                    messages.error(request, "Requester can only submit or cancel.")
-                    return redirect('sales:sale_order_list')
-                role = "requester"
-                order.approval_status = approval_status
-            elif request.user.groups.filter(name="Reviewer").exists():
-                if approval_status not in ["REVIEWED", "CANCELLED"]:
-                    messages.error(request, "Reviewers can only review orders.")
-                    return redirect('sales:sale_order_list')
-                role = "reviewer"
-            elif request.user.groups.filter(name="Approver").exists():
-                if approval_status not in ["APPROVED", "CANCELLED"]:
-                    messages.error(request, "Approvers can only approve orders.")
-                    return redirect('sales:sale_order_list')
-                role = "approver"
-            else:
-                messages.error(request, "You do not have permission to process this order.")
+                user_roles.append("Requester")
+            if request.user.groups.filter(name="Reviewer").exists():
+                user_roles.append("Reviewer")
+            if request.user.groups.filter(name="Approver").exists():
+                user_roles.append("Approver")
+
+            # Validate based on roles and approval status
+            for user_role in user_roles:
+                if approval_status in role_status_map[user_role]:
+                    role = user_role
+                    break
+
+            if not role:
+                messages.error(
+                    request,
+                    "You do not have permission to perform this action or invalid status."
+                )
                 return redirect('sales:sale_order_list')
-            
-        # check database approval status
-        if request.user.groups.filter(name="Requester").exists():
-            if order.requester_approval_status in ["SUBMITTED", "CANCELLED"]:
-                messages.error(request, "Already completed.")
-                return redirect('sales:sale_order_list')
-            else:
-                order.requester_approval_status = requester_approval_status  
-                order.remarks = remarks
+
+            if role == "Requester":
+                order.requester_approval_status = approval_status
                 order.Requester_remarks = remarks
+            elif role == "Reviewer":
+                order.reviewer_approval_status = approval_status
+                order.Reviewer_remarks = remarks
+            elif role == "Approver":
+                order.approver_approval_status = approval_status
+                order.Approver_remarks = remarks
 
-        if request.user.groups.filter(name="Reviewer").exists(): 
-            if order.requester_approval_status != "SUBMITTED" or order.requester_approval_status == "CANCELLED":
-                messages.error(request, "Contact Requester's line manager.")
-                return redirect('sales:sale_order_list')
-            else:
-                order.reviewer_approval_status = reviewer_approval_status  
-                order.remarks = remarks
-                order.Reviewer_remarks = remarks               
+            order.approval_data[role] = {
+                'status': approval_status,
+                'remarks': remarks,
+                'date': timezone.now().isoformat(),
+            }
 
-        if request.user.groups.filter(name="Approver").exists(): 
-            if (
-                order.requester_approval_status != "SUBMITTED"
-                or order.requester_approval_status == "CANCELLED"
-                or order.reviewer_approval_status != "REVIEWED"
-                or order.reviewer_approval_status == "CANCELLED"
-            ):
-                messages.error(request, "Contact your line manager.")
-                return redirect('sales:sale_order_list')
-            else:
-                order.approver_approval_status = approver_approval_status 
-                order.remarks = remarks
-                order.Approver_remarks = remarks                            
-                                                           
-        if role:
-                order.approval_data[role] = {
-                    'status': approval_status,
-                    'remarks': remarks,
-                    'date': timezone.now().isoformat(),
-                    'approval_status':approval_status
-                }
-           
-        order.save()
-
-        messages.success(request, f"Order {order.id} successfully updated.")
-        return redirect('sales:sale_order_list')
+            order.save()
+            messages.success(request, f"Order {order.id} successfully updated.")
+            return redirect('sales:sale_order_list')
+        else:
+            messages.error(request, "Invalid form submission.")
     else:
         form = PurchaseStatusForm()
+
     return render(request, 'sales/sale_order_approval_form.html', {'form': form, 'order': order})
 
 
@@ -906,9 +702,10 @@ def qc_dashboard(request, sale_order_id=None):
 
 
 
+
+
 @login_required
 def qc_inspect_item(request, item_id):
-
     sale_dispatch_item = get_object_or_404(SaleDispatchItem, id=item_id)
     sale_order = sale_dispatch_item.dispatch_item.sale_order
     sale_request_order = sale_order.sale_request_order
@@ -925,14 +722,14 @@ def qc_inspect_item(request, item_id):
             qc_entry.user = request.user
             qc_entry.inspection_date = timezone.now()
             qc_entry.save()
-
+            
             sale_dispatch_item.status = 'DELIVERED'
             sale_dispatch_item.save()
 
             good_quantity = qc_entry.good_quantity
             warehouse = sale_dispatch_item.warehouse
             location = sale_dispatch_item.location
-
+           
             if warehouse and location:
                 try:
                     transaction = InventoryTransaction.objects.create(
@@ -940,37 +737,49 @@ def qc_inspect_item(request, item_id):
                         warehouse=warehouse,
                         location=location,
                         product=qc_entry.product,
-                        transaction_type='OUTBOUND',
+                        transaction_type='OUTBOUND',  
                         quantity=good_quantity,
                         sales_order=sale_dispatch_item.dispatch_item.sale_order
                     )
-                    if not transaction.update_inventory():
-                        raise ValueError(f"Failed to update stock for {qc_entry.product.name}")
+
+                    inventory = Inventory.objects.filter(warehouse=warehouse, location=location, product=sale_dispatch_item.dispatch_item.product).first()
+                    if inventory:
+                        inventory.inventory_transaction = transaction
+                        inventory.quantity -= good_quantity 
+                        inventory.save()
+                    else:
+                        messages.error(request, f"Product {qc_entry.product.name} not found in {warehouse.name} at {location.name}.")
+                        return redirect('sales:qc_dashboard')
+                    if inventory.quantity < 0:
+                        raise ValueError("Inventory update failed. Insufficient stock.")
+
                 except Inventory.DoesNotExist:
                     messages.error(request, f"Product {qc_entry.product.name} not found in {warehouse.name} at {location.name}.")
+                    return redirect('sales:qc_dashboard')
+                except ValueError as ve:
+                    messages.error(request, str(ve))
                     return redirect('sales:qc_dashboard')
                 except Exception as e:
                     messages.error(request, f"Unexpected error: {e}")
                     return redirect('sales:qc_dashboard')
-                
-            
+
             sale_order.status = 'DELIVERED'
             sale_order.save()
+
             sale_order_item.status = 'DELIVERED'
             sale_order_item.save()
 
             sale_request_order.status = 'DELIVERED'
             sale_request_order.save()
-            sale_request_item.status ='DELIVERED'
-            sale_request_item.save()
-          
-            all_items_delivered = sale_order.sale_order.filter(status='DELIVERED').count() == sale_order.sale_order.count()
 
+            sale_request_item.status = 'DELIVERED'
+            sale_request_item.save()
+
+            all_items_delivered = sale_order.sale_order.filter(status='DELIVERED').count() == sale_order.sale_order.count()
             if all_items_delivered:
                 sale_order.status = 'DELIVERED'
-                sale_order.save()               
+                sale_order.save()
 
-            sale_request_order = sale_order.sale_request_order
             total_requested_quantity = sale_request_order.sale_request_order.aggregate(Sum('quantity'))['quantity__sum']
             total_ordered_quantity = SaleOrderItem.objects.filter(
                 sale_request_item__sale_request_order=sale_request_order
@@ -978,13 +787,14 @@ def qc_inspect_item(request, item_id):
 
             if total_ordered_quantity >= total_requested_quantity:
                 sale_request_order.status = 'DELIVERED'
-                sale_request_order.save()  
+                sale_request_order.save()
 
             update_sale_order(sale_order.id)
             update_sale_shipment_status(shipment.id)
-            update_sale_request_order(sale_request_order.id) 
-            create_notification(request.user,f' Sale request order number: { sale_request_order} has been dispatched') 
-           
+            update_sale_request_order(sale_request_order.id)
+
+            create_notification(request.user, f'Sale request order number: {sale_request_order} has been dispatched')
+
             messages.success(request, "Quality control inspection recorded and inventory updated successfully.")
             return redirect('sales:qc_dashboard')
         else:

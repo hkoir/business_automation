@@ -15,7 +15,8 @@ from.forms import ExistingOrderForm,OperationsDeliveryForm,OperationsRequestForm
 
 from inventory.models import Warehouse,Location
 from inventory.models import InventoryTransaction,Warehouse,Location
-from utils import create_notification,CommonFilterForm
+from utils import create_notification
+from core.forms import CommonFilterForm
 from django.core.paginator import Paginator
 
 
@@ -112,6 +113,8 @@ def add_existing_items(request):
     return render(request, 'operations/create_add_existing_items.html', {'form': form, 'basket': basket})
 
 
+from inventory.models import Inventory
+
 def confirm_add_existing_items(request):
     basket = request.session.get('basket', [])
     if not basket:
@@ -163,8 +166,24 @@ def confirm_add_existing_items(request):
                         existing_items_order=existing_order,
                     )
 
-                    if not inventory_transaction.update_inventory():
-                        raise ValueError("Failed to update stock.")
+                    inventory, created = Inventory.objects.get_or_create(
+                        warehouse=warehouse,
+                        location=location,
+                        product=product,
+                        inventory_transaction=inventory_transaction,
+                        defaults={
+                            'quantity':0,
+                        }
+                    )
+    
+                if not created:
+                    inventory.quantity += quantity
+                    inventory.save()
+                    messages.success(request, "Inventory updated successfully.")
+                else:                    
+                    inventory.quantity = quantity
+                    inventory.save()
+                    messages.success(request, "Inventory created successfully.")
             create_notification(request.user,f'{product} from existing resource has been added into stock')
 
             request.session['basket'] = []
@@ -284,7 +303,6 @@ def create_operations_items_request(request):
 
 
 
-
 def confirm_operations_items_request(request):
     basket = request.session.get('basket', [])
     if not basket:
@@ -295,30 +313,26 @@ def confirm_operations_items_request(request):
         try:
             with transaction.atomic():
                 from decimal import Decimal
-
                 total_amount = sum(Decimal(item['quantity']) * Decimal(item['unit_price']) for item in basket)
-                product = get_object_or_404(Product, id=item['id'])   
-                              
+
                 operations_request_order = OperationsRequestOrder(
                     total_amount=total_amount,
-                    status='PENDING',  
+                    status='PENDING',
                     user=request.user
                 )
                 operations_request_order.save()
-
                 for item in basket:
-                    product = get_object_or_404(Product, id=item['id'])    
+                    product = get_object_or_404(Product, id=item['id']) 
                             
-
                     operations_request_item = OperationsRequestItem(
-                        operations_request_order= operations_request_order,
+                        operations_request_order=operations_request_order,
                         product=product,
                         quantity=item['quantity'],
                         user=request.user,
                     )
                     operations_request_item.save()
 
-                create_notification(request.user,f'Operations has submitted request for {product}')
+                create_notification(request.user, f"Operations has submitted a request for {len(basket)} products.")
                     
                 request.session['basket'] = []
                 request.session.modified = True
@@ -329,7 +343,9 @@ def confirm_operations_items_request(request):
             logger.error(f"Error creating materials order: {e}")
             messages.error(request, f"An error occurred while creating the materials request order: {e}")
             return redirect('operations:create_operations_items_request')
+        
     return render(request, 'operations/confirm_operations_items_request.html', {'basket': basket})
+
 
 
 
@@ -533,8 +549,21 @@ def confirm_operations_items_delivery(request):
                         operations_request_order=operations_request_order,
                     )
 
-                    if not inventory_transaction.update_inventory():
-                        raise ValueError("Failed to update stock.")
+                    inventory, created = Inventory.objects.get_or_create(
+                        warehouse=warehouse,
+                        location=location,
+                        product=product,
+                        defaults={
+                            'quantity':0
+                        }
+                    )
+        
+                    if not created:
+                        inventory.quantity += item['quantity'],
+                        inventory.save()
+                        messages.success(request, "Inventory updated successfully.")
+                    else:
+                        messages.error(request, "Inventory failed to update successfully.")
                     
                 create_notification(request.user,f'request from operations for{product} has been delivered')
 

@@ -112,13 +112,10 @@ table {
                 
                         <!-- Complete QC Button -->
                         <td>
-                            {% if item.status == 'SUBMITTED' %}
-                                {% if item.goods_quality.exists %}
-                                    <a href="{% url 'inventory:complete_manufacture_quality_control' item.goods_quality.first.id %}" class="btn btn-primary">Complete QC</a>
-                                {% else %}
-                                    <span>No QC Record</span>
-                                {% endif %}
-                            {% elif item.status == 'DELIVERED' %}
+                            {% if item.status == 'DELIVERED' %}                              
+                                <a href="{% url 'inventory:complete_manufacture_quality_control' item.goods_quality.first.id %}" class="btn btn-primary">Complete QC</a>
+                               
+                            {% elif item.status == 'RECEIVED' %}
                                 <button class="btn btn-secondary" disabled>Confirmation Done</button>
                             {% else %}
                                 <span>Inspection Pending</span>

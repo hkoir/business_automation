@@ -45,7 +45,7 @@ class Product(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     UOM = models.CharField(max_length=15,null=True,blank=True)
     barcode = models.CharField(max_length=50, unique=True, blank=True, null=True)
-    weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True )
     dimensions = models.CharField(max_length=100, blank=True, null=True)
     manufacture_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)  

@@ -169,7 +169,7 @@ def get_warehouse_stock(warehouse, product):
     ).values('transaction_type').annotate(total=Sum('quantity'))
 
     inbound = sum(t['total'] for t in transactions if t['transaction_type'] in ['INBOUND', 'TRANSFER_IN','MANUFACTURE','REPLACEMENT_IN','EXISTING_ITEM_IN'])
-    outbound = sum(t['total'] for t in transactions if t['transaction_type'] in ['OUTBOUND', 'TRANSFER_OUT','REPLACEMENT_OUT'])
+    outbound = sum(t['total'] for t in transactions if t['transaction_type'] in ['OUTBOUND', 'TRANSFER_OUT','REPLACEMENT_OUT','OPERATIONS_OUT'])
 
     return inbound - outbound
 
@@ -183,10 +183,17 @@ def calculate_stock_value(product, warehouse):
         purchase_order__isnull=False
     ).aggregate(total=Sum('quantity'))['total'] or 0
 
-    total_manufacture = InventoryTransaction.objects.filter(
+    total_manufacture_in = InventoryTransaction.objects.filter(
         product=product,
         warehouse=warehouse,  
-        transaction_type='MANUFACTURE',
+        transaction_type='MANUFACTURE_IN',
+        manufacture_order__isnull=False
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+    total_manufacture_out = InventoryTransaction.objects.filter(
+        product=product,
+        warehouse=warehouse,  
+        transaction_type='MANUFACTURE_OUT',
         manufacture_order__isnull=False
     ).aggregate(total=Sum('quantity'))['total'] or 0
 
@@ -205,6 +212,12 @@ def calculate_stock_value(product, warehouse):
         product=product,
         warehouse=warehouse,  
         transaction_type='REPLACEMENT_OUT',  
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+    total_replacement_in = InventoryTransaction.objects.filter(
+        product=product,
+        warehouse=warehouse,  
+        transaction_type='REPLACEMENT_IN',  
     ).aggregate(total=Sum('quantity'))['total'] or 0
 
     total_transfer_in = InventoryTransaction.objects.filter(
@@ -231,12 +244,26 @@ def calculate_stock_value(product, warehouse):
         transaction_type='OPERATIONS_OUT', 
     ).aggregate(total=Sum('quantity'))['total'] or 0
 
+    total_scrapped_out = InventoryTransaction.objects.filter(
+        product=product,
+        warehouse=warehouse,
+        transaction_type='SCRAPPED_OUT', 
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+    total_scrapped_in = InventoryTransaction.objects.filter(
+        product=product,
+        warehouse=warehouse,
+        transaction_type='SCRAPPED_IN', 
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+
+
 
     total_available = (
-        total_purchase + total_manufacture + total_transfer_in + total_Existing_in
-        - (total_sold + total_transfer_out + total_replacement_out + total_operations_out)
+        total_purchase + total_manufacture_in + total_transfer_in + total_Existing_in + total_scrapped_in
+        - (total_sold + total_transfer_out + total_replacement_out + total_operations_out + total_manufacture_out + total_scrapped_out)
     )   
-    total_stock = total_purchase + total_manufacture + total_transfer_in + total_Existing_in
+    total_stock = total_purchase + total_manufacture_in + total_transfer_in + total_Existing_in
 
     if total_available < 0:
         logger.warning(f"Negative stock detected for {product.name} in {warehouse.name}.")
@@ -244,13 +271,17 @@ def calculate_stock_value(product, warehouse):
 
     return {
         'total_purchase': total_purchase,
-        'total_manufacture': total_manufacture,
+        'total_manufacture_in': total_manufacture_in,
+        'total_manufacture_out': total_manufacture_out,
         'total_existing_in': total_Existing_in,
         'total_operations_out': total_operations_out,
         'total_sold': total_sold,
+        'total_replacement_in': total_replacement_in,
         'total_replacement_out': total_replacement_out,
         'total_transfer_in': total_transfer_in,
         'total_transfer_out': total_transfer_out,
+        'total_scrapped_in': total_scrapped_in,
+        'total_scrapped_out': total_scrapped_out,
         'total_available': total_available,
         'total_stock':total_stock
     }
@@ -274,8 +305,14 @@ def calculate_stock_value2(product, warehouse=None):
         **filters
     ).aggregate(total=Sum('quantity'))['total'] or 0
 
-    total_manufacture = InventoryTransaction.objects.filter(
-        transaction_type='MANUFACTURE',
+    total_manufacture_in = InventoryTransaction.objects.filter(
+        transaction_type='MANUFACTURE_IN',
+        manufacture_order__isnull=False,
+        **filters
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+    total_manufacture_out = InventoryTransaction.objects.filter(
+        transaction_type='MANUFACTURE_OUT',
         manufacture_order__isnull=False,
         **filters
     ).aggregate(total=Sum('quantity'))['total'] or 0
@@ -291,6 +328,11 @@ def calculate_stock_value2(product, warehouse=None):
 
     total_replacement_out = InventoryTransaction.objects.filter(
         transaction_type='REPLACEMENT_OUT',
+        **filters
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+    total_replacement_in = InventoryTransaction.objects.filter(
+        transaction_type='REPLACEMENT_IN',
         **filters
     ).aggregate(total=Sum('quantity'))['total'] or 0
 
@@ -314,13 +356,30 @@ def calculate_stock_value2(product, warehouse=None):
         **filters
     ).aggregate(total=Sum('quantity'))['total'] or 0
 
+    
+    total_scrapped_out = InventoryTransaction.objects.filter(
+        transaction_type='SCRAPPED_OUT',
+        **filters
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+    total_scrapped_in = InventoryTransaction.objects.filter(
+        transaction_type='SCRAPPED_IN',
+        **filters
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+    
+
+    
+
+  
+
     total_available = (
-        total_purchase + total_manufacture + total_transfer_in + total_existing_in
-        - (total_sold + total_transfer_out + total_replacement_out + total_operations_out)
+        total_purchase + total_manufacture_in + total_transfer_in + total_existing_in + total_scrapped_in
+        - (total_sold + total_transfer_out + total_replacement_out + total_operations_out + total_manufacture_out + total_scrapped_out)
     )
 
-    total_stock = total_purchase + total_manufacture + total_transfer_in + total_existing_in
-
+    total_stock = total_purchase + total_manufacture_in + total_transfer_in + total_existing_in
+    
     if total_available < 0:
         logger.warning(
             f"Negative stock detected for {product.name} in "
@@ -330,126 +389,20 @@ def calculate_stock_value2(product, warehouse=None):
 
     return {
         'total_purchase': total_purchase,
-        'total_manufacture': total_manufacture,
+        'total_manufacture_in': total_manufacture_in,
+        'total_manufacture_out': total_manufacture_out,
         'total_existing_in': total_existing_in,
         'total_operations_out': total_operations_out,
         'total_sold': total_sold,
         'total_replacement_out': total_replacement_out,
+        'total_replacement_in': total_replacement_in,
         'total_transfer_in': total_transfer_in,
         'total_transfer_out': total_transfer_out,
+        'total_scrapped_in': total_scrapped_in,
+        'total_scrapped_out': total_scrapped_out,
         'total_available': total_available,
         'total_stock': total_stock
     }
-
-
-
-
-class CommonFilterForm(forms.Form):
-    start_date = forms.DateField(
-        label='Start Date',
-        widget=forms.DateInput(attrs={'type': 'date'}),
-        required=False
-    )
-    end_date = forms.DateField(
-        label='End Date',
-        widget=forms.DateInput(attrs={'type': 'date'}),
-        required=False
-    )
-    days = forms.IntegerField(
-        label='Number of Days',
-        min_value=1,
-        required=False
-    )
-
- 
-    ID_number = forms.CharField(
-        label='Order ID',
-        required=False,
-       
-    )   
-
-    warehouse_name = forms.ModelChoiceField(queryset=Warehouse.objects.all(),required=False)
-    product_name = forms.ModelChoiceField(
-        queryset=Product.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_product_name'}),
-    )
-
-    category = forms.ModelChoiceField(
-        queryset=Category.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_category'}),
-    )
-
-    employee_name = forms.ModelChoiceField(
-        queryset=Employee.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_employee_name'}),
-    )
-           
-    purchase_request_order_id = forms.ModelChoiceField(
-        queryset=PurchaseRequestOrder.objects.all(),
-        required=False,        
-        widget=forms.Select(attrs={'id': 'id_purchase_request_order_id'}),)
-    
-    purchase_order_id = forms.ModelChoiceField(
-        queryset=PurchaseOrder.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_purchase_order_id'}),)
-    
-    purchase_shipment_id = forms.ModelChoiceField(
-        queryset=PurchaseShipment.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_purchase_shipment_id'}),)
-    
-    purchase_invoice_id = forms.ModelChoiceField(
-        queryset=PurchaseInvoice.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_purchase_invoice_id'}),)
-    
-
-    sale_request_order_id = forms.ModelChoiceField(
-        queryset=SaleRequestOrder.objects.all(),
-        required=False,        
-        widget=forms.Select(attrs={'id': 'id_sale_request_order_id'}),)
-    
-    sale_order_id = forms.ModelChoiceField(
-        queryset=SaleOrder.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_sale_order_id'}),)
-    
-    
-    sale_shipment_id = forms.ModelChoiceField(
-        queryset=SaleShipment.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_sale_shipment_id'}),)
-    
-    sale_invoice_id = forms.ModelChoiceField(
-        queryset=SaleInvoice.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_sale_invoice_id'}),)
-    
-    transfer_id = forms.ModelChoiceField(
-        queryset=TransferOrder.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_transfer_id'}),)
-    
-    return_refund__id = forms.ModelChoiceField(
-        queryset=ReturnOrRefund.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_return_id'}),)
-    
-    materials_order_id = forms.ModelChoiceField(
-        queryset=MaterialsRequestOrder.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_materials_order_id'}),)
-   
-    operations_request_order_id = forms.ModelChoiceField(
-        queryset=OperationsRequestOrder.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_operations_request_order_id'}),)
-   
-
 
 
 

@@ -21,19 +21,134 @@ from datetime import datetime,timedelta
 from.forms import EditAttendanceForm,MonthYearForm,AttendanceForm,AddCompanyForm,AddLocationForm,UpdateLocationForm,NoticeForm
 from .models import EmployeeRecordChange,MonthlySalaryReport,AttendanceModel,Notice,Location,Company
 
-from utils import CommonFilterForm
+from .forms import CommonFilterForm
 from core.models import Employee
 from core.forms import AddEmployeeForm
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
+from.forms import ManageDepartmentForm,ManagePositionForm
+from.models import Department,Position
+
+
 @login_required
 def home(request):
     return render(request,'core/home.html')
+
 @login_required
 def core_dashboard(request):
     return render(request,'core/core_dashboard.html')
 
+def all_qc(request):
+    return render(request,'core/all_qc.html')
+
+
+
+def manage_department(request, id=None):
+    datas = Department.objects.all().order_by('-created_at')
+    if request.method == 'POST' and 'delete_id' in request.POST:
+        instance = get_object_or_404(Department, id=request.POST.get('delete_id'))
+        instance.delete()
+        messages.success(request, "Deleted successfully")
+        return redirect('core:manage_department')
+
+    instance = get_object_or_404(Department, id=id) if id else None
+    message_text = "updated successfully!" if id else "added successfully!"  
+    form = ManageDepartmentForm(request.POST or None, instance=instance)
+
+    if request.method == 'POST' and form.is_valid():
+        custom_name = form.cleaned_data.get('custom_department_name')
+        name = form.cleaned_data.get('name')
+        if custom_name and name:
+            messages.error(
+                request, 
+                "Please either choose an existing department or provide a custom name, not both."
+            )
+            return redirect('core:manage_position')
+    
+        if custom_name: 
+            department, created = Department.objects.get_or_create(
+                name=custom_name,
+                defaults={'description': form.cleaned_data.get('description')}
+            )
+            if created:
+                messages.success(request, f"Custom department '{custom_name}' added successfully!")
+            else:
+                messages.warning(request, f"Department '{custom_name}' already exists.")
+        else:
+            form.save()
+            messages.success(request, message_text)
+
+        return redirect('core:manage_department')
+
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'core/manage_department.html', {
+        'form': form,
+        'instance': instance,
+        'datas': datas,
+        'page_obj': page_obj
+    })
+
+
+
+
+def manage_position(request, id=None):
+    datas = Position.objects.all().order_by('-created_at')
+
+    if request.method == 'POST' and 'delete_id' in request.POST:
+        instance = get_object_or_404(Position, id=request.POST.get('delete_id'))
+        instance.delete()
+        messages.success(request, "Deleted successfully")
+        return redirect('core:manage_position')
+
+    instance = get_object_or_404(Position, id=id) if id else None
+    message_text = "updated successfully!" if id else "added successfully!"
+    form = ManagePositionForm(request.POST or None, instance=instance)
+
+    if request.method == 'POST' and form.is_valid():
+        custom_name = form.cleaned_data.get('custom_position_name')
+        department = form.cleaned_data.get('department')
+        name = form.cleaned_data.get('name')
+
+        if custom_name and name:
+            messages.error(
+                request, 
+                "Please either choose an existing position or provide a custom position name, not both."
+            )
+            return redirect('core:manage_position')
+
+        if custom_name:
+            if not department:
+                messages.error(request, "Please select a department for the custom position.")
+                return redirect('core:manage_position')
+            position, created = Position.objects.get_or_create(
+                department=department,
+                name=custom_name,
+                defaults={'description': form.cleaned_data.get('description')}
+            )
+            if created:
+                messages.success(request, f"Custom position '{custom_name}' added successfully!")
+            else:
+                messages.warning(request, f"Position '{custom_name}' already exists in this department.")
+        else:
+            form.save()
+            messages.success(request, message_text)
+
+        return redirect('core:manage_position')
+
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'core/manage_position.html', {
+        'form': form,
+        'instance': instance,
+        'datas': datas,
+        'page_obj': page_obj
+    })
 
 
 
@@ -67,8 +182,8 @@ def view_employee(request):
 def add_employee(request):
     if request.method == 'POST':   
         form = AddEmployeeForm(request.POST, request.FILES)
-        if form.is_valid():      
-            form.instance.employee_code = f"EID-{uuid.uuid4().hex[:8].upper()}"
+        if form.is_valid():   
+            form=form.save(commit=False) 
             form.save()
             return redirect('core:view_employee')
     else:     

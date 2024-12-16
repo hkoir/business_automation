@@ -171,7 +171,7 @@ table {
                                
                                 
                                 <td>                                   
-                                    {% if dispatch_item.status|in_list:"['DELIVERED', 'ONBOARD', 'REACHED', 'OBI', 'IN_TRANSIT']" %}
+                                    {% if dispatch_item.status|in_list2:"['DELIVERED', 'ONBOARD', 'REACHED', 'OBI', 'IN_TRANSIT']" %}
                                     <i class="fas fa-times" style="color:red;font-weight: bold;"></i>
                                     {% else %}
                                     <a href="{% url 'logistics:cancel_sale_dispatch_item' dispatch_item.id %}" class="btn btn-sm btn-danger">Cancel</a>

@@ -59,7 +59,7 @@ class SaleRequestForm(forms.ModelForm):
 
 class SaleOrderForm(forms.ModelForm):
     class Meta:
-        model = SaleOrder  # Link to the model
+        model = SaleOrder  
         fields = ['sale_request_order','category', 'product', 'product_type', 'quantity','customer']  # Include fields from your form
 
     sale_request_order = forms.ModelChoiceField(
@@ -124,19 +124,16 @@ class SaleOrderForm(forms.ModelForm):
         super(SaleOrderForm, self).__init__(*args, **kwargs)
 
         if request_instance:
-            # Filter fields based on the provided request_instance
             self.fields['sale_request_order'].queryset = SaleRequestOrder.objects.filter(id=request_instance.id)
             self.fields['sale_request_item'].queryset = SaleRequestItem.objects.filter(sale_request_order=request_instance)
             self.fields['customer'].queryset = Customer.objects.filter(request_customer_sale=request_instance.id)
 
-            # Set initial values if not already provided
             if 'initial' not in kwargs:
                 self.initial.update({
                     'sale_request_order': request_instance,
-                    'customer': request_instance.customer,  # Assuming `customer` is related to `SaleRequestOrder`
+                    'customer': request_instance.customer,  
                 })
         else:
-            # Default querysets when no request_instance is provided
             self.fields['sale_request_order'].queryset = SaleRequestOrder.objects.all()
             self.fields['sale_request_item'].queryset = SaleRequestItem.objects.all()
             self.fields['customer'].queryset = Customer.objects.all()
@@ -223,8 +220,8 @@ class PurchaseStatusForm(forms.Form):
         widget=forms.Textarea(
             attrs={
                 'class': 'form-control custom-textarea',
-                'rows': 5,  # Adjust the number of rows as needed
-                'style': 'height: 100px;',  # Set the height directly if needed
+                'rows': 5,  
+                'style': 'height: 100px;', 
             }
         ),
         required=False

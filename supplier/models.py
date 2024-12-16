@@ -31,8 +31,8 @@ class Supplier(models.Model):
 
 
 class Location(models.Model):
-    name = models.CharField(max_length=255,null=True, blank=True)
     supplier = models.ForeignKey(Supplier, related_name='supplier_locations', on_delete=models.CASCADE,null=True, blank=True)
+    name = models.CharField(max_length=255,null=True, blank=True)   
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='supplier_location_user')
     location_id = models.CharField(max_length=150, null=True, blank=True)
     address = models.TextField(null=True, blank=True)

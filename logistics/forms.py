@@ -49,7 +49,7 @@ class PurchaseDispatchItemForm(forms.ModelForm):
 
     class Meta:
         model = PurchaseDispatchItem
-        exclude=['dispatch_id']
+        exclude=['dispatch_id','user']
 
 
     def __init__(self, *args, purchase_shipment=None, **kwargs):
