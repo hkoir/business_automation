@@ -89,71 +89,7 @@
                 </tbody>
             </table>
         </div>
-
-
-
-
-        <h2>Employee Change History</h2>
-
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Employee Name</th>
-                    <th>Date</th>
-                    <th>User</th>
-                    <th>Change Type</th>
-                    <th>Field</th>
-                    <th>Old Value</th>
-                    <th>New Value</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in history_records %}
-                <tr>
-                    <td>{{ record.employee }}</td>
-                    <td>{{ record.date|date:"Y-m-d H:i:s" }}</td>
-                    <td>{{ record.user }}</td>
-                    <td>
-                        {% if record.type == '+' %}
-                            Created
-                        {% elif record.type == '~' %}
-                            Updated
-                        {% elif record.type == '-' %}
-                            Deleted
-                        {% else %}
-                            Unknown
-                        {% endif %}
-                    </td>
-                    <td colspan="3">
-                        <ul>
-                            {% for change in record.changes %}
-                            <li>
-                                <strong>{{ change.field }}:</strong> 
-                                Old Value: {{ change.old_value }} <br>
-                                New Value: {{ change.new_value }}
-                            </li>
-                            {% empty %}
-                            <li>No changes</li>
-                            {% endfor %}
-                        </ul>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" style="text-align: center;">No history records found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        
-        
-        
-
-
-
-
-
-    </div>
+</div>
 
       <!-- Pagination Controls -->
       <div class="pagination">

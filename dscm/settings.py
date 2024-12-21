@@ -8,30 +8,27 @@ SECRET_KEY = 'django-insecure-wzlf*t+-g32z73ia4=qdcbq*-2wkw_elwd_^%m3iodhllt9t!1
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = ['*','192.168.0.150','localhost','company-1.localhost']
 
 
 
 
 SHARED_APPS = [
-    'django_tenants',  # Multi-tenancy app
-    'django.contrib.contenttypes',
-    'django.contrib.auth',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'accounts',
-    'core', 
-    'clients',
-    'django_crontab',
-    'django_celery_beat',
+    'django_tenants',  
+    'django.contrib.contenttypes',  
+    'django.contrib.sessions',     
+    'django.contrib.messages',     
+    'django.contrib.staticfiles',  
+    'django_crontab',               
+    'django_celery_beat',   
+    'django.contrib.admin',    
+    'django.contrib.auth',    
+    'clients',   
 ]
 
-TENANT_APPS = [
-    'django.contrib.contenttypes',
-    'django.contrib.auth',
-    'django.contrib.sessions',  
+TENANT_APPS = [ 
+   
+    'accounts',
     'logistics',
     'manufacture',
     'product',
@@ -43,14 +40,16 @@ TENANT_APPS = [
     'shipment',
     'reporting',
     'customer',
-    'django_extensions',
+    'tasks',  
+    'core',
     'repairreturn',
     'operations',
-    'django.contrib.admin',
-  
+    'django_extensions', 
 ]
 
+
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
+
 
 TENANT_MODEL = "clients.Client"  
 TENANT_DOMAIN_MODEL = "clients.Domain"  
@@ -62,16 +61,17 @@ PUBLIC_SCHEMA_NAME = 'public'
 
 
 MIDDLEWARE = [
-    'django_tenants.middleware.TenantMiddleware',
-    # 'clients.middleware.TenantStatusMiddleware', 
-    'clients.middleware.TenantValidationMiddleware',      
-    'clients.middleware.RestrictPublicTenantAdminMiddleware',  # Custom middleware    
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',  # This needs to be before MessageMiddleware
+    'django.contrib.sessions.middleware.SessionMiddleware', 
+    'django.contrib.auth.middleware.AuthenticationMiddleware', 
+    'django_tenants.middleware.TenantMiddleware',   
+  
+    'django.contrib.messages.middleware.MessageMiddleware',  
+    'clients.middleware.TenantValidationMiddleware',      
+    'clients.middleware.CustomGeneralPurposeMiddleWare',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',  # This should be after SessionMiddleware
+     
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -92,6 +92,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'accounts.context_processors.user_info',
                 'accounts.context_processors.notifications_context',
+                'accounts.context_processors.tenant_schema',
             ],
         },
     },
@@ -204,7 +205,7 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media/")
 
 
-LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = '/accounts/tenant_expire_check/'
 LOGIN_URL = 'accounts:login'
 # LOGIN_URL = "/accounts/login/"
 

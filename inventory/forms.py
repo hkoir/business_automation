@@ -9,7 +9,7 @@ from product.models import Product
 class AddWarehouseForm(forms.ModelForm):      
     class Meta:
         model = Warehouse
-        exclude = ['created_at','updated_at','history','user','description','warehouse_id']
+        exclude = ['created_at','updated_at','history','user','description','warehouse_id','reorder_level','lead_time']
 
 class AddLocationForm(forms.ModelForm):      
     class Meta:
@@ -79,6 +79,6 @@ class TransferProductForm(forms.ModelForm):
 
     class Meta:
         model=TransferItem
-        exclude=['transfer_order']
+        exclude=['transfer_order','user']
 
     

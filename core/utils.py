@@ -1,5 +1,19 @@
 
 
+LOCATION_CHOICES=[
+    ('',''),
+    ('DHAKA','Dhaka'),
+    ('CHITTAGONG','Chittagong'),
+    ('KHULNA','Khulna'),
+    ('RAJSHAHI','Rajshahi'),
+    ('SYLHET','Sylhet'),
+    ('BAGURA','Bagura'),
+    ('BARISAL','Barisal'),
+    ('MYMENSINGH','Mymensingh'),
+    ('Cumilla','Cumilla')
+]
+
+
 DEPARTMENT_CHOICES = [
     ('', ''),
     ('Engineering', 'Engineering'),

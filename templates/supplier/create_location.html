@@ -62,13 +62,18 @@ table {
     <div class="row">        
         <!-- Form for adding a new category -->
         <div class="col-12 col-md-4">
-            <div class="card shadow-lg" style="padding:10px;background-color:aliceblue;">
-                <div class="card-body">
-                    <h6 class="card-title text-center"><strong>AddLocation</strong> </h6>
+            <div class="card shadow-lg" style="background-color: aliceblue;">
+                <!-- Card Header -->
+            <div class="card-header bg-primary text-white text-center">
+               <h3 class="mb-0">Add Location</h3>
+            </div>
+                <div class="card-body">                    
                     <form method="post" enctype="multipart/form-data" action="{% url 'supplier:create_location' %}" id="add_customer">
                         {% csrf_token %}
                         {{ form.as_p }}
-                        <button type="submit" name="location_submit" class="btn btn-primary">Submit</button>
+                        <div class="d-grid">
+                            <button type="submit"value="location_submit" name="location_submit" class="btn btn-primary btn-lg"> Submit</button>
+                        </div>                        
                     </form>
                 </div>
             </div>           

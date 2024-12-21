@@ -48,6 +48,8 @@ def create_purchase_shipment(request, purchase_order_id):
     })
 
 
+
+@login_required
 def purchase_shipment_list(request):
     purchase_shipment = None
     purchase_shipments = PurchaseShipment.objects.all().order_by('-created_at')
@@ -84,7 +86,7 @@ def purchase_shipment_detail(request, shipment_id):
     })
 
 
-
+@login_required
 def create_purchase_dispatch_item(request, dispatch_id):
     purchase_shipment = get_object_or_404(PurchaseShipment, id=dispatch_id)
     if 'basket' not in request.session:
@@ -178,7 +180,7 @@ def create_purchase_dispatch_item(request, dispatch_id):
     })
 
 
-
+@login_required
 def confirm_purchase_dispatch_item(request):
     basket = request.session.get('basket', [])
 
@@ -272,7 +274,7 @@ def dispatch_item_list(request, purchase_order_id):
     return render(request, 'logistics/purchase/dispatch_item_list.html', context)
 
 
-
+@login_required
 def update_dispatch_status(request, dispatch_item_id):
     dispatch_item = get_object_or_404(PurchaseDispatchItem, id=dispatch_item_id)
     if request.method == 'POST':
@@ -290,6 +292,7 @@ def update_dispatch_status(request, dispatch_item_id):
         all_items_reached = shipment.shipment_dispatch_item.filter(status__in =['REACHED','OBI']).count() == shipment.shipment_dispatch_item.count()
         if all_items_reached:
             shipment.status = 'REACHED'
+            shipment.purchase_order.status='REACHED'
             shipment.save()
             logger.info(f"Shipment {shipment.id} marked as DELIVERED.")
             create_notification(request.user,f'item {dispatch_item.dispatch_item.product} has just reached')
@@ -297,6 +300,8 @@ def update_dispatch_status(request, dispatch_item_id):
         logger.error(f"Shipment {shipment.id} not found.")
 
     return redirect('logistics:dispatch_item_list', purchase_order_id=shipment.purchase_order.id)
+
+
 
 
 def cancel_dispatch_item(request, dispatch_item_id):
@@ -338,7 +343,7 @@ def create_sale_shipment(request, sale_order_id):
         'sale_order': sale_order,
     })
 
-
+@login_required
 def sale_shipment_list(request):
     shipment_id = None
     sale_shipments = SaleShipment.objects.all().order_by('-created_at')
@@ -376,7 +381,7 @@ def sale_shipment_detail(request, shipment_id):
     })
 
 
-
+@login_required
 def create_sale_dispatch_item(request, dispatch_id):
     sale_shipment = get_object_or_404(SaleShipment, id=dispatch_id)
     if 'basket' not in request.session:
@@ -472,7 +477,7 @@ def create_sale_dispatch_item(request, dispatch_id):
     })
 
 
-
+@login_required
 def confirm_sale_dispatch_item(request):
     basket = request.session.get('basket', [])
 
@@ -568,7 +573,7 @@ def sale_dispatch_item_list(request, sale_order_id):
     return render(request, 'logistics/sales/dispatch_item_list.html', context)
 
 
-
+@login_required
 def update_sale_dispatch_status(request, dispatch_item_id):
     dispatch_item = get_object_or_404(SaleDispatchItem, id=dispatch_item_id)
     if request.method == 'POST':
@@ -581,7 +586,7 @@ def update_sale_dispatch_status(request, dispatch_item_id):
     return redirect('logistics:sale_dispatch_item_list', sale_order_id=shipment.sales_order.id)
 
 
-
+@login_required
 def cancel_sale_dispatch_item(request, dispatch_item_id):
     dispatch_item = get_object_or_404(SaleDispatchItem, id=dispatch_item_id)
 

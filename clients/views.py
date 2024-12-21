@@ -44,8 +44,8 @@ def tenant_expire_check(request):
             if tenant_instance.expiration_date < timezone.now().date():
                 return redirect('clients:renew_tenant')
             else:
-               return redirect('core:home')
-    return redirect('core:home')
+               return redirect('core:dashboard')
+    return redirect('core:dashboard')
 
 
 

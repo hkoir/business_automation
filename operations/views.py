@@ -18,9 +18,12 @@ from inventory.models import InventoryTransaction,Warehouse,Location
 from utils import create_notification
 from core.forms import CommonFilterForm
 from django.core.paginator import Paginator
+from inventory.models import Inventory
+from django.contrib.auth.decorators import login_required,permission_required
 
 
 
+@login_required
 def operations_dashboard(request):
     return render(request,'operations/operations_dashboard.html')
 
@@ -113,8 +116,8 @@ def add_existing_items(request):
     return render(request, 'operations/create_add_existing_items.html', {'form': form, 'basket': basket})
 
 
-from inventory.models import Inventory
 
+@login_required
 def confirm_add_existing_items(request):
     basket = request.session.get('basket', [])
     if not basket:
@@ -170,7 +173,7 @@ def confirm_add_existing_items(request):
                         warehouse=warehouse,
                         location=location,
                         product=product,
-                        inventory_transaction=inventory_transaction,
+                        user=request.user,                      
                         defaults={
                             'quantity':0,
                         }
@@ -184,6 +187,10 @@ def confirm_add_existing_items(request):
                     inventory.quantity = quantity
                     inventory.save()
                     messages.success(request, "Inventory created successfully.")
+
+                inventory_transaction.inventory_transaction= inventory
+                inventory_transaction.save()
+            
             create_notification(request.user,f'{product} from existing resource has been added into stock')
 
             request.session['basket'] = []
@@ -202,7 +209,6 @@ def confirm_add_existing_items(request):
 
 
 @permission_required_with_message('operations.can_submit', redirect_url='/operations/operations_dashboard/', message="You don't have permission to review.")
-
 def existing_items_list(request):
     order_id = None
     existing_orders = ExistingOrder.objects.all().order_by('-created_at')
@@ -229,7 +235,7 @@ def existing_items_list(request):
 
 
 
-
+@login_required
 def create_operations_items_request(request):
     if 'basket' not in request.session:
         request.session['basket'] = []
@@ -303,6 +309,8 @@ def create_operations_items_request(request):
 
 
 
+
+@login_required
 def confirm_operations_items_request(request):
     basket = request.session.get('basket', [])
     if not basket:
@@ -348,7 +356,7 @@ def confirm_operations_items_request(request):
 
 
 
-
+@login_required
 def operation_request_order_list(request):
     request_order = None
     orders = OperationsRequestOrder.objects.all().order_by('-created_at')
@@ -373,6 +381,8 @@ def operation_request_order_list(request):
 ,    })
 
 
+
+@login_required
 def operation_request_order_items(request,order_id):
     order=get_object_or_404(OperationsRequestOrder,id=order_id)     
         
@@ -380,7 +390,7 @@ def operation_request_order_items(request,order_id):
 
 
 
-
+@login_required
 def create_operations_items_delivery(request, request_id):
     request_instance = get_object_or_404(OperationsRequestOrder, id=request_id)
 
@@ -502,7 +512,7 @@ def create_operations_items_delivery(request, request_id):
     return render(request, 'operations/create_operations_items_delivery.html', {'form': form, 'basket': basket})
 
 
-
+@login_required
 def confirm_operations_items_delivery(request):
     request_id = request.GET.get('request_id')
     basket = request.session.get('basket', [])
@@ -539,20 +549,11 @@ def confirm_operations_items_delivery(request):
                     )
                     purchase_item.save()
 
-                    inventory_transaction = InventoryTransaction.objects.create(
-                        user=request.user,
-                        warehouse=warehouse,
-                        location=location,
-                        product=product,
-                        transaction_type='OPERATIONS_OUT',
-                        quantity=item['quantity'],
-                        operations_request_order=operations_request_order,
-                    )
-
                     inventory, created = Inventory.objects.get_or_create(
                         warehouse=warehouse,
                         location=location,
                         product=product,
+                        user=request.user,
                         defaults={
                             'quantity':0
                         }
@@ -564,8 +565,21 @@ def confirm_operations_items_delivery(request):
                         messages.success(request, "Inventory updated successfully.")
                     else:
                         messages.error(request, "Inventory failed to update successfully.")
+
+                    inventory_transaction = InventoryTransaction.objects.create(
+                        user=request.user,
+                        warehouse=warehouse,
+                        location=location,
+                        product=product,
+                        transaction_type='OPERATIONS_OUT',
+                        quantity=item['quantity'],
+                        operations_request_order=operations_request_order,
+                    )      
+
+                    inventory_transaction.inventory_transaction = inventory
+                    inventory_transaction.save()           
                     
-                create_notification(request.user,f'request from operations for{product} has been delivered')
+                    create_notification(request.user,f'request from operations for{product} has been delivered')
 
                 request.session['basket'] = []
                 request.session.modified = True

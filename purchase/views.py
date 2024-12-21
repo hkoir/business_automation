@@ -21,11 +21,13 @@ from core.forms import CommonFilterForm
 from django.core.paginator import Paginator
 
 
+
+@login_required
 def purchase_dashboard(request):
     return render(request,'purchase/purchase_dashboard.html')
 
 
-
+@login_required
 def create_purchase_request(request):
     if 'basket' not in request.session:
         request.session['basket'] = []
@@ -95,7 +97,7 @@ def create_purchase_request(request):
 
 
 
-
+@login_required
 def confirm_purchase_request(request):
     basket = request.session.get('basket', [])
     if not basket:
@@ -138,40 +140,7 @@ def confirm_purchase_request(request):
 
 
 
-
-def purchase_request_order_list2(request):
-    request_order =None
-    purchase_request_orders = PurchaseRequestOrder.objects.all().order_by("-created_at")
-
-    form = CommonFilterForm(request.GET or None)
-    if form.is_valid():
-        request_order = form.cleaned_data['purchase_request_order_id']
-        if request_order:
-            purchase_request_orders = purchase_request_orders.filter(order_id=request_order)
-           
-    is_requester = request.user.groups.filter(name="Requester").exists()
-    is_reviewer = request.user.groups.filter(name="Reviewer").exists()
-    is_approver = request.user.groups.filter(name="Approver").exists()
-
-    paginator = Paginator(purchase_request_orders, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    form=CommonFilterForm()
-    return render (request, 'purchase/purchase_request_order_list.html',                   
-        {'purchase_request_orders':purchase_request_orders,
-         
-         'is_requester':is_requester,
-         'is_reviewer':is_reviewer,
-         'is_approver': is_approver,
-         'user':request.user,
-         'form':form,
-         'page_obj':page_obj,
-         'request_order':request_order
-         })
-
-
-
+@login_required
 def purchase_request_order_list(request):
     request_order = None
     purchase_request_orders = PurchaseRequestOrder.objects.all().order_by("-created_at")
@@ -202,7 +171,7 @@ def purchase_request_order_list(request):
     })
 
 
-
+@login_required
 def purchase_request_items(request,order_id):
     order_instance = get_object_or_404(PurchaseRequestOrder,id=order_id)
     return render(request,'purchase/purchase_request_items.html',{'order_instance':order_instance})
@@ -278,7 +247,7 @@ def process_purchase_request(request, order_id):
 
 
 
-
+@login_required
 def create_purchase_order(request, request_id):
     request_instance = get_object_or_404(PurchaseRequestOrder, id=request_id)
 
@@ -387,7 +356,7 @@ def create_purchase_order(request, request_id):
     basket = request.session.get('basket', [])
     return render(request, 'purchase/create_purchase_order.html', {'form': form, 'basket': basket})
 
-
+@login_required
 def confirm_purchase_order(request):
     request_id = request.GET.get('request_id')
     basket = request.session.get('basket', [])
@@ -442,7 +411,7 @@ def confirm_purchase_order(request):
     return render(request, 'purchase/confirm_purchase_order.html', {'basket': basket})
 
 
-
+@login_required
 def purchase_order_list(request):
     purchase_order = None
     purchase_orders = PurchaseOrder.objects.all().order_by("-created_at")
@@ -473,7 +442,7 @@ def purchase_order_list(request):
     })
 
 
-
+@login_required
 def purchase_order_items(request,order_id):
     order_instance = get_object_or_404(PurchaseOrder,id=order_id)
     return render(request,'purchase/purchase_order_items.html',{'order_instance':order_instance})
@@ -501,7 +470,6 @@ def process_purchase_order(request, order_id):
             remarks = form.cleaned_data['remarks']
             role = None
 
-            # Determine the user's role(s)
             user_roles = []
             if request.user.groups.filter(name="Requester").exists():
                 user_roles.append("Requester")
@@ -510,7 +478,6 @@ def process_purchase_order(request, order_id):
             if request.user.groups.filter(name="Approver").exists():
                 user_roles.append("Approver")
 
-            # Validate based on roles and approval status
             for user_role in user_roles:
                 if approval_status in role_status_map[user_role]:
                     role = user_role
@@ -609,7 +576,7 @@ def qc_inspect_item(request, item_id):
 
 
 
-
+@login_required
 def purchase_order_item(request):
     form = PurchaseOrderSearchForm(request.GET or None)
     purchase_orders = None 
@@ -626,6 +593,8 @@ def purchase_order_item(request):
     })
 
 
+
+@login_required
 def purchase_order_item_dispatch(request, order_id):
     purchase_order = get_object_or_404(
         PurchaseOrder.objects.prefetch_related(
@@ -638,6 +607,8 @@ def purchase_order_item_dispatch(request, order_id):
     return render(request, 'purchase/purchase_order_item_dispatch.html', {
         'purchase_order': purchase_order,
     })
+
+
 
 @login_required
 def update_purchase_order_status(request, order_id):

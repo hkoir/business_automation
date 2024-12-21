@@ -26,11 +26,13 @@ from django.core.paginator import Paginator
 from purchase.forms import PurchaseStatusForm
 
 
+
+@login_required
 def repair_return_dashboard(request):
     return render(request,'repairreturn/dashboard.html')
 
 
-
+@login_required
 def sale_order_list(request):
     sale_order_number=None
     form = CommonFilterForm(request.GET or None)
@@ -40,6 +42,10 @@ def sale_order_list(request):
         sale_order_number = form.cleaned_data['sale_order_id']
         if sale_order_number:
             sale_orders = sale_orders.filter(order_id = sale_order_number)
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
 
     paginator = Paginator(sale_orders, 10)
     page_number = request.GET.get('page')
@@ -56,7 +62,7 @@ def sale_order_list(request):
             'sale_order_number':sale_order_number
         })
 
-
+@login_required
 def create_return_request(request, sale_order_id):
     sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
     sales = sale_order.sale_order.all()
@@ -75,6 +81,7 @@ def create_return_request(request, sale_order_id):
         if form.is_valid():
             return_refund = form.save(commit=False)
             return_refund.sale = sale
+            return_refund.user=request.user
             return_refund.save()
 
             create_notification(
@@ -102,7 +109,7 @@ def create_return_request(request, sale_order_id):
 
 
 
-
+@login_required
 def return_request_progress(request, sale_order_id):
     sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
     sales = sale_order.sale_order.all()  
@@ -120,7 +127,7 @@ def return_request_progress(request, sale_order_id):
     })
 
 
-
+@login_required
 def return_request_list(request):
     return_id=None
     returns = ReturnOrRefund.objects.all().order_by('-created_at')
@@ -129,6 +136,10 @@ def return_request_list(request):
         return_id = form.cleaned_data['sale_order_id']
         if return_id:
             returns = returns.filter(sale__sale_order__order_id = return_id)
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
 
     paginator =Paginator(returns ,10)
     page_number = request.GET.get('page')
@@ -142,7 +153,7 @@ def return_request_list(request):
              'return_id':return_id
         })
 
-
+@login_required
 def manage_return_request(request, return_id):
     return_request = get_object_or_404(ReturnOrRefund, id=return_id)
 
@@ -151,6 +162,7 @@ def manage_return_request(request, return_id):
         if form.is_valid():
             return_request = form.save(commit=False)
             return_request.processed_by = request.user
+            return_request.user = request.user
             return_request.processed_date = timezone.now()
 
             if return_request.status == 'Acknowledged' and return_request.return_reason == 'DEFECTIVE':
@@ -159,12 +171,17 @@ def manage_return_request(request, return_id):
                     product=return_request.sale.product,
                     faulty_product_quantity=return_request.quantity_refund,
                     reason_for_fault=return_request.return_reason,  
-                    inspected_by=request.user  
+                    inspected_by=request.user,
+                    user=request.user
                 )
             
             return_request.save()
             messages.success(request, f'{return_request.sale.product.name} has been processed.')
             return redirect('repairreturn:return_request_list') 
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
     else:
         form = ReturnOrRefundFormInternal(instance=return_request)
 
@@ -174,7 +191,7 @@ def manage_return_request(request, return_id):
     })
 
 
-
+@login_required
 def faulty_product_list(request):
     faulty_product_id=None
     faulty_products = FaultyProduct.objects.all().order_by('-created_at')
@@ -184,11 +201,15 @@ def faulty_product_list(request):
         faulty_product_id= form.cleaned_data['sale_order_id']
         if faulty_product_id:
               faulty_products =  faulty_products.filter(sale__sale_order__order_id= faulty_product_id)
-
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
 
     paginator = Paginator(faulty_products,10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
     form = CommonFilterForm()
     return render(request, 'repairreturn/refund_return//faulty_product_list.html', 
     {
@@ -199,7 +220,7 @@ def faulty_product_list(request):
      })
 
 
-
+@login_required
 def repair_faulty_product(request, faulty_product_id):
     faulty_product = get_object_or_404(FaultyProduct, id=faulty_product_id)
     product = faulty_product.product
@@ -218,6 +239,10 @@ def repair_faulty_product(request, faulty_product_id):
 
             messages.success(request, f'{faulty_product.product.name} has been processed.')
             return redirect('repairreturn:faulty_product_list')  
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
     else:
         form = FaultyProductForm(instance=faulty_product)
 
@@ -228,6 +253,7 @@ def repair_faulty_product(request, faulty_product_id):
 
 
 
+@login_required
 def replacement_return_repaired_product(request, faulty_product_id):
     faulty_product = get_object_or_404(FaultyProduct, id=faulty_product_id)
     
@@ -239,63 +265,72 @@ def replacement_return_repaired_product(request, faulty_product_id):
             replacement = form.save(commit=False)
             replacement.customer = faulty_product.sale.sale_order.customer
             replacement.user = request.user
-            
+            replacement.faulty_product = faulty_product  
+
             if faulty_product.status in ['UNREPAIRABLE', 'SCRAPPED']:
                 calculated_replacement_qty = faulty_product.faulty_product_quantity - (faulty_product.repair_quantity or 0)
                 
                 if calculated_replacement_qty > 0:
-                    replacement.replacement_quantity = calculated_replacement_qty                   
-        
-                    try:
-                        inventory_transaction = InventoryTransaction.objects.create(
-                            product=faulty_product.sale.product,
-                            warehouse=warehouse,
-                            location = location,
-                            transaction_type='REPLACEMENT_OUT',
-                            quantity=calculated_replacement_qty,
-                            remarks=f"Replacement for Faulty Product ID {faulty_product.id}"
-                        )
+                    replacement.replacement_quantity = calculated_replacement_qty 
 
-                        inventory, created = Inventory.objects.get_or_create(
-                            warehouse=warehouse,
-                            location=location,
-                            product=faulty_product.sale.product,
-                            defaults={
-                                'quantity': 0,
-                                'inventory_transaction': inventory_transaction
-                            }
-                        )
-            
-                        if not created:
-                            inventory.quantity -= replacement.replacement_quantity
-                            inventory.save()
-                            messages.success(request, "Inventory updated successfully.")
-                        else:
-                            messages.success(request, "Inventory created successfully.")                  
-                    except Exception as e:
-                        messages.error(request, f"An error occurred: {e}")
-                        return redirect('repairreturn:faulty_product_list')                
+                    with transaction.atomic():                 
+                        try:
+                            inventory_transaction = InventoryTransaction.objects.create(
+                                product=faulty_product.sale.product,
+                                warehouse=warehouse,
+                                location=location,
+                                transaction_type='REPLACEMENT_OUT',
+                                quantity=calculated_replacement_qty,
+                                user=request.user,
+                                remarks=f"Replacement for Faulty Product ID {faulty_product.id}"
+                            )
+
+                            inventory, created = Inventory.objects.get_or_create(
+                                warehouse=warehouse,
+                                location=location,
+                                user=request.user,
+                                product=faulty_product.sale.product,
+                                defaults={'quantity': 0}
+                            )
+                
+                            if not created:
+                                inventory.quantity -= replacement.replacement_quantity
+                                inventory.save()
+                                messages.success(request, "Inventory updated successfully.")
+                            else:
+                                messages.success(request, "Inventory created successfully.") 
+
+                            inventory_transaction.inventory_transaction = inventory
+                            inventory_transaction.save()
+                            replacement.save()
+                            return redirect('repairreturn:faulty_product_list')
+                            
+                        except Exception as e:
+                            messages.error(request, f"An error occurred: {e}")
+                            return redirect('repairreturn:faulty_product_list')                
                 else:
                     messages.warning(request, "Item has already been processed for repair/replacement.")
                     return redirect('repairreturn:faulty_product_list')            
             elif faulty_product.status == 'REPAIRED':
-                messages.warning(request, "Item has been repaired, so a replacement cannot be made.")
+                messages.warning(request, "Item has been repaired, so replacement cannot be made.")
                 return redirect('repairreturn:faulty_product_list')                
             else:
                 messages.warning(request, "Unexpected product status for replacement.")
                 return redirect('repairreturn:faulty_product_list')                
         else:
-            messages.error(request, "Please correct the errors in the form.")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
     else:
         form = ReplacementProductForm()
-    
+
     return render(request, 'repairreturn/refund_return/return_repaired_faulty_product.html', {
         'form': form,
         'faulty_product': faulty_product
     })
 
 
-
+@login_required
 def replacement_product_list(request):
     replacement_ID = None
     replacement_products =Replacement.objects.all()
@@ -306,9 +341,15 @@ def replacement_product_list(request):
         if replacement_ID:
               replacement_products =  replacement_products.filter(faulty_product__sale__sale_order__order_id= replacement_ID)
 
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
+
     paginator = Paginator(replacement_products,10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
     form=CommonFilterForm()
 
     return render(request, 'repairreturn/refund_return//replacement_product_list.html', {
@@ -321,7 +362,7 @@ def replacement_product_list(request):
     })
 
 ################### Sarapping product #########################################################
-
+@login_required
 def create_scrap_request(request):
     if 'basket' not in request.session:
         request.session['basket'] = []
@@ -355,7 +396,7 @@ def create_scrap_request(request):
 
                 request.session['basket'] = basket
                 request.session.modified = True
-                messages.success(request, f"Added '{product_obj.name}' to the purchase basket")
+                messages.success(request, f"Added '{product_obj.name}' to the scrap basket")
                 return redirect('repairreturn:create_scrap_request')
             else:
                 messages.error(request, "Form is invalid. Please check the details and try again.")
@@ -377,13 +418,13 @@ def create_scrap_request(request):
                 ]  
 
             request.session.modified = True
-            messages.success(request, "Sale basket updated successfully.")
+            messages.success(request, "basket updated successfully.")
             return redirect('repairreturn:create_scrap_request')
 
         elif 'confirm_purchase' in request.POST:
             basket = request.session.get('basket', [])
             if not basket:
-                messages.error(request, "Sale basket is empty. Add products before confirming the purchase.")
+                messages.error(request, "basket is empty. Add products before confirming the purchase.")
                 return redirect('repairreturn:create_scrap_request')
             return redirect('repairreturn:confirm_scrap_request')
 
@@ -392,7 +433,7 @@ def create_scrap_request(request):
 
 
 
-
+@login_required
 def confirm_scrap_request(request):
     basket = request.session.get('basket', [])    
     if not basket:
@@ -431,15 +472,15 @@ def confirm_scrap_request(request):
 
                 request.session['basket'] = []
                 request.session.modified = True
-                messages.success(request, "Sale order created successfully!")
-                return redirect('repairreturn:create_scrap_request')
+                messages.success(request, "Scrap order created successfully!")
+                return redirect('repairreturn:scrap_order_list')
         except Exception as e:  
-            messages.error(request, f"An error occurred while creating the sale order: {str(e)}")
+            messages.error(request, f"An error occurred while creating the scrap order: {str(e)}")
             return redirect('repairreturn:create_scrap_request')
     return render(request, 'repairreturn/confirm_scrap_request.html', {'basket': basket})
 
 
-
+@login_required
 def scrap_order_list(request):
     scrapped_orders = ScrappedOrder.objects.all().order_by('-created_at')
     form = ScrapOrderListForm(request.GET)
@@ -452,6 +493,10 @@ def scrap_order_list(request):
             scrapped_orders = scrapped_orders.filter(order_id=order_id)
         if warehouse:
             scrapped_orders = scrapped_orders.filter(warehouse__name=warehouse)  
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
    
     paginator = Paginator (scrapped_orders,8)
     page_number = request.GET.get('page')
@@ -527,14 +572,14 @@ def process_scrap_order(request, order_id):
             messages.success(request, f"Order {order.id} successfully updated.")
             return redirect('repairreturn:scrap_order_list')
         else:
-            messages.error(request, "Invalid form submission.")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
     else:
         form = PurchaseStatusForm()
     return render(request, 'purchase/purchase_order_approval_form.html', {'form': form, 'order': order})
 
-
-
-
+@login_required
 def scrap_confirmation(request, order_id):
     request_instance = get_object_or_404(ScrappedOrder, id=order_id)
     scrap_items = request_instance.scrap_request_items.all()
@@ -566,37 +611,28 @@ def scrap_confirmation(request, order_id):
                         warehouse=warehouse,
                         location=location,
                         product=product,
+                        user=request.user
                     ).first()
 
-                    if inventory_item:
-                        if inventory_item.quantity < quantity:
-                            messages.warning(
-                                request,
-                                f"Insufficient quantity for {product.name} in {warehouse.name}. "
-                                "Scrap process aborted."
-                            )
-                            raise ValueError(
-                                f"Insufficient inventory for {product.name} in {warehouse.name}."
-                            )
-
-                        inventory_item.quantity -= quantity
-                        inventory_item.save()
-                        messages.success(
-                            request,
-                            f"Inventory updated for {product.name} in {warehouse.name}."
-                        )
-                    else:
-                      
+                    if not inventory_item:
                         messages.error(
                             request,
                             f"Inventory not found for {product.name} in {warehouse.name}. "
                             "Please review the source inventory."
                         )
-                        raise ValueError(
-                            f"Inventory not found for {product.name} in {warehouse.name}."
+                        raise ValueError(f"Inventory not found for {product.name} in {warehouse.name}.")
+
+                    if inventory_item.quantity < quantity:
+                        messages.warning(
+                            request,
+                            f"Insufficient quantity for {product.name} in {warehouse.name}. Scrap process aborted."
                         )
-                  
-                    InventoryTransaction.objects.create(
+                        raise ValueError(f"Insufficient inventory for {product.name} in {warehouse.name}.")
+
+                    inventory_item.quantity -= quantity
+                    inventory_item.save()
+
+                    inventory_transaction = InventoryTransaction.objects.create(
                         user=request.user,
                         warehouse=warehouse,
                         location=location,
@@ -604,6 +640,16 @@ def scrap_confirmation(request, order_id):
                         transaction_type='SCRAPPED_OUT',
                         quantity=quantity,
                         scrapped_order=request_instance,
+                      
+                    )
+
+                    if hasattr(inventory_item, 'inventory_transaction'):
+                        inventory_transaction.inventory_transaction = inventory_item
+                        inventory_transaction.save()
+
+                    messages.success(
+                        request,
+                        f"Inventory updated for {product.name} in {warehouse.name}."
                     )
 
                 request_instance.status = 'SCRAPPED_OUT'

@@ -23,11 +23,13 @@ from django.core.paginator import Paginator
 from.forms import PurchaseStatusForm
 
 
+
+@login_required
 def sale_dashboard(request):
     return render(request,'sales/sale_dashboard.html')
 
 
-
+@login_required
 def create_sale_request(request):
     if 'basket' not in request.session:
         request.session['basket'] = []
@@ -130,7 +132,7 @@ def create_sale_request(request):
 
 
 
-
+@login_required
 def confirm_sale_request(request):
     basket = request.session.get('basket', [])    
     if not basket:
@@ -175,7 +177,7 @@ def confirm_sale_request(request):
     return render(request, 'sales/confirm_sale_request.html', {'basket': basket})
 
 
-
+@login_required
 def sale_request_order_list(request):
     sale_request_order=None
     sale_request_orders = SaleRequestOrder.objects.all().order_by("-created_at")
@@ -198,7 +200,7 @@ def sale_request_order_list(request):
             'page_obj':page_obj
         })
 
-
+@login_required
 def sale_request_items(request,order_id):
     order_instance = get_object_or_404(SaleRequestOrder,id=order_id)
     return render(request,'sales/sale_request_items.html',{'order_instance':order_instance})
@@ -274,7 +276,7 @@ def process_sale_request(request, order_id):
 
 
 
-
+@login_required
 def create_sale_order(request, request_id):
     request_instance = get_object_or_404(SaleRequestOrder, id=request_id)
     if 'basket' not in request.session:
@@ -414,7 +416,7 @@ def create_sale_order(request, request_id):
 
 
 
-
+@login_required
 def confirm_sale_order(request):
     basket = request.session.get('basket', [])
     if not basket:
@@ -491,7 +493,7 @@ def confirm_sale_order(request):
     return render(request, 'sales/confirm_sale_order.html', {'basket': basket})
 
 
-
+@login_required
 def sale_order_list(request):
     sale_order =None
     sale_orders = SaleOrder.objects.all().order_by("-created_at")   
@@ -501,13 +503,18 @@ def sale_order_list(request):
         sale_order = form.cleaned_data['sale_order_id']
         if sale_order:
             sale_orders = sale_orders.filter(order_id=sale_order)
+   
+        for order in sale_orders:
+            order.has_payment_attachment = (
+                order.sale_shipment.first()
+                and order.sale_shipment.first().sale_shipment_invoices.first()
+                and order.sale_shipment.first().sale_shipment_invoices.first().sale_payment_invoice.exists()
+            )
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
 
-    for order in sale_orders:
-        order.has_payment_attachment = (
-            order.sale_shipment.first()
-            and order.sale_shipment.first().sale_shipment_invoices.first()
-            and order.sale_shipment.first().sale_shipment_invoices.first().sale_payment_invoice.exists()
-        )
 
     paginator= Paginator( sale_orders,10)
     page_number = request.GET.get('page')
@@ -523,7 +530,7 @@ def sale_order_list(request):
         })
 
 
-
+@login_required
 def sale_order_list_report(request):
     sale_order =None
     sale_orders = SaleOrder.objects.all().order_by("-created_at")    
@@ -532,6 +539,11 @@ def sale_order_list_report(request):
         sale_order = form.cleaned_data['ID_number']
         if sale_order:
             sale_orders = sale_orders.filter(order_id=sale_order)
+   
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
 
     paginator= Paginator( sale_orders,10)
     page_number = request.GET.get('page')
@@ -545,7 +557,7 @@ def sale_order_list_report(request):
         })
     
 
-
+@login_required
 def sale_order_items(request,order_id):
     order_instance = get_object_or_404(SaleOrder,id=order_id)
     return render(request,'sales/sale_order_items.html',{'order_instance':order_instance})
@@ -574,7 +586,6 @@ def process_sale_order(request, order_id):
             remarks = form.cleaned_data['remarks']
             role = None
 
-            # Determine the user's role(s)
             user_roles = []
             if request.user.groups.filter(name="Requester").exists():
                 user_roles.append("Requester")
@@ -583,7 +594,6 @@ def process_sale_order(request, order_id):
             if request.user.groups.filter(name="Approver").exists():
                 user_roles.append("Approver")
 
-            # Validate based on roles and approval status
             for user_role in user_roles:
                 if approval_status in role_status_map[user_role]:
                     role = user_role
@@ -619,15 +629,12 @@ def process_sale_order(request, order_id):
             messages.error(request, "Invalid form submission.")
     else:
         form = PurchaseStatusForm()
-
     return render(request, 'sales/sale_order_approval_form.html', {'form': form, 'order': order})
 
 
 
 
-
-
-
+@login_required
 def sale_order_item(request):
     form = SaleOrderSearchForm(request.GET or None)
     sale_orders = SaleOrder.objects.prefetch_related(
@@ -639,7 +646,7 @@ def sale_order_item(request):
     })
 
 
-
+@login_required
 def sale_order_item_dispatch(request, order_id):
     purchase_order = get_object_or_404(
         SaleOrder.objects.prefetch_related(
@@ -712,6 +719,7 @@ def qc_inspect_item(request, item_id):
     shipment = sale_dispatch_item.sale_shipment   
     sale_order_item = sale_dispatch_item.dispatch_item
     sale_request_item = sale_order_item.sale_request_item
+   
 
     if request.method == 'POST':
         form = QualityControlForm(request.POST, initial_warehouse=sale_dispatch_item.warehouse, initial_location=sale_dispatch_item.location)
@@ -732,26 +740,46 @@ def qc_inspect_item(request, item_id):
            
             if warehouse and location:
                 try:
-                    transaction = InventoryTransaction.objects.create(
-                        user=request.user,
-                        warehouse=warehouse,
-                        location=location,
-                        product=qc_entry.product,
-                        transaction_type='OUTBOUND',  
-                        quantity=good_quantity,
-                        sales_order=sale_dispatch_item.dispatch_item.sale_order
-                    )
+                    with transaction.atomic():
 
-                    inventory = Inventory.objects.filter(warehouse=warehouse, location=location, product=sale_dispatch_item.dispatch_item.product).first()
-                    if inventory:
-                        inventory.inventory_transaction = transaction
-                        inventory.quantity -= good_quantity 
-                        inventory.save()
-                    else:
-                        messages.error(request, f"Product {qc_entry.product.name} not found in {warehouse.name} at {location.name}.")
-                        return redirect('sales:qc_dashboard')
-                    if inventory.quantity < 0:
-                        raise ValueError("Inventory update failed. Insufficient stock.")
+                        if InventoryTransaction.objects.filter(
+                            sales_order=sale_dispatch_item.dispatch_item.sale_order,
+                            transaction_type='OUTBOUND',
+                            product=qc_entry.product,
+                        ).exists():
+                            messages.error(request, "This transaction has already been recorded.")
+                            return redirect('sales:qc_dashboard')
+                        
+                        inventory, created = Inventory.objects.get_or_create(
+                                    warehouse=warehouse,
+                                    location=location,
+                                    product=qc_entry.product,
+                                    user=request.user,
+                                    
+                                    defaults={
+                                        'quantity': 0
+                                    }
+                                )
+
+                        if not created:
+                            inventory.quantity -= good_quantity
+                            inventory.save()
+                            messages.success(request, "Inventory updated successfully.")
+                        else:                       
+                            messages.success(request, "something went wrong. inventory not updated.")
+                                              
+                        inventory_transaction = InventoryTransaction.objects.create(
+                            user=request.user,
+                            warehouse=warehouse,
+                            location=location,
+                            product=qc_entry.product,
+                            transaction_type='OUTBOUND',  
+                            quantity=good_quantity,
+                            sales_order=sale_dispatch_item.dispatch_item.sale_order
+                        )
+                        
+                        inventory_transaction.inventory_transaction = inventory
+                        inventory_transaction.save()                        
 
                 except Inventory.DoesNotExist:
                     messages.error(request, f"Product {qc_entry.product.name} not found in {warehouse.name} at {location.name}.")
@@ -761,7 +789,7 @@ def qc_inspect_item(request, item_id):
                     return redirect('sales:qc_dashboard')
                 except Exception as e:
                     messages.error(request, f"Unexpected error: {e}")
-                    return redirect('sales:qc_dashboard')
+                    return redirect('sales:qc_dashboard')        
 
             sale_order.status = 'DELIVERED'
             sale_order.save()
@@ -797,8 +825,10 @@ def qc_inspect_item(request, item_id):
 
             messages.success(request, "Quality control inspection recorded and inventory updated successfully.")
             return redirect('sales:qc_dashboard')
-        else:
-            messages.error(request, "Error saving QC inspection.")
+        else:  
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
     else:
         form = QualityControlForm(
             initial={

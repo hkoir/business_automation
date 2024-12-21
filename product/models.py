@@ -58,9 +58,6 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-    class Meta:
-            ordering = ['created_at']
-
     def save(self, *args, **kwargs):
         if not self.product_id:
             self.product_id = f"PID-{uuid.uuid4().hex[:8].upper()}"

@@ -27,6 +27,7 @@ urlpatterns = [
     path('customer/',include('customer.urls',namespace='customer')),
     path('repairreturn/',include('repairreturn.urls',namespace='repairreturn')),
     path('operations/',include('operations.urls',namespace='operations')),
+    path('tasks/',include('tasks.urls',namespace='tasks')),
 
    
     

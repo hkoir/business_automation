@@ -60,17 +60,24 @@ table {
 
 
 
+
 <div class="container-fluid main-content">
     <div class="row">          
             <!-- Form for adding a new category -->
-            <div class="col-12 col-md-3">
-                <div class="card shadow" style="padding:10px;background-color:aliceblue;">
+            <div class="col-12 col-md-4">
+                <div class="card shadow-lg" style="background-color: aliceblue;">
+                     <!-- Card Header -->
+                 <div class="card-header bg-primary text-white text-center">
+                    <h3 class="mb-0">Add Suppliers</h3>
+                </div>      
                     <div class="card-body">
-                        <h6 class="card-title text-center"><strong>Add Suppliers</strong> </h6>
+                       
                         <form method="post" enctype="multipart/form-data" action="{% url 'supplier:create_supplier' %}" id="add_customer">
                             {% csrf_token %}
                             {{ form.as_p }}
-                            <button type="submit" name="supplier_submit" class="btn btn-primary">Submit</button>
+                            <div class="d-grid">
+                                <button type="submit"value="supplier_submit" name="supplier_submit" class="btn btn-primary btn-lg"> Submit</button>
+                            </div>
                         </form>
                      </div>
                 </div>           
@@ -83,8 +90,7 @@ table {
                     <tr>
                         <th class="text-center p-2">Name</th>
                         <th class="text-center p-2">phone</th>
-                        <th class="text-center p-2">email</th>
-                        <th class="text-center p-2">Created_at</th>
+                        <th class="text-center p-2">email</th>                        
                     
                         <th class="text-center p-2">Actions</th>
                     </tr>
@@ -94,8 +100,7 @@ table {
                         <tr>
                             <td class="text-center p-1">{{ supplier.name }}</td>
                             <td class="text-center p-1" style="white-space: nowrap;">{{ supplier.phone }}</td>
-                            <td class="text-center p-2" style="white-space: nowrap;">{{supplier.email}}</td>
-                            <td class="text-center p-2" style="white-space: nowrap;">{{supplier.created_at}}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{supplier.email}}</td>                           
                            
                             <td class="text-center">
                                 <button class="btn btn-warning btn-sm" data-bs-toggle="modal" 

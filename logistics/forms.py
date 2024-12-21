@@ -84,7 +84,7 @@ class SaleDispatchItemForm(forms.ModelForm):
 
     class Meta:
         model = SaleDispatchItem
-        exclude=['dispatch_id']
+        exclude=['dispatch_id','user']
 
 
     def __init__(self, *args, sale_shipment=None, **kwargs):

@@ -58,14 +58,23 @@
         </span>
         </h4>
 
-        <div class="col-12" style="margin-bottom: 20px;">
-            <div class="col-12">
-                <div>
-                    <canvas id="barChart" width="400" height="100"></canvas>
-                    <div id="warehouseNames"></div>
+        <div class="col-12 mt-4 mb-4">   
+            <div class="container">
+                <div class="row">                   
+
+                    <div class="col-12 col-md-8">
+                        <canvas id="barChart"></canvas>
+                        <div id="warehouseNames"></div>
+                    </div>
+                    <div class="col-12 col-md-4">                      
+                              <!-- Canvas for the doughnut chart -->
+                        <canvas id="warehouseDoughnutChart" width="200" height="100"></canvas>
+                                                    
+                    </div>
                 </div>
-            </div>
-        </div>
+            </div>         
+                
+         </div>
 
         <hr style="height:5px">
 
@@ -267,20 +276,10 @@
         
     });
 
+   
+
+
     
-
-    // Calculate the max y-axis value
-    const maxYValue = Math.max(
-        ...totalPurchase,
-        ...totalSold,
-        ...totalAvailable,
-        ...totalManufactureIn,
-        ...totalTransferIn,
-        ...totalTransferOut,
-        ...totalReplacementOut,
-        ...totalStock,
-    ) * 1.4;
-
     const colors = [
         'rgba(76, 175, 80, 0.5)',  // Green
         'rgba(255, 87, 34, .8)',  // Deep Orange
@@ -298,6 +297,23 @@
         'rgba(255, 87, 34, 0.8)',  // Deep Orange
         'rgba(0, 150, 136, 0.8)',  // Sea Green
     ];
+
+    
+    // Calculate the max y-axis value
+    const maxYValue = Math.max(
+        ...totalPurchase,
+        ...totalSold,
+        ...totalAvailable,
+        ...totalManufactureIn,
+        ...totalTransferIn,
+        ...totalTransferOut,
+        ...totalReplacementOut,
+        ...totalStock,
+    ) * 1.4;
+
+
+    
+    const barThickness=15
     // Bar chart
     const ctxBar = document.getElementById('barChart').getContext('2d');
     const barChart = new Chart(ctxBar, {
@@ -311,15 +327,25 @@
                     data: totalStock,
                      backgroundColor: 'rgba(76, 175, 80, 0.5)',  // Green
                     borderColor: 'rgba(76, 175, 80, 1)',        // Dark Green
-                    borderWidth: 1
-                },    
+                    borderWidth: 1,
+                    barThickness:barThickness
+                },  
+                {
+                    label: 'Total Available',
+                    data: totalAvailable,
+                    backgroundColor: 'rgba(0, 150, 136, 1)',  // Pink
+                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Pink
+                    borderWidth: 1,
+                    barThickness:barThickness
+                },  
                 
                 {
                     label: 'Total Purchase',
                     data: totalPurchase,
                     backgroundColor: 'rgba(33, 150, 243, 0.5)', // Blue
                     borderColor: 'rgba(33, 150, 243, 1)',       // Dark Blue
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
 
                 {
@@ -327,39 +353,34 @@
                     data: totalSold,
                     backgroundColor: 'rgba(255, 87, 34, 0.5)',  // Deep Orange
                     borderColor: 'rgba(255, 87, 34, 1)',        // Dark Deep Orange
-                    borderWidth: 1
-                },
-                
-                {
-                    label: 'Total Available',
-                    data: totalAvailable,
-                    backgroundColor: 'rgba(0, 150, 136, 1)',  // Pink
-                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Pink
-                    borderWidth: 1
-                },
-
-
+                    borderWidth: 1,
+                    barThickness:barThickness
+                },              
+              
 
                 {
                     label: 'Total Existing',
                     data: totalExistingIn,
                     backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
                     borderColor: 'rgba(255, 193, 7, 1)',        // Dark Amber
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
                 {
                     label: 'Total Operations Out',
                     data: totalOperationsOut,
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
                 {
                     label: 'Total Manufacture in',
                     data: totalManufactureIn,
                     backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
                     borderColor: 'rgba(255, 193, 7, 1)',        // Dark Amber
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
 
                 {
@@ -367,14 +388,16 @@
                     data: totalManufactureOut,
                     backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
                     borderColor: 'rgba(255, 193, 7, 1)',        // Dark Amber
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
                 {
                     label: 'Total Transfer In',
                     data: totalTransferIn,
                     backgroundColor: 'rgba(0, 188, 212, 0.5)', // Teal
                     borderColor: 'rgba(0, 188, 212, 1)',       // Dark Teal
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },            
                                
                 {
@@ -382,14 +405,16 @@
                     data: totalTransferOut,
                     backgroundColor: 'rgba(255, 152, 0, 0.5)',  // Orange
                     borderColor: 'rgba(255, 152, 0, 1)',        // Dark Orange
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
                 {
                     label: 'Total Replacement Out',
                     data: totalReplacementOut,
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
 
                 {
@@ -397,7 +422,8 @@
                     data: totalReplacementIn,
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
 
                 {
@@ -405,7 +431,8 @@
                     data: totalScrappedIn,
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
 
                 {
@@ -413,7 +440,8 @@
                     data: totalScrappedOut,
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness:barThickness
                 },
                
               
@@ -431,6 +459,122 @@
     });
 
    
+// Doughnut Chart Configuration
+const doughnutCtx = document.getElementById('warehouseDoughnutChart').getContext('2d');
+
+const totalStockSum = totalStock.reduce((a, b) => a + b, 0);
+const totalPurchasedSum = totalPurchase.reduce((a, b) => a + b, 0);
+const totalExistingInSum = totalExistingIn.reduce((a, b) => a + b, 0);
+
+const totalManufactureInSum = totalManufactureIn.reduce((a, b) => a + b, 0);
+const totalManufactureOutSum = totalManufactureOut.reduce((a, b) => a + b, 0);
+
+
+const totalSoldSum = totalSold.reduce((a, b) => a + b, 0);
+const totalOperationsOutSum = totalOperationsOut.reduce((a, b) => a + b, 0);
+
+const totalRefundInSum = totalReplacementIn.reduce((a, b) => a + b, 0);
+const totalRefundOutSum = totalReplacementOut.reduce((a, b) => a + b, 0);
+
+const totalTransferOutSum = totalTransferOut.reduce((a, b) => a + b, 0);
+const totalTransferInSum = totalTransferIn.reduce((a, b) => a + b, 0);
+
+const totalScrappedInSum = totalScrappedIn.reduce((a, b) => a + b, 0);
+const totalScrappedOutSum = totalScrappedOut.reduce((a, b) => a + b, 0);
+
+const totalAvailableSum = totalAvailable.reduce((a, b) => a + b, 0);
+
+const warehouseDoughnutChart = new Chart(doughnutCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [
+            'Total stock',
+            'Available Stock',
+            'Total Purchased',
+            'Total Sold',
+
+            'Total Existing In',
+            'Operations Out',
+            'Total Production In',
+            'Total Production Out',
+
+            'Outgoing Transfers',
+            'Incoming Transfers',
+            'Scrapped In',
+            'Scrapped Out',
+          
+        ],
+        datasets: [{
+            data: [
+                totalStockSum,
+                totalAvailableSum,
+                totalPurchasedSum,
+                totalSoldSum,
+
+                totalExistingInSum,
+                totalOperationsOutSum,
+                totalManufactureInSum,
+                totalManufactureOutSum,
+
+                totalTransferOutSum,
+                totalTransferInSum,
+                totalScrappedInSum,
+                totalScrappedOutSum,
+               
+            ],
+            backgroundColor: [
+                'rgba(76, 175, 80, 0.5)',  // Green
+                'rgba(33, 150, 243, 0.5)', // Blue
+                'rgba(255, 87, 34, 0.5)',  // Deep Orange
+                'rgba(255, 193, 7, 0.5)',  // Amber
+
+                'rgba(0, 150, 136, 0.5)',  // Sea Green
+                'rgba(233, 30, 99, 0.5)',  // Pink
+                'rgba(156, 39, 176, 0.5)', // Purple
+                'rgba(0, 188, 212, 0.5)',  // Teal
+
+                'rgba(255, 152, 0, 0.5)',  // Orange
+                'rgba(103, 58, 183, 0.5)', // Deep Purple
+                'rgba(121, 85, 72, 0.5)',  // Brown
+                'rgba(63, 81, 181, 0.5)'   // Indigo
+            ],
+            borderColor: [
+                'rgba(76, 175, 80, 1)', 
+                'rgba(33, 150, 243, 1)', 
+                'rgba(255, 87, 34, 1)',                 
+                'rgba(255, 193, 7, 1)', 
+
+                'rgba(0, 150, 136, 1)', 
+                'rgba(233, 30, 99, 1)', 
+                'rgba(156, 39, 176, 1)', 
+                'rgba(0, 188, 212, 1)', 
+
+                'rgba(255, 152, 0, 1)', 
+                'rgba(103, 58, 183, 1)', 
+                'rgba(121, 85, 72, 1)', 
+                'rgba(63, 81, 181, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.raw || 0;
+                        return `${label}: ${value.toLocaleString()}`;
+                    }
+                }
+            }
+        }
+    }
+});
 
 </script>
 

@@ -1,0 +1,268 @@
+{% extends 'base.html' %}  
+
+
+
+{% block content %}
+
+<style>
+    
+.select2-container {
+        width: 40% !important; /* Ensure the container is 100% wide */
+    }
+ 
+  
+    
+    .select2-search__field {
+            width: 100% !important; 
+        }
+
+  
+.select2-container--default .select2-selection--single {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+    }
+
+ .main-content {   
+    overflow-y: auto;
+    margin-left:0px;
+    position: absolute;
+    width: 100%;
+    left: 0;
+        }
+
+</style>
+
+
+<div class="container-fluid main-content">
+    <div class="row">  
+
+        <div class="col">
+           
+
+            <div class="container">
+                <form method="GET">
+                    {% csrf_token %}
+
+                <div class="row">     
+
+                    <div class="col-12 col-md-4 p-1">
+                        Employee{{ form.employee }}
+                    </div>
+
+                    <div class="col-12 col-md-4 p-1">
+                        Start date{{ form.start_date }}
+                    </div>
+
+                    <div class="col-12 col-md-4 p-1">
+                    End date{{ form.end_date }}
+                    </div>
+
+                    <div class="col-12 col-md-4 p-1">
+                        Department{{ form.department }}
+                    </div>
+
+                    <div class="col-12 col-md-4 p-1">
+                        Position{{ form.position }}
+                    </div>
+                    <div class="col-12 col-md-4 mt-2">
+                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                    </div>  
+
+                    </div>
+                </form>
+            </div>
+         </div>
+        <div class="col mt-4">       
+                         
+            <h4>Evaluation Data</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th style="background-color: aliceblue;">EV ID</th>
+                        <th style="background-color: aliceblue;">Employee</th>
+                        <th style="background-color: aliceblue;">Department</th>
+                        <th style="background-color: aliceblue;">Position</th>
+                        <th style="background-color: aliceblue;">Task</th>
+
+                        <th style="background-color: rgb(128, 243, 218);">Obtained Quantitative score</th>
+                        <th style="background-color: rgb(128, 243, 218);">Manager given Quantitative score</th>                    
+                        <th style="background-color: rgb(138, 234, 216);">Manager given Qualitative Score</th>     
+                        <th style="background-color: rgb(6, 239, 84);">Total Score</th>                      
+                       
+
+                        <th style="background-color:antiquewhite;">Assigned Quantitative number</th>
+                        <th style="background-color:antiquewhite;">Assigned Qualitative number</th>
+                        <th style="background-color:antiquewhite;">Total Assigned number</th>
+
+                        <th style="background-color: rgb(11, 241, 241);">Obtained Quantitative number</th>
+                        <th style="background-color: rgb(11, 241, 241);">Obtained Qualitative number</th>
+                        <th style="background-color: rgb(11, 241, 241);">Total obtained number</th>
+                        
+                        <th style="background-color: aliceblue;">Evaluator</th>
+                        <th style="background-color: aliceblue;">Evaluation date</th>                        
+                        <th style="background-color: aliceblue;">Created </th>
+                        <th style="background-color: aliceblue;">Updated</th>
+                      
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if evaluations %}
+                    {% for ev in page_obj %}
+                    <tr>
+                        <td>{{ ev.ev_id }}</td>
+                        <td>{{ ev.employee.name}}</td>
+                        <td>{{ ev.department.name}}</td>
+                        <td>{{ ev.position.name}}</td>
+                        <td>{{ ev.task.title }}</td>
+
+                        <td>{{ ev.quantitative_score|floatformat:'2' }}%</td>
+                        <td>{{ ev.manager_given_quantitative_score|floatformat:'2' }}%</td> 
+                        <td>{{ ev.qualitative_score|floatformat:'2' }}%</td>  
+                        <td>{{ ev.total_score|floatformat:'2' }}%</td>                                               
+                       
+
+                        <td>{{ ev.assigned_quantitative_number }}</td>                     
+                         <td>{{ ev.assigned_qualitative_number }}</td> 
+                        <td>{{ ev.total_assigned_number }}</td> 
+
+                        <td>{{ ev.obtained_quantitative_number }}</td> 
+                        <td>{{ ev.obtained_qualitative_number }}</td> 
+                        <td>{{ ev.total_obtained_number }}</td> 
+
+                        <td>{{ ev.qualitative_evaluations.first.evaluator}}</td>
+                        <td>{{ ev.evaluation_date }}</td>
+                        <td>{{ ev.created_at|date:'M-d-Y'}}</td>
+                        <td>{{ ev.updated_at|date:'M-d-Y' }}</td>
+                    
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center;">No records found.</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <span> No evaluation found yet</span>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>  
+
+    </div>
+    <!-- Pagination Controls -->
+      <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+
+
+</div>
+
+
+
+<div style="height:800px"></div>
+
+
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="successModalLabel">Success</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {{ messages }}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+<script>
+    $(document).ready(function() {
+        $('#id_employee_name').select2({
+            width: '100%',
+            placeholder: 'Search employee...',
+            allowClear: true,
+            ajax: {
+                url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data.results, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Search for employee',
+            allowClear: true
+        });
+    });
+    </script>
+    
+
+{% endblock %}

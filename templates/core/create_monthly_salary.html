@@ -47,47 +47,53 @@ white-space: normal;
             
             <form method="GET" action="{% url 'core:create_salary' %}">
                 <label for="month">Enter month:</label>
-                <input type="number" id="month" name="month" min="1" required>
-            
+                <input type="number" id="month" name="month" min="1" max="12" required>
+                
                 <label for="year">Enter year:</label>
-                <input type="number" id="year" name="year" min="1" required>
+                <input type="number" id="year" name="year" min="2000" max="2100" required>
+                
                 <button type="submit" class="btn btn-primary">Generate Report</button>
             </form>
+            
 
         </div>
         <div class="col" style="margin-top:30px">
             
             <h4>Generated Report for {{ month }}/{{ year }}</h4> 
                         
+         {% if salary %}
                     <table>
                         <thead>
-                            <a href="{% url 'core:download_salary' %}?download=1">Download Salary Report</a>
-                        
+                            <a href="{% url 'core:download_salary' %}?month={{ month }}&year={{ year }}">Download Salary Report</a>
 
                             <tr>
                                 <th>Employee ID</th>
                                 <th>Name</th>
                                 <th>Month</th>
-                                <th>Year</th>                            
+                                <th>Year</th>
                                 <th>Total Salary</th>
                                 <th>Basic</th>
-                                <th>Other allowances</th>
+                                <th>Other Allowances</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for entry in salary %}
-                            <tr>
-                                <td>{{ entry.employee.employee_code }}</td>
-                                <td>{{ entry.employee.name }}</td>
-                                <td>{{ entry.month }}</td>
-                                <td>{{ entry.year }}</td>          
-                                <td>{{ entry.total_salary }}</td>
-                                <td>{{ entry.employee.basic_salary }}</td>
-                                <td>{{ entry.employee.transportation_allowance }}</td>
-                            </tr>
+                                <tr>
+                                    <td>{{ entry.employee.employee_code }}</td>
+                                    <td>{{ entry.employee.name }}</td>
+                                    <td>{{ entry.month }}</td>
+                                    <td>{{ entry.year }}</td>
+                                    <td>{{ entry.total_salary }}</td>
+                                    <td>{{ entry.employee.basic_salary }}</td>
+                                    <td>{{ entry.employee.transportation_allowance }}</td>
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                {% else %}
+                    <p>No salary data found for the selected month and year.</p>
+                {% endif %}
+
 
                 </div>
 

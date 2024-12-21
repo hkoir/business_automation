@@ -20,14 +20,16 @@ from.forms import MaterialsRequestForm,MaterialsDeliveryForm,QualityControlForm,
 
 from utils import create_notification
 from core.forms import CommonFilterForm
-
+from inventory.models import Inventory,InventoryTransaction
 from django.core.paginator import Paginator
 
+
+@login_required
 def manufacture_dashboard(request):
     return render(request,'manufacture/materials_dashboard.html')
 
 
-
+@login_required
 def create_materials_request(request):
     if 'basket' not in request.session:
         request.session['basket'] = []
@@ -98,6 +100,8 @@ def create_materials_request(request):
     return render(request, 'manufacture/create_materials_request.html', {'form': form, 'basket': basket})
 
 
+
+@login_required
 def confirm_materials_request(request):
     basket = request.session.get('basket', [])
     if not basket:
@@ -138,7 +142,7 @@ def confirm_materials_request(request):
     return render(request, 'manufacture/confirm_materials_request.html', {'basket': basket})
 
 
-
+@login_required
 def materiala_request_order_list(request):
     request_order = None
     purchase_request_orders = MaterialsRequestOrder.objects.all().order_by("-created_at")
@@ -171,6 +175,8 @@ def materiala_request_order_list(request):
          })
 
 
+
+@login_required
 def materials_request_items(request,order_id):
     order_instance = get_object_or_404(MaterialsRequestOrder,id=order_id)
     return render(request,'manufacture/materials_request_items.html',{'order_instance':order_instance})
@@ -242,7 +248,7 @@ def process_materials_request(request, order_id):
 
 
 
-
+@login_required
 def create_materials_delivery(request, request_id):
     request_instance = get_object_or_404(MaterialsRequestOrder, id=request_id)
 
@@ -359,8 +365,9 @@ def create_materials_delivery(request, request_id):
     return render(request, 'manufacture/create_materials_delivery.html', {'form': form, 'basket': basket})
 
 
-from inventory.models import Inventory,InventoryTransaction
 
+
+@login_required
 def confirm_materilas_delivery(request):
     request_id = request.GET.get('request_id')
     basket = request.session.get('basket', [])
@@ -421,7 +428,7 @@ def confirm_materilas_delivery(request):
                         warehouse=warehouse,
                         location=location,
                         product=product,
-                       
+                        user=request.user,
                         defaults={
                             'quantity': 0
                         }
@@ -433,6 +440,8 @@ def confirm_materilas_delivery(request):
                         messages.success(request, "Inventory updated successfully.")
                     else:                       
                         messages.success(request, "something went wrong. inventory not updated.")
+                    inventory_transaction.inventory_transaction =inventory
+                    inventory_transaction.save()
 
                 request.session['basket'] = []
                 request.session.modified = True
@@ -446,10 +455,12 @@ def confirm_materilas_delivery(request):
     return render(request, 'manufacture/confirm_materials_delivery.html', {'basket': basket})
 
 
-
+@login_required
 def materials_delivered_items(request,order_id):
     order_instance = get_object_or_404(MaterialsRequestOrder,id=order_id)
     return render(request,'manufacture/materials_delivery_items.html',{'order_instance':order_instance})
+
+
 
 
 @login_required
@@ -509,9 +520,7 @@ def qc_inspect_item(request, item_id):
                     request, f"QC inspection recorded. {good_quantity} items received."
                 )
             else:
-                messages.warning(request, "No good quantity to receive.")
-            
-
+                messages.warning(request, "No good quantity to receive.")           
             return redirect('manufacture:qc_dashboard')
         else:
             messages.error(request, "Error saving QC inspection.")
@@ -524,6 +533,9 @@ def qc_inspect_item(request, item_id):
     })
 
 
+
+
+@login_required
 def materials_order_item(request):
     form = MaterialsOrderSearchForm(request.GET or None)
     materials_orders = None 
@@ -541,6 +553,8 @@ def materials_order_item(request):
 
 
 
+
+@login_required
 def submit_finished_goods(request, request_id):
     materials_request_order = get_object_or_404(MaterialsRequestOrder, id=request_id)
     finished_goods = FinishedGoodsReadyFromProduction.objects.all().order_by('-created_at')
@@ -570,22 +584,9 @@ def submit_finished_goods(request, request_id):
     })
 
 
-def submit_finished_goods2(request, request_id):
-    materials_request_order = get_object_or_404(MaterialsRequestOrder, id=request_id)
-    finished_goods = FinishedGoodsReadyFromProduction.objects.all().order_by('-created_at')
-    
-    paginator = Paginator(finished_goods,10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    return render(request, 'manufacture/submit_finished_goods2.html', {
-        'materials_request_order': materials_request_order,
-        'finished_goods':finished_goods,
-        'page_obj':page_obj
-    })
 
 
-
+@login_required
 def purchase_order_item_dispatch(request, order_id):
     purchase_order = get_object_or_404(
         MaterialsRequestOrder.objects.prefetch_related(
@@ -629,7 +630,7 @@ def update_purchase_order_status(request, order_id):
 
 
 
-
+@login_required
 def direct_submit_finished_goods(request):   
     finished_goods = FinishedGoodsReadyFromProduction.objects.all().order_by('-created_at')
 
@@ -643,7 +644,7 @@ def direct_submit_finished_goods(request):
             finished_goods.save()
             messages.success(request, 'Finished goods submitted successfully!')
             create_notification(request.user,f'Production department has submitted{product} to receive')
-            return redirect('manufacture:materials_request_order_list')  
+            return redirect('manufacture:direct_submit-finished-goods')  
     else:
         form = FinishedGoodsForm()
 

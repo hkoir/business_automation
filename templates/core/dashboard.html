@@ -1,0 +1,195 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+<style>
+
+
+/* Small screens: Mobile devices */
+@media (max-width: 767px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Medium screens: Tablets and small laptops */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Large screens: Laptops and standard desktops */
+@media (min-width: 1025px) and (max-width: 1440px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Extra large screens: Wide desktops or monitors */
+@media (min-width: 1441px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+
+    .menu-card {
+        text-align: center;
+        padding: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 10px;
+        background-color: aliceblue;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width:125px;
+        height:125px;
+
+    align-items: center;
+    justify-content: center;
+       
+    }
+
+    .menu-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .menu-icon {
+        font-size: 3rem;
+        color: #007bff;
+        width:20px;
+        height:20px;
+        justify-content: center;
+    }
+
+    .menu-title {
+        margin-top: 10px;       
+        font-size: 1rem;
+        font-weight: 600;
+        color: #333;
+        text-align: center;
+        
+    }
+
+    body {
+        background-color: #f8f9fa;
+    }
+
+
+
+
+</style>
+
+
+
+<h6 class="text-center">User authentication management<br>
+    <button class="btn btn-primary">
+        <a href="{% url 'accounts:login' %}" style="color:white;text-decoration: none;">Login</a>
+    </button>
+    <button class="btn btn-danger" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+        Logout
+    </button>
+    <form id="logout-form" action="{% url 'accounts:logout' %}" method="POST" style="display: none;">
+        {% csrf_token %}
+    </form>
+    <button class="btn btn-secondary">
+        <a href="{% url 'accounts:register' %}" style="color:white;text-decoration: none;">Register</a>
+    </button>
+    <button class="btn btn-warning">
+        <a href="{% url 'accounts:password_change' %}" style="color:white;text-decoration: none;">Password Change</a>
+    </button>
+    {% if not request.user.is_authenticated %}
+    <button class="btn btn-info">
+        <a href="{% url 'accounts:pwdreset' %}" style="color:white;text-decoration: none;">Forgot password?</a>
+    </button>
+    {% endif %}
+</h6>
+
+
+
+
+<div class="container-fluid">
+    <div class="row">
+        <h4 class="text-center mt-4" >
+           <span style="color: green;font-weight:bold"> DSCM Supply Chain Automation </span> || <span style="color: blue;font-weight: bolder;"> DEV Appraisal Automation</span></h4>
+<hr style="height:10px">
+            
+        <div class="col d-none d-md-block col-md-3"></div>
+
+        <div class="col-6 col-md-3 col-lg-2 m-2">
+            <a href="{% url 'core:only_core_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card" style="width:150px;height:150px;">
+                    <i class="fas fa-users menu-icon"></i>
+                    <div class="menu-title">Core Management </div>
+                </div>
+            </a>
+        </div>
+
+
+        <div class="col-6 col-md-3 col-lg-2 m-2">
+            <a href="{% url 'core:home' %}"class="text-decoration-none">
+                <div class="menu-card" style="width:150px;height:150px;">
+                    <i class="fas fa-chart-line menu-icon"></i>
+                    <div class="menu-title">SCM Automation</div>
+                </div>
+            </a>
+        </div>
+
+        
+        <div class="col-6 col-md-3 col-lg-2 m-2">
+            <a href="{% url 'tasks:tasks_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card" style="width:150px;height:150px;">
+                    <i class="fas fa-chart-area menu-icon"></i>
+                    <div class="menu-title">Appraisal Automation</div>
+                </div>
+            </a>
+        </div>
+
+
+        <div class="col d-none d-md-block col-md-3"></div>
+                           
+       
+    </div>
+</div>
+
+
+
+
+
+
+<div style="height:800px"></div>
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+
+
+    {% endblock %}

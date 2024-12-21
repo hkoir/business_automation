@@ -50,7 +50,7 @@ def update_purchase_order(purchase_order_id):
             
             if shipments.exists(): 
                 all_shipments_delivered = (
-                    shipments.filter(status='DELIVERED').count()
+                    shipments.filter(status__in=['DELIVERED','REACHED']).count()
                     == shipments.count()
                 )
                 if all_shipments_delivered:
@@ -168,7 +168,7 @@ def get_warehouse_stock(warehouse, product):
         warehouse=warehouse, product=product
     ).values('transaction_type').annotate(total=Sum('quantity'))
 
-    inbound = sum(t['total'] for t in transactions if t['transaction_type'] in ['INBOUND', 'TRANSFER_IN','MANUFACTURE','REPLACEMENT_IN','EXISTING_ITEM_IN'])
+    inbound = sum(t['total'] for t in transactions if t['transaction_type'] in ['INBOUND', 'TRANSFER_IN','MANUFACTURE_IN','REPLACEMENT_IN','EXISTING_ITEM_IN'])
     outbound = sum(t['total'] for t in transactions if t['transaction_type'] in ['OUTBOUND', 'TRANSFER_OUT','REPLACEMENT_OUT','OPERATIONS_OUT'])
 
     return inbound - outbound
@@ -367,9 +367,7 @@ def calculate_stock_value2(product, warehouse=None):
         **filters
     ).aggregate(total=Sum('quantity'))['total'] or 0
 
-    
-
-    
+      
 
   
 
@@ -405,6 +403,49 @@ def calculate_stock_value2(product, warehouse=None):
     }
 
 
+
+
+
+######################### Performance evaluation service ######################
+
+from tasks.models import PerformanceEvaluation
+
+def calculate_total_performance(employee):
+    evaluations = PerformanceEvaluation.objects.filter(employee=employee)
+    total_score = sum(evaluation.score for evaluation in evaluations)
+    max_score = evaluations.count() * 100  # Assuming each task is scored out of 100
+    return (total_score / max_score) * 100 if max_score > 0 else 0
+
+
+
+def calculate_task_score(task):
+    """
+    Calculate the score for a given task.
+    Example scoring logic:
+    - Timely completion: 70% weight
+    - Quality of work: 20% weight
+    - Collaboration: 10% weight
+    """
+    timely_score = 70 if task.due_date >= task.assigned_date else 40  # Adjust based on timeliness
+    quality_score = 20  # Placeholder; you can customize this based on task quality
+    collaboration_score = 10  # Placeholder; you can customize this based on team input
+    
+    return timely_score + quality_score + collaboration_score
+
+
+
+def distribute_team_score(task):
+    if task.assigned_to_team:
+        team_members = task.assigned_to_team.members.all()
+        individual_score = task.score / team_members.count()
+
+        for member in team_members:
+            PerformanceEvaluation.objects.create(
+                employee=member,
+                task=task,
+                task_score=individual_score,
+                remarks=f"Team task: {task.title}"
+            )
 
 
 

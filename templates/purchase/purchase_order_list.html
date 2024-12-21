@@ -189,8 +189,8 @@ table {
                             <td class="text-center p-2" style="white-space: nowrap;">{{order.created_at}}</td>  
                                                
                             <td>
-                                {% if order.status == "DELIVERED" %}   
-                                <i class="fas fa-check" style="color:green;font-weight: bold;">{{ order.get_status_display }}</i>
+                                {% if order.is_full_delivered %}   
+                                <i class="fas fa-check" style="color:green;font-weight: bold;">Delivered</i>
                                 {% else %}
                                 <span style="color:red;font-weight: bold;">In process</span>
                                 {% endif %}

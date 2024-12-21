@@ -5,14 +5,17 @@ from.forms import AddCategoryForm,AddProductForm
 from.models import Category,Product
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import ProgrammingError
+from django.contrib.auth.decorators import login_required,permission_required
 
 
 
+
+@login_required
 def product_dashboard(request):
     return render(request,'product/product_dashboard.html')
 
 
-
+@login_required
 def manage_category(request, id=None):
     try:
         if request.method == 'POST' and 'delete_id' in request.POST:
@@ -26,7 +29,9 @@ def manage_category(request, id=None):
         form = AddCategoryForm(request.POST or None, instance=instance)
 
         if request.method == 'POST' and form.is_valid():
-            form.save()
+            form_instance=form.save(commit=False)
+            form_instance.user = request.user
+            form_instance.save()
             messages.success(request, message_text)
             return redirect('product:create_category')
   
@@ -48,7 +53,7 @@ def manage_category(request, id=None):
 
 
 
-
+@login_required
 def manage_product(request, id=None):
     if request.method == 'POST' and 'delete_id' in request.POST:
         instance = get_object_or_404(Product, id=request.POST.get('delete_id'))
@@ -61,7 +66,9 @@ def manage_product(request, id=None):
     form = AddProductForm(request.POST or None, instance=instance)
 
     if request.method == 'POST' and form.is_valid():
-        form.save()
+        form_instance=form.save(commit=False)
+        form_instance.user = request.user
+        form_instance.save()
         messages.success(request, message_text)
         return redirect('product:create_product')
 
@@ -78,7 +85,7 @@ def manage_product(request, id=None):
     })
 
 
-
+@login_required
 def product_data(request,product_id):
     product_instance = get_object_or_404(Product,id=product_id)
     return render(request,'product/product_data.html',{'product_instance':product_instance})

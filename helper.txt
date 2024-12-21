@@ -1,32 +1,31 @@
-python manage.py makemigrations
 
-python manage.py migrate_schemas --shared
 
 python manage.py makemigrations
 python manage.py migrate_schemas
-
+python manage.py migrate_schemas --shared
 
 from clients.models import Client
+from clients.models import Domain
+
 tenant = Client(schema_name='public', name='Public')
 tenant.save()
 domain=Domain(domain ='localhost', tenant=tenant,is_primary=True)
 domain.save()
 
 
-tenant = Client(schema_name='company-1', name='Company-1')
+tenant = Client(schema_name='demo1', name='demo1')
 tenant.save()
-domain=Domain(domain ='company-1.localhost', tenant=tenant,is_primary=True)
+domain=Domain(domain ='demo1.localhost', tenant=tenant,is_primary=True)
 domain.save()
 
-tenant = Client(schema_name='company-2', name='Company-2')
+tenant = Client(schema_name='demo2', name='demo2')
 tenant.save()
-domain=Domain(domain ='company-2.localhost', tenant=tenant,is_primary=True)
+domain=Domain(domain ='demo2.localhost', tenant=tenant,is_primary=True)
 domain.save()
 
 
-python manage.py createsuperuser>> for public superuser/general purpose??
-python manage.py tenant_command createsuperuser --schema=company-1
-python manage.py tenant_command createsuperuser --schema=company-2
+python manage.py tenant_command createsuperuser --schema=demo1
+
 
 
 GIT
@@ -37,6 +36,4 @@ Push the code to the remote repository:
 git branch -M main
 git push -u origin main
 
-Neha>> pwd= 123
-Arafat >> pwd= 123
-humayun1 >> pwd=Arafat_123
+

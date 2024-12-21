@@ -1,0 +1,172 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    
+  .select2-container {
+          width: 40% !important; /* Ensure the container is 100% wide */
+      }
+      
+      
+  .select2-search__field {
+          width: 100% !important; 
+      }
+  .table td,th{
+      white-space: nowrap;
+      text-align: center;
+  }
+    
+  .select2-container--default .select2-selection--single {
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          height: 38px;
+          display: flex;
+          align-items: center;
+      }
+
+    .form-group{ 
+      padding:10px
+    }
+  
+  </style>
+
+
+
+<div class="container-fluid">
+  <div class="row justify-content-center">
+      <div class="col-12 col-md-8">
+          <div class="card shadow-sm" style="padding: 15px; background-color: aliceblue;">
+              <div class="card-body">
+                  <h4 class="card-title text-center mb-4">
+                      <span style="color:rgb(0, 11, 128);font-weight: bold; font-size: 20px;">Qualitative Evaluation for {{ employee.name }} - Task: {{ task.title }}</span><br>
+                      <span style="color:green;font-weight: bold; font-size: 16px;">Assigned quantitative number for this Task was:{{ task.assigned_number }}</span><br>
+                      <span style="color:rgb(22, 3, 236);font-weight: bold; font-size: 14px;">Task name: {{ task.title }}:Team name/Single member: {{ task.assigned_to_team.name}}/NA</span><br>
+                      <span style="color:rgb(5, 24, 239);font-weight: bold; font-size: 14px;">Team members/single member: {% for member in task.assigned_to_team.members.all %}
+                        {{member.member.name}},                        
+                        {% endfor %}
+                        /{{ task.assigned_to_employee }}
+                      </span>
+                  </h4>
+                  <form method="POST">
+                      {% csrf_token %}
+                      <div class="mb-3">
+                        <label for="work_quality_score" class="form-label">Task Title</label>
+                        {{ form.task }}
+                    </div>
+
+                      <div class="mb-3">
+                        <label for="work_quality_score" class="form-label">Quantitative evaluation by manager( 1 to {{ task.assigned_number }})</label>
+                        {{ form.manager_given_quantitative_number }}
+                    </div>
+                    <h4 class="text-center">Qualitative evaluation</h4>
+                      <div class="mb-3">
+                          <label for="work_quality_score" class="form-label">Work Quality (1-5)</label>
+                          {{ form.work_quality_score }}
+                      </div>
+                      <div class="mb-3">
+                          <label for="communication_quality_score" class="form-label">Communication Quality (1-5)</label>
+                          {{ form.communication_quality_score }}
+                      </div>
+                      <div class="mb-3">
+                          <label for="teamwork_score" class="form-label">Teamwork (1-5)</label>
+                          {{ form.teamwork_score }}
+                      </div>
+                      <div class="mb-3">
+                          <label for="initiative_score" class="form-label">Initiative (1-5)</label>
+                          {{ form.initiative_score }}
+                      </div>
+                      <div class="mb-3">
+                          <label for="punctuality_score" class="form-label">Punctuality (1-5)</label>
+                          {{ form.punctuality_score }}
+                      </div>
+                      <div class="mb-3">
+                          <label for="feedback" class="form-label">Feedback</label>
+                          {{ form.feedback }}
+                      </div>
+                      <div class="d-flex justify-content-center">
+                          <button type="submit" class="btn btn-primary btn-lg">Submit Evaluation</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      </div>
+  </div>
+</div>
+
+
+
+<div style="height:800px"></div>
+  
+
+
+
+       
+    <!-- Bootstrap Modal for displaying Django message -->
+    <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  
+              </div>
+              <div class="modal-body" id="messagesContainer">
+                  {% for message in messages %}
+                      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                  {% endfor %}
+              </div>
+          </div>
+      </div>
+  </div>
+  
+  
+  <script>
+      $(document).ready(function() {
+          $('#id_product,#id_category').select2({
+              width: '50%',
+              placeholder: 'Search ...',
+              allowClear: true,
+              ajax: {
+                  url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
+                  dataType: 'json',
+                  delay: 250,
+                  data: function(params) {
+                      return {
+                          q: params.term
+                      };
+                  },
+                  processResults: function(data) {
+                      return {
+                          results: $.map(data.results, function(item) {
+                              return {
+                                  id: item.id,
+                                  text: item.text
+                              };
+                          })
+                      };
+                  },
+                  cache: true
+              },
+              minimumInputLength: 1,
+              placeholder: 'Search',
+              allowClear: true
+          });
+      });
+  
+  
+      document.addEventListener("DOMContentLoaded", function() {
+          const messageModal = document.getElementById('messageModal');
+          const messagesContainer = document.getElementById('messagesContainer');
+          if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
+              const modalInstance = new bootstrap.Modal(messageModal);
+              modalInstance.show();
+              setTimeout(() => {
+                      modalInstance.hide();
+                  }, 5000)
+          }
+      });
+      </script>
+  
+{% endblock %}

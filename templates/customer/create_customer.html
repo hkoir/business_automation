@@ -61,17 +61,21 @@ table {
 
 
 <div class="container-fluid main-content">
-    <div class="row">    
-        <h4>Manage Customers</h4>         
-            <!-- Form for adding a new category -->
-            <div class="col-12 col-md-3">
-                <div class="card shadow" style="padding:10px;background-color:aliceblue;">
-                    <div class="card-body">
-                        <h6 class="card-title text-center"><strong>Manager Customer</strong> </h6>
+    <div class="row">  
+             <!-- Form for adding a new category -->
+            <div class="col-12 col-md-4">
+                <div class="card shadow-lg" style="background-color: aliceblue;">
+                    <!-- Card Header -->
+                    <div class="card-header bg-primary text-white text-center">
+                        <h3 class="mb-0">Add Customers</h3>
+                    </div> 
+                    <div class="card-body">                       
                         <form method="post" enctype="multipart/form-data" action="{% url 'customer:create_customer' %}" id="add_customer">
                             {% csrf_token %}
                             {{ form.as_p }}
-                            <button type="submit" name="customer_submit" class="btn btn-primary">Submit</button>
+                            <div class="d-grid">
+                                <button type="submit" name="customer_submit"value="customer_submit" class="btn btn-primary btn-lg"> Submit</button>
+                            </div>
                         </form>
                      </div>
                 </div>           
@@ -84,8 +88,7 @@ table {
                     <tr>
                         <th class="text-center p-2">Name</th>
                         <th class="text-center p-2">phone</th>
-                        <th class="text-center p-2">email</th>
-                        <th class="text-center p-2">Created_at</th>
+                        <th class="text-center p-2">email</th>                      
                     
                         <th class="text-center p-2">Actions</th>
                     </tr>
@@ -96,8 +99,7 @@ table {
                             <td class="text-center p-1">{{ customer.name }}</td>
                             <td class="text-center p-1" style="white-space: nowrap;">{{ customer.phone }}</td>
                             <td class="text-center p-2" style="white-space: nowrap;">{{customer.email}}</td>
-                            <td class="text-center p-2" style="white-space: nowrap;">{{customer.created_at}}</td>
-                           
+                                                      
                             <td class="text-center">
                                 <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#updateCustomerModal"
                                 data-id="{{ customer.id }}"

@@ -1,109 +1,197 @@
 {% extends 'base.html' %}  
 
 {% block content %}
+<style>
+
+
+/* Small screens: Mobile devices */
+@media (max-width: 767px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Medium screens: Tablets and small laptops */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Large screens: Laptops and standard desktops */
+@media (min-width: 1025px) and (max-width: 1440px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Extra large screens: Wide desktops or monitors */
+@media (min-width: 1441px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+
+    .menu-card {
+        text-align: center;
+        padding: 10px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 10px;
+        background-color: aliceblue;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width:120px;
+        height:100px;
+
+    align-items: center;
+    justify-content: center;
+       
+    }
+
+    .menu-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .menu-icon {
+        font-size: 1.5rem;
+        color: #007bff;
+        width:20px;
+        height:20px;
+        justify-content: center;
+    }
+
+    .menu-title {
+        margin-top: 10px;       
+        font-size: 1rem;
+        font-weight: 600;
+        color: #333;
+        text-align: center;
+        
+    }
+
+    body {
+        background-color: #f8f9fa;
+    }
 
 
 
-<h6 class="text-center" style="margin-top: 40px;">User authentication management<br>
-    <button class="btn btn-primary">
-        <a href="{% url 'accounts:login' %}" style="color:white;text-decoration: none;">Login</a>
-    </button>
-    <button class="btn btn-danger" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-        Logout
-    </button>
-    <form id="logout-form" action="{% url 'accounts:logout' %}" method="POST" style="display: none;">
-        {% csrf_token %}
-    </form>
-    <button class="btn btn-secondary">
-        <a href="{% url 'accounts:register' %}" style="color:white;text-decoration: none;">Register</a>
-    </button>
-    <button class="btn btn-warning">
-        <a href="{% url 'accounts:password_change' %}" style="color:white;text-decoration: none;">Password Change</a>
-    </button>
-    <button class="btn btn-info">
-        <a href="{% url 'accounts:pwdreset' %}" style="color:white;text-decoration: none;">Forgot password?</a>
-    </button>
-</h6>
 
+</style>
 
 
 
 <div class="container-fluid">
     <div class="row">
-        <h4 class="text-center" style="color: green;font-weight: bolder;">DSCM Operations</h4>
-
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'core:core_dashboard' %}" class="btn btn-primary">Core</a> 
-            </div> 
-        </div>
+        <h4 class="text-center mb-4" >
+           <span style="color: green;font-weight: bolder;"> DSCM Supply Chain Automation </span> 
+        </h4>
        
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'supplier:supplier_dashboard' %}" class="btn btn-primary">Suppliers</a> 
-            </div> 
+
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'supplier:supplier_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-folder-open menu-icon"></i>
+                    <div class="menu-title">Suppliers</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'customer:customer_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-folder-open menu-icon"></i>
+                    <div class="menu-title">Customers</div>
+                </div>
+            </a>
         </div>
 
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'customer:customer_dashboard' %}" class="btn btn-primary">Customers</a> 
-            </div> 
-        </div>
-
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'inventory:inventory_dashboard' %}" class="btn btn-primary">Inventory</a> 
-            </div> 
-        </div>
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'product:product_dashboard' %}" class="btn btn-primary">Product</a> 
-            </div> 
-        </div>
-
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'purchase:purchase_dashboard' %}" class="btn btn-primary">Purchase</a> 
-            </div> 
-        </div>
 
        
 
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'sales:sale_dashboard' %}" class="btn btn-primary">Sales</a> 
-            </div> 
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'inventory:inventory_dashboard' %}" class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-solid fas fa-warehouse menu-icon"></i>
+                    <div class="menu-title">Inventory</div>
+                </div>
+            </a>
+        </div>      
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'product:product_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-folder-open menu-icon"></i>
+                    <div class="menu-title">Product</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'purchase:purchase_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card">
+                    <i class=" fas fa-solid fas fa-dollar-sign menu-icon"></i>
+                    <div class="menu-title">Purchase</div>
+                </div>
+            </a>
         </div>
 
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'repairreturn:return_dashboard' %}" class="btn btn-primary">RRR</a> 
-            </div> 
+
+
+
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'sales:sale_dashboard' %}" class="text-decoration-none">
+                <div class="menu-card">
+                    <i class=" fas fa-solid fas fa-dollar-sign menu-icon"></i>
+                    <div class="menu-title">Sales</div>
+                </div>
+            </a>
+        </div>   
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'repairreturn:return_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-folder-open menu-icon"></i>
+                    <div class="menu-title">RRR</div>
+                </div>
+            </a>
+        </div>             
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'manufacture:manufacture_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-folder-open menu-icon"></i>
+                    <div class="menu-title">Production</div>
+                </div>
+            </a>
         </div>
 
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'manufacture:manufacture_dashboard' %}" class="btn btn-primary">Production</a> 
-            </div> 
+      
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'reporting:report_dashboard' %}" class="text-decoration-none">
+                <div class="menu-card">
+                    <i class=" fas fa-solid fas fa-chart-line menu-icon"></i>
+                    <div class="menu-title">Reports</div>
+                </div>
+            </a>
+        </div>   
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'operations:operations_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-folder-open menu-icon"></i>
+                    <div class="menu-title">Operations</div>
+                </div>
+            </a>
+        </div>        
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'core:all_qc' %}"class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-folder-open menu-icon"></i>
+                    <div class="menu-title">Quality Control</div>
+                </div>
+            </a>
         </div>
 
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'reporting:report_dashboard' %}" class="btn btn-primary">Reports</a> 
-            </div> 
-        </div>
 
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'operations:operations_dashboard' %}" class="btn btn-primary">Operations</a> 
-            </div> 
-        </div>
+        
+        
+       
 
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'core:all_qc' %}" class="btn btn-primary">Quality Control</a> 
-            </div> 
-        </div>
 
        
     </div>
@@ -114,7 +202,7 @@
 
 
 
-
+<div style="height:800px"></div>
 
 
 

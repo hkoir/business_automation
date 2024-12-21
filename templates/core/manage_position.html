@@ -43,11 +43,13 @@
 <div class="container-fluid main-content">
     <div class="row">
         <div class="col-12 col-md-4">
-            <div class="card shadow-lg" style="background-color: aliceblue;">
+            <div class="card shadow-lg border-0 rounded-lg">
                 <div class=" card-body">
-                    <h3 class="text-center" style="color:blue;">
-                        {% if instance %} Update Position {% else %} Add Position {% endif %}
-                    </h3>
+                     <!-- Card Header -->
+                <div class="card-header bg-primary text-white text-center mb-4">
+                    <h3 class="mb-0"> {% if instance %} Update Position {% else %} Add Position {% endif %}</h3>
+                </div>
+                    
                     <form method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="p-1">                          
@@ -65,14 +67,12 @@
                             {{ form.description.label_tag }}
                             {{ form.description }}
                         </div>
-                        <div class="p-1">
-                            <button type="submit" class="btn btn-primary">
-                                {% if instance %} Update {% else %} Add {% endif %}
-                            </button>
-                        </div>                    
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">  {% if instance %} Update {% else %} Add {% endif %}</button>
+                        </div>             
                     </form>
                 </div>
-                <p class="p-2">For better management choose position from the list.If your position is not listed then use custom name.</p>
+                <p class="p-2">If position is not listed then use custom name.</p>
             </div>
         </div>
         <div class="col-12 col-md-8">
@@ -185,7 +185,9 @@
     </div>
 </div>
 
+<div style="height:800px"></div>
 
+<!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script> -->
 
 <script>
     // Show Django message modal if there are messages

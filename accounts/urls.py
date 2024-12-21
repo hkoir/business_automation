@@ -16,7 +16,7 @@ app_name = 'accounts'
 urlpatterns = [
     path('', tenant_expire_check, name='tenant_expire_check'),
     path('home/', views.home, name='home'),
-    path('login/', auth_views.LoginView.as_view(), name='login'),
+    path('login/', views.login_view, name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='accounts:logged_out'), name='logout'),
  
    

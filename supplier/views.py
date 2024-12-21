@@ -4,16 +4,16 @@ from django.core.paginator import PageNotAnInteger,Paginator,EmptyPage,Page
 from django.contrib import messages
 from.forms import SupplierPerformanceForm,AddLocationForm,AddSupplierForm
 from.models import Supplier,SupplierPerformance,Location
+from django.contrib.auth.decorators import login_required,permission_required
 
 
-
-
+@login_required
 def supplier_dashboard(request):
     return render(request,'supplier/supplier_dashboard.html')
 
 
 
-
+@login_required
 def create_supplier(request):
     suppliers = Supplier.objects.all().order_by('-created_at')
     form = AddSupplierForm(request.POST or None)
@@ -60,14 +60,16 @@ def create_supplier(request):
     return render(request, 'supplier/create_supplier.html', {'form': form, 'page_obj': page_obj})
 
 
-
+@login_required
 def create_location(request):
     locations = Location.objects.all().order_by('-created_at')
     form = AddLocationForm(request.POST or None)
     if request.method == 'POST':
         if 'location_submit' in request.POST:
             if form.is_valid():
-                form.save()
+                form_instance = form.save(commit=False)
+                form_instance.user = request.user
+                form_instance.save()
                 messages.success(request, "Location added successfully")
                 return redirect('supplier:create_location')
             else:
@@ -77,14 +79,16 @@ def create_location(request):
     page_obj = paginator.get_page(page_number)
     return render(request, 'supplier/create_location.html', {'form': form, 'page_obj': page_obj})
 
-
+@login_required
 def update_location(request, location_id):
     locations = Location.objects.all().order_by('-created_at')
     location_instance = get_object_or_404(Location, id=location_id)
     if request.method == 'POST':
         form = AddLocationForm(request.POST, instance=location_instance)
         if form.is_valid():
-            form.save()
+            form_instance = form.save(commit=False)
+            form_instance.user = request.user
+            form_instance.save()
             messages.success(request, 'Location updated successfully!')
             return redirect('supplier:create_location')
     else:
@@ -101,7 +105,7 @@ def update_location(request, location_id):
     })
 
 
-
+@login_required
 def delete_location(request, location_id):
     location_obj = get_object_or_404(Location, id=location_id)    
     if request.method == 'POST':
@@ -112,7 +116,7 @@ def delete_location(request, location_id):
 
 
 
-
+@login_required
 def supplier_performance_list(request):
     performances = SupplierPerformance.objects.all().order_by('-created_at')
     paginator = Paginator(performances, 10)
@@ -121,7 +125,7 @@ def supplier_performance_list(request):
     return render(request, 'supplier/supplier_performance_list.html', {'page_obj': page_obj})
 
 
-
+@login_required
 def add_or_update_performance(request, performance_id=None):
     if performance_id:
         performance = get_object_or_404(SupplierPerformance, id=performance_id)
@@ -134,7 +138,9 @@ def add_or_update_performance(request, performance_id=None):
 
     if request.method == 'POST':
         if form.is_valid():
-            form.save()
+            form_instance = form.save(commit=False)
+            form_instance.user = request.user
+            form_instance.save()           
             messages.success(request, message_text)
             return redirect('supplier:supplier_performance_list')
 

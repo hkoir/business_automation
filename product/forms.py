@@ -23,7 +23,7 @@ class AddCategoryForm(forms.ModelForm):
 
 
 class AddProductForm(forms.ModelForm):  
-    description = forms.CharField(
+    description = forms.CharField(required=False,
         widget=forms.Textarea(
             attrs={
                 'class': 'form-control custom-textarea',
@@ -32,7 +32,10 @@ class AddProductForm(forms.ModelForm):
             }
         )
     )    
+    manufacture_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    expiry_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     class Meta:
         model = Product
-        exclude=['user']
+        exclude=['user','product_id']
+
 

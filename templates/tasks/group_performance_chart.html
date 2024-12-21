@@ -1,0 +1,281 @@
+{% extends 'base.html' %}  
+
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    /* Chart Container */
+    #performanceChart {
+        width: 80%;
+        height: 400px;
+        margin: auto;
+    }
+
+    .employee-scores {
+        margin-top: 30px;
+    }
+
+    .employee-scores table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .employee-scores th, .employee-scores td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .employee-scores th {
+        background-color: #f2f2f2;
+    }
+
+    .employee-scores tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    .table th,td{
+        text-align: center;
+        font-size: 14px;
+    }
+    .table td{
+        white-space: nowrap;
+    }
+</style>
+
+<div class="container-fluid"> 
+        <form method="get" action="{% url 'tasks:group_performance_chart' %}" class="mb-2">
+            <label class="p-1"> Position</label>
+            {{ form.position}}
+            <label class="p-1"> Department</label>
+            {{ form.department}}
+            <label class="p-1"> Stat Date</label>
+            {{ form.start_date}}
+            <label class="p-1"> End date</label>
+            {{ form.end_date}}
+            <button type="submit" class="btn btn-primary m-2">Filter</button>
+        </form>       
+    
+        <div class="row"> 
+        <h4 class="text-center" style="color:green;font-weight: bolder;"> Employee's Group Performance</h4>
+       <div class="col-12 col-md-3"> 
+          <table class="table table-striped">
+                <thead>
+                    <tr class="bg-primary text-white">
+                        <th>Name</th>
+                        <th>Date</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in page_obj %}
+                        <tr>
+                            <td>{{ row.employee }}</td>
+                            <td>{{ row.date }}</td>
+                            <td>{{ row.score }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3">No data available</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>              
+            <!-- Pagination Controls -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1">&laquo; first</a>
+                        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                    {% endif %}
+
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}">next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>  
+        </div>
+
+        <div class="col-12 col-md-9">
+            <div class="container">
+                <div class="row">                    
+                    <div class="col-12">   
+                        {% if has_data %}  
+                        <canvas id="gmPerformanceTrendChart"></canvas>  
+                        {% else %}        
+                        <span style="color:rgb(242, 6, 6);font-weight: bold;">No data found. Pls select at least position</span>   
+                        {% endif %}       
+                    </div>                    
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div style="height:800px"></div>
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+<script>
+    const chartData = JSON.parse('{{ chart_data|safe }}');
+    const ctx = document.getElementById('gmPerformanceTrendChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: chartData.labels, // Dates (x-axis)
+        datasets: chartData.datasets // Data for each position and person
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: true, // Ensure the legend is displayed
+                position: 'top', // Position it at the top
+                labels: {
+                    font: {
+                        size: 12 // Adjust font size if needed
+                    },
+                    color: '#000' // Set legend text color
+                }
+            },
+            tooltip: {
+                enabled: true, 
+                callbacks: {
+                    label: function(tooltipItem) {
+                        // Customize tooltip content (optional)
+                        const label = tooltipItem.dataset.label || '';
+                        const value = tooltipItem.raw || 'N/A';
+                        return `${label}: ${value}`;
+                    }
+                }
+            },
+            title: {
+                display: true,
+                text: 'Performance Trend',
+                font: {
+                    size: 16 
+                }
+            }
+        },
+        interaction: {
+            mode: 'nearest', 
+            intersect: false 
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Total Score'
+                },
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+
+
+    // Bar Chart
+    const ctxBar = document.getElementById('gmPerformanceBarChart').getContext('2d');
+    const barChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: chartData.labels, // x-axis labels
+            datasets: chartData.datasets.map(dataset => ({
+                ...dataset,
+                backgroundColor: dataset.backgroundColor || dataset.borderColor, // Use same color as line but filled
+                borderWidth: 1 // Make bar borders thinner
+            }))
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                title: {
+                    display: true,
+                    text: 'Performance Summary (Bar Chart)'
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Total Score'
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+
+
+
+
+
+
+
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+
+
+
+
+
+
+
+
+{% endblock %}

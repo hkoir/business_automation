@@ -114,7 +114,7 @@ class FaultyProduct(models.Model):
 class Replacement(models.Model):
     quantity = models.PositiveIntegerField(null=True, blank=True)
     source_inventory = models.ForeignKey('inventory.Inventory',on_delete=models.CASCADE,related_name='replacement_source_inventory',null=True, blank=True,)    
-    faulty_product = models.ForeignKey(FaultyProduct, on_delete=models.CASCADE, related_name='faulty_replacement')
+    faulty_product = models.ForeignKey(FaultyProduct, on_delete=models.CASCADE, related_name='faulty_replacement',null=True,blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='replacement_users', null=True, blank=True)
     warehouse=models.ForeignKey(Warehouse,on_delete=models.CASCADE,related_name='replacement_warehouse',null=True, blank=True,)
     location=models.ForeignKey(Location,on_delete=models.CASCADE,related_name='replacement_location',null=True, blank=True,)

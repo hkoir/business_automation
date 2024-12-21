@@ -27,3 +27,9 @@ def notifications_context(request):
     else:
         notifications = []
     return {'notifications': notifications,'unread_notifications':unread_notifications}
+
+
+
+def tenant_schema(request):
+    schema_name = getattr(request.tenant, 'schema_name', 'public')
+    return {'schema_name': schema_name}

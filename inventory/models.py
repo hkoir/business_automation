@@ -62,7 +62,52 @@ class Location(models.Model):
 from operations.models import ExistingOrder,OperationsRequestOrder
 from repairreturn.models import ScrappedOrder
 
+
+class Inventory(models.Model):
+    inventory_id = models.CharField(max_length=30,null=True,blank=True) 
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='inventory_user'
+    )
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='product_inventories',
+        null=True,
+        blank=True
+    )
+    quantity = models.IntegerField(default=0,null=True,blank=True) 
+    reorder_level = models.PositiveIntegerField(default=10,null=True,blank=True)
+    remarks = models.TextField(null=True,blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.inventory_id:
+            self.inventory_id= f"INVID-{uuid.uuid4().hex[:8].upper()}"
+     
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.warehouse}--{self.location}--{self.product.name}--{self.quantity}"
+
 class InventoryTransaction(models.Model):  
+    inventory_transaction=models.ForeignKey(Inventory,on_delete=models.CASCADE,null=True, blank=True,related_name='inventory_transaction') 
     transaction_id = models.CharField(max_length=30,null=True,blank=True)    
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='inventory_transaction_user')
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE,null=True, blank=True)
@@ -145,51 +190,6 @@ class InventoryTransaction(models.Model):
 
 
 
-class Inventory(models.Model):
-    inventory_id = models.CharField(max_length=30,null=True,blank=True)  
-    inventory_transaction=models.ForeignKey(InventoryTransaction,on_delete=models.CASCADE,null=True, blank=True) 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='inventory_user'
-    )
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
-    )
-    location = models.ForeignKey(
-        Location,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
-    )
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE,
-        related_name='product_inventories',
-        null=True,
-        blank=True
-    )
-    quantity = models.IntegerField(default=0,null=True,blank=True) 
-    reorder_level = models.PositiveIntegerField(default=10,null=True,blank=True)
-    remarks = models.TextField(null=True,blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    def save(self, *args, **kwargs):
-        if not self.inventory_id:
-            self.inventory_id= f"INVID-{uuid.uuid4().hex[:8].upper()}"
-     
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.warehouse}--{self.location}--{self.product.name}--{self.quantity}"
-
-
 class TransferOrder(models.Model):
     order_number = models.CharField(max_length=20, unique=True)
     order_status = models.CharField(max_length=20)
@@ -204,6 +204,7 @@ class TransferOrder(models.Model):
 
 
 class TransferItem(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True,related_name='transfer_user')
     transfer_order = models.ForeignKey(TransferOrder, related_name='transfers', on_delete=models.CASCADE, null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     source_warehouse = models.ForeignKey(Warehouse, related_name='source_transfers', on_delete=models.CASCADE, null=True, blank=True)

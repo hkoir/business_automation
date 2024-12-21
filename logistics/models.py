@@ -67,11 +67,11 @@ class PurchaseShipment(models.Model):
 
     def update_shipment_status(self):       
         dispatch_items = self.shipment_dispatch_item.all() 
-        all_delivered = dispatch_items.filter(status='DELIVERED').count() == dispatch_items.count()
+        all_received = dispatch_items.filter(status__in=['RECEIVED','OBI']).count() == dispatch_items.count()
         any_in_process = dispatch_items.filter(status='IN_PROCESS').exists()
         any_in_transit = dispatch_items.filter(status__in=['IN_TRANSIT', 'ON_BOARD']).exists()
         
-        if all_delivered:
+        if all_received:
             self.status = 'DELIVERED'
         elif any_in_process:
             self.status = 'IN_PROCESS'

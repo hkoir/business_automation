@@ -19,28 +19,45 @@ from sales.models import SaleOrder,SaleRequestOrder
 from manufacture.models import MaterialsRequestOrder
 from operations.models import OperationsRequestOrder
 
-
+from django.db import connection
+from .forms import TenantUserRegistrationForm
 
 def home(request):
     return render(request,'accounts/home.html')
 
 
+
 def register_view(request):
+    current_tenant = None
+    if hasattr(connection, 'tenant'):
+        current_tenant = connection.tenant.schema_name
+
     if request.method == 'POST':
-        form = UserRegistrationForm(request.POST, request.FILES)
+        form = TenantUserRegistrationForm(request.POST, request.FILES,tenant=current_tenant)
         if form.is_valid():
-            user = form.save()          
-            login(request, user) 
-            return redirect('accounts:home') 
+            form.save()
+            messages.success(request, "User registered successfully!")
+            return redirect('accounts:login')  
+        else:
+            messages.error(request, "There was an error with your registration.")
     else:
-        form =  UserRegistrationForm()
+        form = TenantUserRegistrationForm(tenant=current_tenant)
     return render(request, 'accounts/registration/register.html', {'form': form})
+
 
 
 
 @login_required
 def update_profile_picture(request):
-    user_profile = get_object_or_404(UserProfile, user=request.user)
+    print(request.user)
+    if not request.user.is_authenticated:
+        return redirect('core:home') 
+
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    profile_picture_url = user_profile.profile_picture.url if user_profile.profile_picture else None
+    user_info = request.user.get_full_name() or request.user.username
+
     if request.method == 'POST':
         form = ProfilePictureForm(request.POST, request.FILES, instance=user_profile)
         if form.is_valid():
@@ -49,25 +66,39 @@ def update_profile_picture(request):
     else:
         form = ProfilePictureForm(instance=user_profile)
 
-    return render(request, 'accounts/change_profile_picture.html', {'form': form})
+    return render(
+        request, 
+        'accounts/change_profile_picture.html', 
+        {'form': form, 'user_info': user_info, 'profile_picture_url': profile_picture_url}
+    )
+
 
 
 
 def login_view(request):
+    current_tenant = None
+    if hasattr(connection, 'tenant'):
+        current_tenant = connection.tenant.schema_name 
+
     if request.method == 'POST':
         form = CustomLoginForm(data=request.POST)
         if form.is_valid():
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
+            tenant = form.cleaned_data['tenant']
+
             user = authenticate(request, username=username, password=password)
             if user is not None:
-                login(request, user)
-                messages.success(request, "Login successful!")
-                return redirect('accounts:home')  
+                if hasattr(user, 'user_profile') and user.user_profile.tenant.schema_name == tenant:
+                    login(request, user)
+                    messages.success(request, "Login successful!")
+                    return redirect('clients:tenant_expire_check')  # Redirect to the home page after login
+                else:
+                    messages.error(request, "Invalid tenant. You are not allowed to log in to this tenant.")                                                   
             else:
                 messages.error(request, "Invalid username or password.")
     else:
-        form = CustomLoginForm()
+         form = CustomLoginForm(initial={'tenant': current_tenant})
     return render(request, 'accounts/registration/login.html', {'form': form})
 
 

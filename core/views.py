@@ -18,7 +18,7 @@ import os
 from django.conf import settings
 from datetime import datetime,timedelta
 
-from.forms import EditAttendanceForm,MonthYearForm,AttendanceForm,AddCompanyForm,AddLocationForm,UpdateLocationForm,NoticeForm
+from.forms import EditAttendanceForm,MonthYearForm,AttendanceForm,AddCompanyForm,ManageLocationForm,UpdateLocationForm,NoticeForm
 from .models import EmployeeRecordChange,MonthlySalaryReport,AttendanceModel,Notice,Location,Company
 
 from .forms import CommonFilterForm
@@ -32,6 +32,10 @@ from.models import Department,Position
 
 
 @login_required
+def dashboard(request):
+    return render(request,'core/dashboard.html')
+
+@login_required
 def home(request):
     return render(request,'core/home.html')
 
@@ -39,11 +43,17 @@ def home(request):
 def core_dashboard(request):
     return render(request,'core/core_dashboard.html')
 
+@login_required
+def only_core_dashboard(request):
+    return render(request,'core/only_core_dashboard.html')
+
+
+@login_required
 def all_qc(request):
     return render(request,'core/all_qc.html')
 
 
-
+@login_required
 def manage_department(request, id=None):
     datas = Department.objects.all().order_by('-created_at')
     if request.method == 'POST' and 'delete_id' in request.POST:
@@ -94,7 +104,7 @@ def manage_department(request, id=None):
 
 
 
-
+@login_required
 def manage_position(request, id=None):
     datas = Position.objects.all().order_by('-created_at')
 
@@ -152,10 +162,182 @@ def manage_position(request, id=None):
 
 
 
+
+
+@login_required
+def manage_company(request, id=None):
+    if request.method == 'POST' and 'delete_id' in request.POST:
+        instance = get_object_or_404(Company, id=request.POST.get('delete_id'))
+        instance.delete()
+        messages.success(request, "Deleted successfully")
+        return redirect('core:create_company')
+
+    instance = get_object_or_404(Company, id=id) if id else None
+    message_text = "updated successfully!" if id else "added successfully!"
+    form = AddCompanyForm(request.POST or None, instance=instance)
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, message_text)
+        return redirect('core:create_company')
+
+    datas = Company.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'core/manage_company.html', {
+        'form': form,
+        'instance': instance,
+        'datas': datas,
+        'page_obj': page_obj
+    })
+
+
+
+from .forms import ManageLocationForm
+
+
+@login_required
+def manage_location(request, id=None):
+    datas = Location.objects.all().order_by('-created_at')
+
+    if request.method == 'POST' and 'delete_id' in request.POST:
+        instance = get_object_or_404(Location, id=request.POST.get('delete_id'))
+        instance.delete()
+        messages.success(request, "Location deleted successfully.")
+        return redirect('core:manage_location')
+
+    instance = get_object_or_404(Location, id=id) if id else None
+    message_text = "Location updated successfully!" if id else "Location added successfully!"
+
+    form = ManageLocationForm(request.POST or None, instance=instance)
+    if request.method == 'POST' and form.is_valid():
+        custom_location_name = form.cleaned_data.get('custom_location_name')
+        company = form.cleaned_data.get('company')
+        name = form.cleaned_data.get('name')
+
+        if custom_location_name and name:
+            messages.error(
+                request, 
+                "Please either choose an existing location or provide a custom location name, not both."
+            )
+            return redirect('core:manage_location')
+
+        if custom_location_name:
+            if not company:
+                messages.error(request, "Please select a company for the custom location.")
+                return redirect('core:manage_location')
+
+            location, created = Location.objects.get_or_create(
+                company=company,
+                name=custom_location_name,
+                defaults={'description': form.cleaned_data.get('description')}
+            )
+            if created:
+                messages.success(request, f"Custom location '{custom_location_name}' added successfully!")
+            else:
+                messages.warning(request, f"Location '{custom_location_name}' already exists for the selected company.")
+        else:
+            form.save()
+            messages.success(request, message_text)
+
+        return redirect('core:create_location')
+
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'core/manage_location.html', {
+        'form': form,
+        'instance': instance,
+        'page_obj': page_obj
+    })
+
+
+
+@login_required
+def manage_employee(request, id=None):
+    if request.method == 'POST' and 'delete_id' in request.POST:
+        instance = get_object_or_404(Employee, id=request.POST.get('delete_id'))
+        instance.delete()
+        messages.success(request, "Deleted successfully")
+        return redirect('core:view_employee')
+
+    instance = get_object_or_404(Employee, id=id) if id else None
+    message_text = "updated successfully!" if id else "added successfully!"  
+    form = AddEmployeeForm(request.POST or None, request.FILES or None, instance=instance)
+
+    if request.method == 'POST' and form.is_valid():
+        form_intance=form.save(commit=False)
+        form_intance.save()        
+        messages.success(request, message_text)
+        return redirect('core:create_employee')
+
+    datas = Employee.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'core/manage_employee.html', {
+        'form': form,
+        'instance': instance,
+        'datas': datas,
+        'page_obj': page_obj
+    })
+
+
+
+
+@login_required
+def add_employee(request):
+    if request.method == 'POST':   
+        form = AddEmployeeForm(request.POST, request.FILES)
+        if form.is_valid():   
+            form_intance=form.save(commit=False)
+            form_intance.user = request.user
+            form_intance.save()
+            return redirect('core:view_employee')
+    else:     
+        form = AddEmployeeForm()
+    return render(request, 'core/add_employee_form.html', {'form': form})
+
+
+
+
+@login_required
+def update_employee(request, employee_id):
+    employee = get_object_or_404(Employee, id=employee_id)
+    if request.method == 'POST':
+        form = AddEmployeeForm(request.POST, request.FILES, instance=employee)
+        if form.is_valid():
+            form_intance=form.save(commit=False)
+            form_intance.user = request.user
+            form_intance.save()
+            return redirect('core:view_employee') 
+    else:
+        form = AddEmployeeForm(instance=employee)
+    return render(request, 'core/add_employee_form.html', {'form': form})
+
+
+@login_required
+def delete_employee(request, employee_id):
+    employee = get_object_or_404(Employee, id=employee_id)
+    if request.method == 'POST':
+        if request.POST.get('confirm') == 'yes': 
+            employee.delete()
+            messages.success(request, 'Employee deleted successfully.')
+            return redirect('core:view_employee')  
+        else:
+            return redirect('core:view_employee')
+    return render(request, 'core/delete_record.html', {'employee': employee})
+
+
+
 @login_required
 def view_employee(request):
     employee_name = None
-    employee_records = Employee.objects.all()
+    employee_records = Employee.objects.all().order_by('-created_at')
 
     form=CommonFilterForm(request.GET or None)
 
@@ -178,128 +360,13 @@ def view_employee(request):
 
 
 
-
-def add_employee(request):
-    if request.method == 'POST':   
-        form = AddEmployeeForm(request.POST, request.FILES)
-        if form.is_valid():   
-            form=form.save(commit=False) 
-            form.save()
-            return redirect('core:view_employee')
-    else:     
-        form = AddEmployeeForm()
-    return render(request, 'core/add_employee_form.html', {'form': form})
-
-
-
-
-def add_employee2(request):
-    if request.method == 'POST':
-        form = AddEmployeeForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.instance.tenant = request.tenant  # Automatically sets the tenant
-            form.instance.employee_code = f"EID-{uuid.uuid4().hex[:8].upper()}"
-            form.save()
-            return redirect('core:view_employee2')
-    else:
-        form = AddEmployeeForm()
-    return render(request, 'core/add_employee_form.html', {'form': form})
-
-
-
 @login_required
-def update_employee(request, employee_id):
-    employee = get_object_or_404(Employee, id=employee_id)
-    if request.method == 'POST':
-        form = AddEmployeeForm(request.POST, request.FILES, instance=employee)
-        if form.is_valid():
-            form.save()
-            return redirect('core:view_employee') 
-    else:
-        form = AddEmployeeForm(instance=employee)
-    return render(request, 'core/add_employee_form.html', {'form': form})
-
-
-@login_required
-def delete_employee(request, employee_id):
-    employee = get_object_or_404(Employee, id=employee_id)
-    if request.method == 'POST':
-        if request.POST.get('confirm') == 'yes': 
-            employee.delete()
-            messages.success(request, 'Employee deleted successfully.')
-            return redirect('core:view_employee')  
-        else:
-            return redirect('core:view_employee')
-    return render(request, 'core/delete_record.html', {'employee': employee})
-
-
-
-
-
-def manage_employee(request, id=None):
-    if request.method == 'POST' and 'delete_id' in request.POST:
-        instance = get_object_or_404(Employee, id=request.POST.get('delete_id'))
-        instance.delete()
-        messages.success(request, "Deleted successfully")
-        return redirect('core:view_employee')
-
-    instance = get_object_or_404(Employee, id=id) if id else None
-    message_text = "updated successfully!" if id else "added successfully!"  
-    form = AddEmployeeForm(request.POST or None, request.FILES or None, instance=instance)
-
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, message_text)
-        return redirect('core:view_employee')
-
-    datas = Employee.objects.all().order_by('-created_at')
-    paginator = Paginator(datas, 5)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, 'core/manage_employee.html', {
-        'form': form,
-        'instance': instance,
-        'datas': datas,
-        'page_obj': page_obj
-    })
-
-
-
 def employee_list(request):
-    employees = Employee.objects.all()
-    history = employees.all()
+    employees = Employee.objects.all().order_by('-created_at') 
     days=None
     start_date=None
     end_date =None
     name = None
-
-    history_records = []
-    for employee in employees:
-        history = employee.history.all()  # Get all history records for the employee
-        
-        for record in history:
-            changes = []
-            # Access each field's old and new value
-            for field in employee._meta.fields:
-                field_name = field.name
-                old_value = getattr(record, f"pre_{field_name}", None)  # pre_ stores old value
-                new_value = getattr(record, field_name, None)  # current field stores new value
-
-                if old_value != new_value:  # If the value changed
-                    changes.append({
-                        'field': field_name,
-                        'old_value': old_value,
-                        'new_value': new_value,
-                    })
-
-            history_records.append({
-                'employee': employee.name,
-                'date': record.history_date,
-                'user': record.history_user or 'System',
-                'type': record.history_type,
-                'changes': changes,  # List of changes (old vs new)
-            })
 
    
     form= CommonFilterForm(request.GET or None)
@@ -335,73 +402,11 @@ def employee_list(request):
          'days':days,
          'start_date':start_date,
          'end_date':end_date,
-         'name':name,
-         'history_records':history_records
+         'name':name,    
 
         })
 
 
-
-
-
-def manage_company(request, id=None):
-    if request.method == 'POST' and 'delete_id' in request.POST:
-        instance = get_object_or_404(Company, id=request.POST.get('delete_id'))
-        instance.delete()
-        messages.success(request, "Deleted successfully")
-        return redirect('core:create_company')
-
-    instance = get_object_or_404(Company, id=id) if id else None
-    message_text = "updated successfully!" if id else "added successfully!"
-    form = AddCompanyForm(request.POST or None, instance=instance)
-
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, message_text)
-        return redirect('core:create_company')
-
-    datas = Company.objects.all().order_by('-created_at')
-    paginator = Paginator(datas, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, 'core/manage_company.html', {
-        'form': form,
-        'instance': instance,
-        'datas': datas,
-        'page_obj': page_obj
-    })
-
-
-
-
-def manage_location(request, id=None):
-    if request.method == 'POST' and 'delete_id' in request.POST:
-        instance = get_object_or_404(Location, id=request.POST.get('delete_id'))
-        instance.delete()
-        messages.success(request, "Deleted successfully")
-        return redirect('core:create_location')
-
-    instance = get_object_or_404(Location, id=id) if id else None
-    message_text = "updated successfully!" if id else "added successfully!"
-    form = AddLocationForm(request.POST or None, instance=instance)
-
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, message_text)
-        return redirect('core:create_location')
-
-    datas = Location.objects.all().order_by('-created_at')
-    paginator = Paginator(datas, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, 'core/manage_location.html', {
-        'form': form,
-        'instance': instance,
-        'datas': datas,
-        'page_obj': page_obj
-    })
 
 
 
@@ -462,6 +467,8 @@ def download_employee_changes(request):
     return response
 
 
+
+@login_required
 def attendance_input(request):
     if request.method == 'POST':
         form = AttendanceForm(request.POST)
@@ -496,16 +503,22 @@ def update_attendance(request, employee_id):
 
 
 
-month =None
-year = None
+salary_month=None
+salary_year = None 
+
 @login_required
 def create_salary(request):
-    global month, year      
-    if 'month' in request.GET:
-        month = int(request.GET['month'])    
-    if 'year' in request.GET:
-        year = int(request.GET['year']) 
+    global salary_month,salary_year
+    salary_month = request.GET.get('month')  
+    salary_year = request.GET.get('year')  
+    salary = None
+
+    if salary_month and salary_year: 
+        month = int(salary_month)
+        year = int(salary_year)
+
         employees = Employee.objects.all()
+
         for employee in employees:
             total_salary = (
                 employee.basic_salary +
@@ -514,46 +527,83 @@ def create_salary(request):
                 employee.transportation_allowance +
                 employee.bonus
             )
+
             MonthlySalaryReport.objects.update_or_create(
                 employee=employee,
                 month=month,
                 year=year,
                 defaults={'total_salary': total_salary}
-            )         
-        return redirect('core:create_salary')
-    else:
-        form = MonthYearForm()      
-    salary = MonthlySalaryReport.objects.filter(month = month, year =year)
-    context = {'form': form, 'salary': salary,'month':month, 'year':year}
+            )
+
+        salary = MonthlySalaryReport.objects.filter(month=month, year=year)
+
+    form = MonthYearForm()
+
+    context = {'form': form, 'salary': salary, 'month': salary_month, 'year': salary_year}
     return render(request, 'core/create_monthly_salary.html', context)
 
 
 
-def generate_salary_sheet(month, year):  
+def generate_salary_sheet(month, year):   
     salary_reports = MonthlySalaryReport.objects.filter(month=month, year=year)
-    salary_sheet = []  
-    for report in salary_reports:
-        employee = report.employee
-        total_salary = report.total_salary
-        salary_sheet.append({'employee': employee, 'total_salary': total_salary})
+    
+    salary_sheet = []
+    for report in salary_reports: 
+        if isinstance(report.employee, Employee):
+            total_salary = report.total_salary
+            salary_sheet.append({
+                'employee': report.employee,
+                'total_salary': total_salary
+            })
+        else:
+            print(f"Invalid employee reference in report: {report}")
+    
     return salary_sheet
+
+
 
 
 @login_required
 def download_salary(request):
-    global month,year
-    salary_sheet = generate_salary_sheet(month, year)  
+    global salary_month,salary_year   
+
+    if not salary_month or not salary_year:
+        messages.error(request, "Month and Year must be provided to download the salary report.")
+        return redirect('core:create_salary')
+
+    try:
+        month = int(salary_month)
+        year = int(salary_year)
+    except ValueError:
+        messages.error(request, "Invalid Month or Year format.")
+        return redirect('core:create_salary') 
+
+    salary_sheet = generate_salary_sheet(month, year)
+
+    if not salary_sheet:
+        messages.error(request, "No salary data found for the selected month and year.")
+        return redirect('core:create_salary')
+
     workbook = Workbook()
     worksheet = workbook.active
-    worksheet.title = 'Salary Report'  
+    worksheet.title = 'Salary Report'
+
     headers = ['Employee ID', 'Name', 'Total Salary']
     worksheet.append(headers)
+
     for entry in salary_sheet:
-        row = [entry['employee'].employee_code, entry['employee'].name, entry['total_salary']]
+        employee = entry['employee']
+        row = [
+            employee.employee_code,
+            employee.name,
+            entry['total_salary']
+        ]
         worksheet.append(row)
+
     excel_file = BytesIO()
     workbook.save(excel_file)
     excel_file.seek(0)
+
     response = HttpResponse(
         excel_file.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -600,7 +650,7 @@ def generate_pay_slip(request, employee_id):
     pdf_canvas.setFont("Helvetica-Bold", 12)
     pdf_canvas.drawString(50, 110, f"Pay Slip for {prefix} {employee.first_name} {employee.last_name}")  
     pdf_canvas.setFont("Helvetica", 10)
-    cfo_employee = Employee.objects.filter(position='CFO').first()
+    cfo_employee = Employee.objects.filter(position__name='CFO').first()
     if cfo_employee:
         pdf_canvas.drawString(50, 70, f"Autorized Signature________________")  
         pdf_canvas.drawString(80, 50, f"Name:{cfo_employee.name}")  
@@ -689,7 +739,7 @@ def generate_salary_certificate(request, employee_id):
     y_space -= spacing1
     pdf_canvas.drawString(50, y_space, f"if further clarification is required.")
     pdf_canvas.drawString(50, 250, f"Sincerely,")
-    cfo_employee = Employee.objects.filter(position='CFO').first()
+    cfo_employee = Employee.objects.filter(position__name='CFO').first()
     if cfo_employee:
         pdf_canvas.drawString(50, 150, f"Autorized Signature________________")  
         pdf_canvas.drawString(50, 135, f"Name:{cfo_employee.name}")  
@@ -706,7 +756,7 @@ def generate_salary_certificate(request, employee_id):
     return response
 
 
-
+@login_required
 def generate_experience_certificate(request, employee_id):  
     a4_size = A4    
     employee = Employee.objects.get(id=employee_id)       
@@ -752,7 +802,7 @@ def generate_experience_certificate(request, employee_id):
     pdf_canvas.drawString(50, 500, f"This is to certify that {prefix} {employee.first_name}  {employee.last_name} was employed at from {employee.joining_date} to {employee.resignation_date}.")
     pdf_canvas.drawString(50, 485, f"During {prefix2} tenure, {employee.name} held the position of {employee.position} as {prefix2} last designation and performed {prefix2}")
     pdf_canvas.drawString(50, 470, f"duties with dedication and professionalism. We wish {prefix3} all the best for {prefix2} future endeavors.")     
-    cfo_employee = Employee.objects.filter(position='CFO').first()
+    cfo_employee = Employee.objects.filter(position__name='CFO').first()
     if cfo_employee:
         pdf_canvas.drawString(50, 350, f"Autorized Signature________________")  
         pdf_canvas.drawString(50, 335, f"Name:{cfo_employee.name}")  

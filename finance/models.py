@@ -104,6 +104,7 @@ class PurchasePayment(models.Model):
         return abs(total_paid - self.purchase_invoice.amount_due) <= tolerance
 
 class PurchasePaymentAttachment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     purchase_invoice = models.ForeignKey(PurchaseInvoice, related_name='purchase_payment_attachment', on_delete=models.CASCADE)
     file = models.ImageField(upload_to='purchase_payment/')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -153,6 +154,7 @@ class SaleInvoice(models.Model):
 
 
 class SaleInvoiceAttachment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     sale_invoice = models.ForeignKey(SaleInvoice, related_name='sale_invoice_attachment', on_delete=models.CASCADE)
     file = models.ImageField(upload_to='sale_invoice/')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -199,6 +201,7 @@ class SalePayment(models.Model):
         return abs(self.sale_invoice.amount_due - total_paid) <= tolerance
     
 class SalePaymentAttachment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     sale_invoice = models.ForeignKey(SaleInvoice, related_name='sale_payment_attachement', on_delete=models.CASCADE)
     file = models.ImageField(upload_to='sale_payment/')
     created_at = models.DateTimeField(auto_now_add=True)

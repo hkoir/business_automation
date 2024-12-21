@@ -1,5 +1,6 @@
 from django import forms
 from.models import Employee,Company,Location,Department,Position
+from.models import Notice,AttendanceModel
 
 
 
@@ -63,7 +64,7 @@ class AddEmployeeForm(forms.ModelForm):
     joining_date = forms.DateField(label='joining_date', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     class Meta:
         model = Employee
-        exclude = ['user','user_profile','resignation_date','employee_code','bonus','gross_monthly_salary','house_allowance','medical_allowance','transportation_allowance','updated_at'] 
+        exclude = ['resignation_date','employee_code','bonus','gross_monthly_salary','house_allowance','medical_allowance','transportation_allowance','updated_at','promotion_status','incremental_status'] 
  
  
 
@@ -85,10 +86,33 @@ class AddCompanyForm(forms.ModelForm):
     # )
 
 
-class AddLocationForm(forms.ModelForm):  
+
+class ManageLocationForm(forms.ModelForm):
+    description = forms.CharField(required=False,
+        widget=forms.Textarea(
+            attrs={
+                'class': 'form-control custom-textarea',
+                'rows': 4, 
+                'style': 'height: 20px;', 
+            }
+        )
+    )
+    custom_location_name = forms.CharField(
+        max_length=100,
+        required=False,
+        label="Enter Custom Location",
+        help_text="Add a new location if it does not exist in the location list."
+    )
+
     class Meta:
-        model=Location
-        fields = ['company','name','phone']
+        model = Location
+        fields = ['company', 'name', 'description']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['company'].queryset = Company.objects.all()
+        self.fields['name'].required = False  
+       
 
 
 
@@ -109,7 +133,6 @@ class UpdateLocationForm(forms.ModelForm):
 
 
 
-from.models import Notice,AttendanceModel
 
 class NoticeForm(forms.ModelForm):
 
@@ -130,7 +153,7 @@ class NoticeForm(forms.ModelForm):
 class AttendanceForm(forms.ModelForm):
     class Meta:
         model = AttendanceModel
-        exclude=['total_hours']
+        exclude=['total_hours','user']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)      
@@ -174,7 +197,7 @@ from operations.models import OperationsRequestOrder,ExistingOrder
 from purchase.models import PurchaseOrder, PurchaseRequestOrder
 from inventory.models import InventoryTransaction,Warehouse,TransferOrder
 from sales.models import SaleOrder,SaleRequestOrder
-
+from core.utils import DEPARTMENT_CHOICES,POSITION_CHOICES
 
 
 class CommonFilterForm(forms.Form):
@@ -214,11 +237,7 @@ class CommonFilterForm(forms.Form):
         widget=forms.Select(attrs={'id': 'id_category'}),
     )
 
-    employee_name = forms.ModelChoiceField(
-        queryset=Employee.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'id': 'id_employee_name'}),
-    )
+  
            
     purchase_request_order_id = forms.ModelChoiceField(
         queryset=PurchaseRequestOrder.objects.all(),
@@ -283,5 +302,49 @@ class CommonFilterForm(forms.Form):
         widget=forms.Select(attrs={'id': 'id_operations_request_order_id'}),)
    
 
+#####################################################################
 
+    year = forms.IntegerField(required=False, label="Year")
+    start_year = forms.IntegerField(label='Start Year',required=False)
+    end_year = forms.IntegerField(label='End Year',required=False)
+    
+       
+    team_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter team name'
+        })
+    )   
 
+    employee = forms.CharField(max_length=20,label='Employee',required=False)
+
+    employee_name = forms.ModelChoiceField(
+        queryset=Employee.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={'id': 'id_employee_name'}),
+    )
+    
+    department = forms.ModelChoiceField(
+        queryset=Department.objects.all(),  # Fetch all departments
+        label='Department',
+        required=False,
+        widget=forms.Select(
+            attrs={
+                'style': 'width: 200px;',  # Inline style for width
+                'class': 'custom-select',  # Optional styling
+            }
+        ),
+    )
+
+    position = forms.ModelChoiceField(
+        queryset=Position.objects.all(),  # Fetch all departments
+        label=Position,
+        required=False,
+        widget=forms.Select(
+            attrs={
+                'style': 'width: 200px;',  # Inline style for width
+                'class': 'custom-select',  # Optional styling
+            }
+        ),
+    )

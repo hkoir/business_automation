@@ -29,14 +29,16 @@ from utils import mark_notification_as_read,calculate_stock_value2
 
 from django.core.mail import send_mail
 from core.forms import CommonFilterForm
+from django.contrib.auth.decorators import login_required,permission_required
 
 
 
+@login_required
 def report_dashboard(request):
     return render(request, 'report/report_dashboard.html')
 
 
-
+@login_required
 def notification_list(request):
     notifications = Notification.objects.all().order_by('-created_at')
     unread_notifications = notifications.filter(user=request.user, is_read=False)
@@ -45,14 +47,14 @@ def notification_list(request):
     page_obj = paginator.get_page(page_number)
     return render(request,'report/notification_list.html',{'notifications':notifications,'page_obj':page_obj,'unread_notifications':unread_notifications})
 
-
+@login_required
 def mark_notification_read_view(request, notification_id):
     mark_notification_as_read(notification_id)
     return redirect('reporting:notification_list')
 
 
 
-
+@login_required
 def product_list(request):
     product = None
     products = Product.objects.all().order_by('-created_at')
@@ -77,7 +79,7 @@ def product_list(request):
 
 
 
-
+@login_required
 def product_report(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     warehouses = Warehouse.objects.all()
@@ -115,7 +117,6 @@ def product_report(request, product_id):
         }
         warehouse_data.append(warehouse_entry)
 
-
     total_data = calculate_stock_value2(product=product)
 
     warehouse_data_json = json.dumps(warehouse_data)
@@ -130,7 +131,7 @@ def product_report(request, product_id):
 
 
 
-
+@login_required
 def warehouse_report(request):
     warehouses = Warehouse.objects.all()
     warehouse_data = []
@@ -219,7 +220,7 @@ def warehouse_report(request):
 
 
 
-
+@login_required
 def warehouse_report_nofilter(request):
     warehouses = Warehouse.objects.all()
     warehouse_data = []
@@ -271,7 +272,7 @@ def warehouse_report_nofilter(request):
 
     })
 
-
+@login_required
 def sale_order_detail(request, sale_order_id):
     sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
     sold_products = SaleOrder.objects.filter(sale_order=sale_order)
@@ -281,7 +282,7 @@ def sale_order_detail(request, sale_order_id):
     })
 
 
-
+@login_required
 def download_sale_delivery_order_csv(request, order_id):
     sale_order = get_object_or_404(SaleOrder, id=order_id)    
 
@@ -310,7 +311,7 @@ def download_sale_delivery_order_csv(request, order_id):
 
 
 
-
+@login_required
 def generate_sale_challan(request, order_id):
     logo_path2 = os.path.join(settings.MEDIA_ROOT, 'profile_pictures', '5.jpg')  # Alternate option for image
     sale_order = get_object_or_404(SaleOrder, id=order_id)
@@ -398,7 +399,7 @@ def generate_sale_challan(request, order_id):
     return render(request, 'report/generate_sale_challan_pdf.html', {'sale_order': sale_order})
 
 
-
+@login_required
 def download_purchase_delivery_order_csv(request, order_id):
     purchase_order = get_object_or_404(PurchaseOrder, id=order_id)    
 
@@ -424,7 +425,7 @@ def download_purchase_delivery_order_csv(request, order_id):
     return render(request, 'report/download_purchase_delivery_order_csv.html', {'purchase_order': purchase_order})
 
 
-
+@login_required
 def generate_purchase_challan(request, order_id): 
     purchase_order = get_object_or_404(PurchaseOrder, id=order_id)
     if 'download' in request.GET:
@@ -496,6 +497,8 @@ def send_test_email():
     except Exception as e:
         print(f"Error sending email: {e}")
 
+
+
 def calculate_average_usage(product, days=30):
     start_date = now() - timedelta(days=days)
     usage = InventoryTransaction.objects.filter(
@@ -544,7 +547,7 @@ def send_total_low_stock_alert(low_stock_products):
     send_mail(subject, message, 'noreply@yourcompany.com', ['admin@yourcompany.com'])
 
 
-
+@login_required
 def monitor_inventory_status(request):
     low_stock_alerts = []
     warehouse_wise_low_stock = []

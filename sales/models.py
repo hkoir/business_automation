@@ -38,6 +38,13 @@ class SaleRequestOrder(models.Model):
     Reviewer_remarks=models.TextField(null=True,blank=True)
     Approver_remarks=models.TextField(null=True,blank=True)
 
+    class Meta:
+        permissions = [
+            ("can_request", "can request"),
+            ("can_review", "Can review"),
+            ("can_approve", "Can approve"),
+        ]
+
     @property
     def is_fully_ordered(self):
         for request_item in self.sale_request_order.all():
@@ -125,6 +132,13 @@ class SaleOrder(models.Model):
     #         self.order_id = f"OID-{uuid.uuid4().hex[:8].upper()}"
      
     #     super().save(*args, **kwargs)
+
+    class Meta:
+        permissions = [
+            ("can_request", "can request"),
+            ("can_review", "Can review"),
+            ("can_approve", "Can approve"),
+        ]
 
     def get_warehouse(self):
         Warehouse = apps.get_model('inventory', 'Warehouse')

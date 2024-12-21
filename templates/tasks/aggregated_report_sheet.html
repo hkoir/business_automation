@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    /* Chart Container */
+    #performanceChart {
+        width: 80%;
+        height: 400px;
+        margin: auto;
+    }
+
+    .employee-scores {
+        margin-top: 30px;
+    }
+
+    .employee-scores table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .employee-scores th, .employee-scores td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .employee-scores th {
+        background-color: #f2f2f2;
+    }
+
+    .employee-scores tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    .table th, td {
+        text-align: center;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+
+    .table td {
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+</style>
+
+<div class="container-fluid main-content">
+    <div class="row">
+        <div class="col-12">
+            <form method="get" action="{% url 'tasks:aggregated_report_sheet' %}">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-3 p-1">
+                            <div class="form-group">
+                                <label for="year">Enter Year:</label>
+                                {{ form.year }}
+                            </div>
+                        </div>
+                        <div class="col-3 p-1">
+                            <div class="form-group">
+                                <label for="employee">Employee(optional):</label>
+                                {{ form.employee }}
+                            </div>
+                        </div>
+                        <div class="col-3 p-1">
+                            <div class="form-group">
+                                <label for="employee">Department(optional):</label>
+                                {{ form.department}}
+                            </div>
+                        </div>
+                        <div class="col-3 p-1">
+                            <div class="form-group">
+                                <label for="employee">Enter Position (optional):</label>
+                                {{ form.position }}
+                            </div>
+                        </div>
+                        <div class="col-2 mt-2">
+                            <button type="submit" class="btn btn-primary">Filter data</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Link to export data to Excel -->
+        <div class="col-12 mt-4">
+            <h4>Aggregated Report sheet ({{ year }})-{{employee}}-{{ department }}-{{ position }}:
+                <a href="?export=true&year={{ form.year.value }}&employee={{ form.employee.value }}" class="btn btn-success mt-3">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </h4>
+
+            {% if aggregated_report %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr class="bg-primary text-white">
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Position</th>
+                         
+                            <th>Year</th>
+                            <th>Obtained Quantitative score</th>
+                            <th>Manager Given Quantity score</th>
+                            <th>Qualitative score</th> 
+                            
+                            <th>Assigned Quantitative number</th>
+                            <th>Assigned Qualitative number</th>
+                            
+                            <th>Total assigned number</th>
+                            <th>Total obtained number</th>
+                            <th>Total given number</th>
+
+                            <th>Overall Obtained Score</th>
+                            <th>Overall given score</th>
+                            
+                            
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in aggregated_report %}
+                            <tr>
+                                <td>{{ report.employee__name }}</td>
+                                <td>{{ report.department__name }}</td>
+                                <td>{{ report.position__name }}</td>
+                                <td>{{ report.year }}</td>
+
+                                <td>{{ report.avg_quantitative_score|floatformat:'2' }}%</td>
+                                <td>{{ report.avg_manager_given_quantitative_score|floatformat:'2' }}%</td>                               
+                                <td>{{ report.avg_qualitative_score|floatformat:'2' }}%</td>
+
+                                <td>{{ report.total_assigned_quantitative_number|floatformat:'2'}}</td>
+                                <td>{{ report.total_assigned_qualitative_number|floatformat:'2'}}</td>
+
+                                 <td>{{ report.total_assigned_number|floatformat:'2'}}</td>
+                                <td>{{ report.total_obtained_number|floatformat:'2'}}</td>
+                                <td>{{ report.total_given_number|floatformat:'2'}}</td>
+
+                                <td>{{ report.over_all_obtained_score|floatformat:'2'}}%</td>
+                                <td>{{ report.over_all_given_score|floatformat:'2'}}%</td>
+                                
+                                 
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No data available for the selected filters.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+</script>
+{% endblock %}

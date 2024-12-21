@@ -7,9 +7,12 @@ app_name = 'core'
 
 
 urlpatterns = [
-    path('', views.home, name='home'),
+    path('home/', views.home, name='home'),
+    path('', views.dashboard, name='dashboard'),
     path('core_dashboard/', views.core_dashboard, name='core_dashboard'),
+    path('only_core_dashboard/', views.only_core_dashboard, name='only_core_dashboard'),
     path('view_employee/', views.view_employee, name='view_employee'),
+     path('employee_list/', views.employee_list, name='employee_list'),
 
     # path('add_employee/', views.add_employee, name='add_employee'),
     # path('update_employee/<int:employee_id>/', views.update_employee, name='update_employee'),
@@ -25,7 +28,7 @@ urlpatterns = [
     path('create_employee/', views.manage_employee, name='create_employee'),
     path('update_employee/<int:id>/', views.manage_employee, name='update_employee'),
     path('delete_employee/<int:id>/', views.manage_employee, {'delete': True}, name='delete_employee'),
-    path('employee_list/', views.employee_list, name='employee_list'),
+   
 
   
     path('create_company/', views.manage_company, name='create_company'),

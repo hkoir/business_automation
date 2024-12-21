@@ -250,21 +250,8 @@
        
     });
 
-    // Calculate the max y-axis value
-    const maxYValue = Math.max(
-        ...totalPurchase,
-        ...totalSold,
-        ...totalAvailable,
-        ...totalManufactureIn,
-        ...totalTransferIn,
-        ...totalTransferOut,
-        ...totalReplacementOut,
-        ...totalStock,
-    ) * 1.4;
 
-    // Bar chart
-    const ctxBar = document.getElementById('barChart').getContext('2d');
-        const colors = [
+    const colors = [
         'rgba(76, 175, 80, 0.5)',  // Green
         'rgba(255, 87, 34, .8)',  // Deep Orange
         'rgba(33, 150, 243, 0.5)', // Blue
@@ -281,7 +268,26 @@
         'rgba(255, 87, 34, 0.8)',  // Deep Orange
         'rgba(0, 150, 136, 0.8)',  // Sea Green
     ];
+
+     
+     
+    // Calculate the max y-axis value
+    const maxYValue = Math.max(
+        ...totalPurchase,
+        ...totalSold,
+        ...totalAvailable,
+        ...totalManufactureIn,
+        ...totalTransferIn,
+        ...totalTransferOut,
+        ...totalReplacementOut,
+        ...totalStock,
+    ) * 1.6;
+
+    // Bar chart
+    const ctxBar = document.getElementById('barChart').getContext('2d');
+  
     const barChart = new Chart(ctxBar, {
+        
         type: 'bar',
         data: {
             labels: chartData.labels,

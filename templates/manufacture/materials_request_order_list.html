@@ -112,7 +112,7 @@ table {
                         <th class="text-center p-2">Reviewed</th>
                         <th class="text-center p-2">Approval</th>
                         <th class="text-center p-2">Create materials Order</th>   
-                        <th class="text-center p-2">Item produced</th>                      
+                                          
                         <th class="text-center p-2">Submit Finish goods</th>
                     </tr>
                 </thead>
@@ -180,9 +180,7 @@ table {
                      {% endif %}
                     </td>
 
-                     <td>
-                        <a href="{% url 'manufacture:submit_finished_goods2' order.id %}">Item produced</a>
-                     </td>
+                    
                     
                      <td>
                         {% with order.finishedgoodsreadyfromproduction_set.first as finished_good %}

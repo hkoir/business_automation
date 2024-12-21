@@ -68,7 +68,7 @@ def create_purchase_invoice(request, order_id):
     return render(request, 'finance/purchase/create_invoice.html', {'form': form})
 
 
-
+@login_required
 def add_purchase_invoice_attachment(request, invoice_id):
     invoice = get_object_or_404(PurchaseInvoice, id=invoice_id)    
     if request.method == 'POST':
@@ -76,6 +76,7 @@ def add_purchase_invoice_attachment(request, invoice_id):
         if form.is_valid():
             attachment = form.save(commit=False)
             attachment.purchase_invoice = invoice  
+            attachment.user=request.user
             attachment.save()
             return redirect('purchase:purchase_order_list')
     else:
@@ -133,7 +134,7 @@ def create_purchase_payment(request, invoice_id):
     })
 
 
-
+@login_required
 def add_purchase_payment_attachment(request, invoice_id):
     invoice = get_object_or_404(PurchaseInvoice, id=invoice_id)    
     if request.method == 'POST':
@@ -141,6 +142,7 @@ def add_purchase_payment_attachment(request, invoice_id):
         if form.is_valid():
             attachment = form.save(commit=False)
             attachment.purchase_invoice = invoice  
+            attachment.user=request.user
             attachment.save()
             return redirect('purchase:purchase_order_list')
     else:
@@ -148,7 +150,7 @@ def add_purchase_payment_attachment(request, invoice_id):
     return render(request, 'finance/attachmenet/add_invoice_attachment.html', {'form': form, 'invoice': invoice})
 
 
-
+@login_required
 def generate_purchase_invoice(purchase_order):
     valid_shipments = PurchaseShipment.objects.filter(purchase_order=purchase_order, status='DELIVERED')
     valid_dispatch_items = PurchaseDispatchItem.objects.filter(purchase_shipment__in=valid_shipments, status='DELIVERED')
@@ -180,7 +182,7 @@ def generate_purchase_invoice(purchase_order):
 
 
 
-
+@login_required
 def generate_purchase_invoice_pdf(purchase_order,mode="download"):      
     supplier = purchase_order.supplier
     supplier_address = 'Unknown'
@@ -312,7 +314,7 @@ def generate_purchase_invoice_pdf(purchase_order,mode="download"):
     return response
 
 
-
+@login_required
 def download_purchase_invoice(request, purchase_order_id):
     purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)   
     mode = request.GET.get('mode', 'download')     
@@ -347,6 +349,7 @@ def purchase_invoice_list(request):
     })
 
 
+@login_required
 def purchase_invoice_detail(request, invoice_id):
     invoice = get_object_or_404(PurchaseInvoice, id=invoice_id)
     payments = invoice.purchase_payment_invoice.all() 
@@ -392,7 +395,7 @@ def create_sale_invoice(request, order_id):
 
 
 
-
+@login_required
 def add_sale_invoice_attachment(request, invoice_id):
     invoice = get_object_or_404(SaleInvoice, id=invoice_id)    
     if request.method == 'POST':
@@ -400,6 +403,7 @@ def add_sale_invoice_attachment(request, invoice_id):
         if form.is_valid():
             attachment = form.save(commit=False)
             attachment.sale_invoice = invoice  
+            attachment.user=request.user
             attachment.save()
             return redirect('purchase:purchase_order_list')
     else:
@@ -456,7 +460,7 @@ def create_sale_payment(request, invoice_id):
     })
 
 
-
+@login_required
 def add_sale_payment_attachment(request, invoice_id):
     invoice = get_object_or_404(SaleInvoice, id=invoice_id)    
     if request.method == 'POST':
@@ -464,6 +468,7 @@ def add_sale_payment_attachment(request, invoice_id):
         if form.is_valid():
             attachment = form.save(commit=False)
             attachment.sale_invoice = invoice  
+            attachment.user=request.user
             attachment.save()
             return redirect('purchase:purchase_order_list')
     else:
@@ -471,7 +476,7 @@ def add_sale_payment_attachment(request, invoice_id):
     return render(request, 'finance/attachmenet/add_invoice_attachment.html', {'form': form, 'invoice': invoice})
 
 
-
+@login_required
 def generate_sale_invoice(sale_order):
     valid_shipments = SaleShipment.objects.filter(sales_order=sale_order, status='DELIVERED')
     valid_dispatch_items = SaleDispatchItem.objects.filter(sale_shipment__in=valid_shipments, status='DELIVERED')
@@ -502,7 +507,7 @@ def generate_sale_invoice(sale_order):
     }
 
 
-
+@login_required
 def generate_sale_invoice_pdf(sale_order, mode="download"):       
     customer = sale_order.customer
     customer_info = Customer.objects.filter(id=sale_order.customer_id).first()
@@ -631,7 +636,7 @@ def generate_sale_invoice_pdf(sale_order, mode="download"):
   
 
 
-
+@login_required
 def download_sale_invoice(request, sale_order_id):
     sale_order = get_object_or_404(SaleOrder, id=sale_order_id)       
     mode = request.GET.get('mode', 'download') 
@@ -667,7 +672,7 @@ def sale_invoice_list(request):
     })
 
    
-
+@login_required
 def sale_invoice_detail(request, invoice_id):
     invoice = get_object_or_404(SaleInvoice, id=invoice_id)
     payments = invoice.sale_payment_invoice.all()  

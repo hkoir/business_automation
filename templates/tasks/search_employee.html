@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+
+
+
+<!-- seems it has no use need to check -->
+
+<form method="get" action="{% url 'tasks:search_employee' %}">
+    <input type="text" name="q" class="form-control" placeholder="Search employees..." value="{{ request.GET.q }}">
+    <button type="submit" class="btn btn-primary mt-2">Search</button>
+</form>
+
+<h5>Available Employees</h5>
+<ul>
+    {% for employee in employees %}
+    <li>
+        {{ employee.name }} ({{ employee.email }})
+        <a href="{% url 'tasks:add_to_basket' employee.id %}" class="btn btn-sm btn-success">Add</a>
+    </li>
+    {% endfor %}
+</ul>
+
+<h5>Selected Members</h5>
+<ul>
+    {% for employee in basket %}
+    <li>
+        {{ employee.name }} ({{ employee.email }})
+        <a href="{% url 'tasks:remove_from_basket' employee.id %}" class="btn btn-sm btn-danger">Remove</a>
+    </li>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'tasks:create_team' %}" class="btn btn-primary mt-3">Proceed to Create Team</a>
+
+
+
+
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="height:600px"></div>
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
+{% endblock %}

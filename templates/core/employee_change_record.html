@@ -107,37 +107,7 @@
     
 
 
-    <h2>History for {{ employee.name }}</h2>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>User</th>
-                <th>Status</th>
-                <th>Change Type</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in history %}
-            <tr>
-                <td>{{ record.history_date }}</td>
-                <td>{{ record.history_user|default:"System" }}</td>
-                <td>{{ record.status }}</td>
-                <td>
-                    {% if record.history_type == '+' %}
-                        Created
-                    {% elif record.history_type == '~' %}
-                        Updated
-                    {% elif record.history_type == '-' %}
-                        Deleted
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
+    <div  style="height:1000px"></div>
 
 
 {% endblock %}
