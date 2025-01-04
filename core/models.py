@@ -91,11 +91,11 @@ class Employee(models.Model):
     user_profile = models.ForeignKey(UserProfile,on_delete=models.CASCADE,null=True, blank=True)
     name = models.CharField(max_length=100, null=True, blank=True,default="Nome")    
     first_name = models.CharField(max_length=100, null=True, blank=True,default="Nome")
-    last_name = models.CharField(max_length=100,null=True, blank=True,default="Nome")  
-   
-    location = models.ForeignKey(Location,on_delete=models.SET_NULL,null=True,blank=True)
-    position = models.ForeignKey(Position,on_delete=models.CASCADE,null=True, blank=True)
-    department = models.ForeignKey(Department,on_delete=models.CASCADE,null=True, blank=True)            
+    last_name = models.CharField(max_length=100,null=True, blank=True,default="Nome")     
+    location = models.ForeignKey(Location,on_delete=models.SET_NULL,null=True,blank=True,related_name='employee_location')
+    position = models.ForeignKey(Position,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_position')
+    department = models.ForeignKey(Department,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_department')   
+    company = models.ForeignKey(Company,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_company')          
     employe_level= models.CharField(max_length=100, choices=EMPLOYEE_LEVEL_CHOICES, default='executive',null=True, blank=True)
     employee_code = models.CharField(max_length=100, null=True, blank=True)
    
@@ -142,6 +142,97 @@ class Employee(models.Model):
     def __str__(self):
         return self.name
 
+
+
+
+class SalaryIncrementAndPromotion(models.Model):
+    INCREMENT_TYPE_CHOICES = [
+        ('MONTHLY', 'Monthly'),
+        ('QUARTERLY', 'Quarterly'),
+        ('HALF-YEARLY', 'Half Yearly'),
+        ('YEARLY', 'Yearly'),
+    ]
+
+    MONTH_CHOICES = [
+        ('JANUARY', 'January'),
+        ('FEBRUARY', 'February'),
+        ('MARCH', 'March'),
+        ('APRIL', 'April'),
+        ('MAY', 'May'),
+        ('JUNE', 'June'),
+        ('JULY', 'July'),
+        ('AUGUST', 'August'),
+        ('SEPTEMBER', 'September'),
+        ('OCTOBER', 'October'),
+        ('NOVEMBER', 'November'),
+        ('DECEMBER', 'December'),
+    ]
+
+    QUARTER_CHOICES = [
+        ('1ST-QUARTER', '1st Quarter'),
+        ('2ND-QUARTER', '2nd Quarter'),
+        ('3RD_QUARTER', '3rd Quarter'),
+        ('4TH-QUARTER', '4th Quarter'),
+    ]
+
+    HALF_YEAR_CHOICES = [
+        ('1ST-HALF-YEAR', 'First Half Year'),
+        ('2ND-HALF-YEAR', 'Second Half Year'),
+    ]
+
+    PROMOTION_CHOICES = [
+        ('Yes', 'Yes'),
+        ('No', 'No'),
+    ]
+    appraisal_year = models.IntegerField(blank=True, null=True)
+    appraisal_category = models.CharField(max_length=30,choices=[('BY_EMPLOYEE','By Employee'),('BY_DEPARTMENT','By department'),('BY_POSITION','By Position'),('BY_COMPANY','By Company')],blank=True, null=True)
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='increment_employee',blank=True, null=True)
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name='increment_position',blank=True, null=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='increment_department',blank=True, null=True)
+    
+    appraisal_type = models.CharField(max_length=30, choices=INCREMENT_TYPE_CHOICES,blank=True, null=True)
+    month = models.CharField(max_length=30, choices=MONTH_CHOICES, blank=True, null=True)
+    quarter = models.CharField(max_length=30, choices=QUARTER_CHOICES, blank=True, null=True)
+    half_year = models.CharField(max_length=30, choices=HALF_YEAR_CHOICES, blank=True, null=True)
+  
+    salary_increment_percentage = models.FloatField(blank=True, null=True)
+    promotional_increment_percentage = models.FloatField(blank=True, null=True)
+    obtained_salary_increment_percentage = models.FloatField(blank=True, null=True)
+    obtained_promotional_increment_percentage = models.FloatField(blank=True, null=True)
+    salary_increment_amount = models.FloatField(blank=True, null=True)
+    promotional_increment_amount = models.FloatField(blank=True, null=True)
+    new_basic_salary = models.FloatField(blank=True, null=True)
+    obtained_promotion_recommendation = models.CharField(max_length=10, choices=PROMOTION_CHOICES,blank=True, null=True)
+    promotion_recommendation = models.CharField(max_length=10, choices=PROMOTION_CHOICES,blank=True, null=True)
+    max_task_count = models.IntegerField(blank=True, null=True)  # New field
+    task_count_employee = models.IntegerField(blank=True, null=True)  
+    task_factor = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)  # New field
+    avg_task_count = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)  # New field
+    final_score = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)  # New field
+    weighted_final_score = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)  # New field
+           
+    effective_date = models.DateField(null=True,blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('employee', 'appraisal_type', 'appraisal_year')
+
+    def save(self, *args, **kwargs):
+        existing_record = SalaryIncrementAndPromotion.objects.filter(
+            employee=self.employee,
+            appraisal_year=self.appraisal_year
+        ).first()
+
+        if existing_record and existing_record.appraisal_type != self.appraisal_type: 
+            self.pk = None  
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        if self.employee:      
+            return f'{self.employee.name}'
+        else:
+            return f'Unknown'
 
 
 

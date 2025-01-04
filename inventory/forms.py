@@ -9,12 +9,34 @@ from product.models import Product
 class AddWarehouseForm(forms.ModelForm):      
     class Meta:
         model = Warehouse
-        exclude = ['created_at','updated_at','history','user','description','warehouse_id','reorder_level','lead_time']
+        exclude = ['created_at','updated_at','history','user','warehouse_id','reorder_level','lead_time']
+        widgets = {
+            
+            'description': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter a description', 
+                'rows': 3
+            }),
+        }
 
 class AddLocationForm(forms.ModelForm):      
     class Meta:
         model = Location
-        fields= ['warehouse','name']
+        fields= ['warehouse','name','address','description']
+        widgets = {
+            'address': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter the address', 
+                'rows': 3
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter a description', 
+                'rows': 3
+            }),
+        }
+
+          
 
 
 

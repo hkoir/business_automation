@@ -144,6 +144,7 @@ def add_purchase_payment_attachment(request, invoice_id):
             attachment.purchase_invoice = invoice  
             attachment.user=request.user
             attachment.save()
+            messages.success(request,'attachement success')
             return redirect('purchase:purchase_order_list')
     else:
         form = PurchasePaymentAttachmentForm()
@@ -203,17 +204,15 @@ def generate_purchase_invoice_pdf(purchase_order,mode="download"):
     company_website =None  
     logo_path=None
 
-    cfo_employee = Employee.objects.filter(position__name='CFO').first()  
-    if cfo_employee:  
-        HQ_entity = cfo_employee.hq_employee_name.first()
-        if  HQ_entity:
-            location = HQ_entity.company_locations.first()
-            company_name = HQ_entity.name
-            company_address = location.address
-            company_email = location.email
-            company_phone = location.phone
-            company_website = HQ_entity.website
-            company_logo_path = HQ_entity.logo.path if HQ_entity.logo else 'D:/SCM/dscm/media/company_logo/Logo.png'
+    cfo_data = Employee.objects.filter(position__name='CFO').first()  
+    if cfo_data:     
+        location = cfo_data.location.name
+        company_name = cfo_data.location.company.name
+        company_address = cfo_data.location.address
+        company_email = cfo_data.location.email
+        company_phone = cfo_data.location.phone
+        company_website = cfo_data.location.company.website
+        company_logo_path = cfo_data.location.company.logo.path if cfo_data.location.company.logo else 'D:/SCM/dscm/media/company_logo/Logo.png'
 
     invoice_data = generate_purchase_invoice(purchase_order)
     buffer = BytesIO()
@@ -291,9 +290,9 @@ def generate_purchase_invoice_pdf(purchase_order,mode="download"):
     c.setFont("Helvetica", 12)
     c.drawString(50, y_position, "Authorized Signature: ___________________")
     y_position -= 20
-    c.drawString(50, y_position, f"Name: {cfo_employee.name if cfo_employee else '...............'}")
+    c.drawString(50, y_position, f"Name: {cfo_data.name if cfo_data else '...............'}")
     y_position -= 20
-    c.drawString(50, y_position, f"Designation: {cfo_employee.position if cfo_employee else '...............'}")
+    c.drawString(50, y_position, f"Designation: {cfo_data.position.name if cfo_data else '...............'}")
 
     y_position -= 40
     c.setFont("Helvetica", 9)
@@ -446,7 +445,7 @@ def create_sale_payment(request, invoice_id):
             invoice.save()
 
             messages.success(request, "Payment created successfully.")
-            return redirect('sales:sale_invoice_list')
+            return redirect('finance:sale_invoice_list')
     else:
          form = SalePaymentForm(initial={
             'sale_invoice': invoice,
@@ -456,6 +455,7 @@ def create_sale_payment(request, invoice_id):
     return render(request, 'finance/sales/create_payment.html', {
         'form': form,
         'invoice': invoice,
+        'invoice_amount':invoice_amount,
         'remaining_balance': remaining_balance
     })
 
@@ -470,7 +470,7 @@ def add_sale_payment_attachment(request, invoice_id):
             attachment.sale_invoice = invoice  
             attachment.user=request.user
             attachment.save()
-            return redirect('purchase:purchase_order_list')
+            return redirect('sales:sale_order_list')
     else:
         form =SalePaymentAttachmentForm()
     return render(request, 'finance/attachmenet/add_invoice_attachment.html', {'form': form, 'invoice': invoice})
@@ -525,16 +525,16 @@ def generate_sale_invoice_pdf(sale_order, mode="download"):
     company_website =None  
     logo_path=None
 
-    cfo_employee = Employee.objects.filter(position='CFO').first()    
-    HQ_entity = cfo_employee.hq_employee_name.first()
-    if  HQ_entity:
-        location = HQ_entity.company_locations.first()
-        company_name = HQ_entity.name
-        company_address = location.address
-        company_email = location.email
-        company_phone = location.phone
-        company_website = HQ_entity.website
-        company_logo_path = HQ_entity.logo.path if HQ_entity.logo else 'D:/SCM/dscm/media/default_logo.png'
+    cfo_data = Employee.objects.filter(position__name='CFO').first()  
+    if cfo_data:     
+        location = cfo_data.location.name
+        company_name = cfo_data.location.company.name
+        company_address = cfo_data.location.address
+        company_email = cfo_data.location.email
+        company_phone = cfo_data.location.phone
+        company_website = cfo_data.location.company.website
+        company_logo_path = cfo_data.location.company.logo.path if cfo_data.location.company.logo else 'D:/SCM/dscm/media/company_logo/Logo.png'
+
 
     invoice_data = generate_sale_invoice(sale_order)
     buffer = BytesIO()
@@ -611,9 +611,9 @@ def generate_sale_invoice_pdf(sale_order, mode="download"):
     c.setFont("Helvetica", 12)
     c.drawString(50, y_position, "Authorized Signature: ___________________")
     y_position -= 20
-    c.drawString(50, y_position, f"Name: {cfo_employee.name if cfo_employee else '...............'}")
+    c.drawString(50, y_position, f"Name: {cfo_data.name if cfo_data else '...............'}")
     y_position -= 20
-    c.drawString(50, y_position, f"Designation: {cfo_employee.position if cfo_employee else '...............'}")
+    c.drawString(50, y_position, f"Designation: {cfo_data.position.name if cfo_data else '...............'}")
 
     y_position -= 40
     c.setFont("Helvetica", 9)

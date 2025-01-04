@@ -58,34 +58,61 @@ table {
     </style>
 
 
-<h2>Invoice Details - {{ invoice.invoice_number }}</h2>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-2"></div>
+            <div class="col-12 col-md-8 mb-4">
+                <div class="card shadow-lg" style="background-color: aliceblue;">
+                    <!-- Card Header -->
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4>Invoice Details - {{ invoice.invoice_number }}</h4>
+                    </div> 
+                    <div class="card-body">                      
+                        
+                        <table class="table table-striped">
+                            <tr>
+                                <th>Invoice Number</th>
+                                <td>{{ invoice.invoice_number }}</td>
+                            </tr>
+                            <tr>
+                                <th>Sale Order ID</th>
+                                <td>{{ invoice.sale_shipment.sales_order.order_id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Amount Due</th>
+                                <td>{{ invoice.amount_due }}</td>
+                            </tr>
+                            <tr>
+                                <th>Tax Rate</th>
+                                <td>{{ invoice.tax_rate }}%</td>
+                            </tr>
+                            <tr>
+                                <th>Issued Date</th>
+                                <td>{{ invoice.issued_date }}</td>
+                            </tr>
+                        </table>
 
-<table class="table table-striped">
-    <tr>
-        <th>Invoice Number</th>
-        <td>{{ invoice.invoice_number }}</td>
-    </tr>
-    <tr>
-        <th>Sale Order ID</th>
-        <td>{{ invoice.sale_order.order_id }}</td>
-    </tr>
-    <tr>
-        <th>Amount Due</th>
-        <td>{{ invoice.amount_due }}</td>
-    </tr>
-    <tr>
-        <th>Tax Rate</th>
-        <td>{{ invoice.tax_rate }}%</td>
-    </tr>
-    <tr>
-        <th>Issued Date</th>
-        <td>{{ invoice.issued_date }}</td>
-    </tr>
-</table>
+                    </div>
+                </div>           
+            </div>
+            <div class="col-2"></div>
+
+    </div>
+</div>
 
 
 
-<h3>Payment History: <a href="{% url 'finance:create_sale_payment' invoice.id %}" class="btn btn-sm btn-primary">Make Payment</a></h3>
+
+<h4>Payment History: 
+    {% if invoice.is_fully_paid %}
+    <i class="fas fa-check" style="color:green;font-weight: bold;">payment clear</i>
+    {% else %}
+    <a href="{% url 'finance:create_sale_payment' invoice.id %}" class="btn btn-sm btn-primary">Make Payment</a>
+
+    {% endif %}
+</h4>
+
+
 
 {% if payments %}
     <table class="table table-striped">
@@ -113,7 +140,42 @@ table {
 {% endif %}
 
 
+<div style="height:800px"></div>
 
+
+
+
+
+
+<!-- Bootstrap Modal for displaying Django message -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // Show Django message modal if there are messages
+    document.addEventListener("DOMContentLoaded", function() {
+        const messageModal = document.getElementById('messageModal');
+        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
+            new bootstrap.Modal(messageModal).show();
+        }
+    });
+
+</script>
 
 
 {% endblock %}

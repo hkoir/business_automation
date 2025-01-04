@@ -44,15 +44,23 @@
         <hr>
         <div class="col">
 
-            <h4>Employee list</h4>
+            <h4>Employee list:  
+                <a href="{% url 'tasks:download_increment_promotion' %}"class="btn btn-success">Download appraisal data</a>
+                <a href="{% url 'tasks:generate_increment_promotion_letter' %}"class="btn btn-success">Generate Increment Promotion Letter</a>
+            </h4>
             <table class="table table-border">
                 <thead>
                     <tr class="bg-primary text-white">
                         <th>Name</th>
                         <th>Employee ID</th>
                         <th>Designation</th>
-                        <th>Date of joining</th>
                         <th>Level</th>
+                        <th>Department</th>
+                        <th>Date of joining</th>
+
+                        <th>Update record</th>                      
+
+                        <th>Generate Increment Promotion letter</th>
             
                         <th>Create Pay slip</th>
                         <th>Create salary certicate</th>
@@ -68,8 +76,17 @@
                         <td>{{ employee.name }}</td>    
                         <td>{{ employee.employee_code}}</td>         
                         <td>{{ employee.position }}</td>
-                        <td>{{ employee.joining_date }}</td>
                         <td>{{ employee.employe_level }}</td>
+                        <td>{{ employee.department }}</td>
+                        <td>{{ employee.joining_date }}</td>
+                        <td>
+                            <a href="{% url 'core:update_employee' employee.id %}">Update</a>
+                        </td>                
+                                           
+
+                        <td>
+                            <a href="{% url 'tasks:generate_increment_promotion_letter_with_id' employee.id %}">Generate increment paper pdf</a>
+                        </td>
             
                         <td>
                             <a href="{% url 'core:generate_pay_slip' employee.id %}">Click to create</a>
@@ -115,7 +132,7 @@
 
 
 
-<h4 style="height:400px"></h4>
+<h4 style="height:800px"></h4>
 
 <script>
     $(document).ready(function() {

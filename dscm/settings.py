@@ -8,7 +8,7 @@ SECRET_KEY = 'django-insecure-wzlf*t+-g32z73ia4=qdcbq*-2wkw_elwd_^%m3iodhllt9t!1
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*','192.168.0.150','localhost','company-1.localhost']
+ALLOWED_HOSTS = ['*','192.168.0.150','localhost','demo1.192.168.0.150']
 
 
 
@@ -21,14 +21,16 @@ SHARED_APPS = [
     'django.contrib.staticfiles',  
     'django_crontab',               
     'django_celery_beat',   
-    'django.contrib.admin',    
-    'django.contrib.auth',    
+    'django_extensions', 
     'clients',   
+    'django.contrib.humanize',
+
 ]
 
 TENANT_APPS = [ 
-   
-    'accounts',
+    'django.contrib.admin',    
+    'django.contrib.auth',   
+    'accounts',   
     'logistics',
     'manufacture',
     'product',
@@ -44,7 +46,7 @@ TENANT_APPS = [
     'core',
     'repairreturn',
     'operations',
-    'django_extensions', 
+    
 ]
 
 
@@ -93,6 +95,7 @@ TEMPLATES = [
                 'accounts.context_processors.user_info',
                 'accounts.context_processors.notifications_context',
                 'accounts.context_processors.tenant_schema',
+                'accounts.context_processors.unread_messages',
             ],
         },
     },
@@ -193,7 +196,8 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+# TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Dhaka'
 USE_I18N = True
 USE_TZ = True
 

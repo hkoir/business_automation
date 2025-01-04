@@ -66,6 +66,7 @@ class SaleInvoiceForm(forms.ModelForm):
             'sale_shipment': forms.Select(attrs={'class': 'form-control'}),
             'amount_due': forms.NumberInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
             'tax_rate': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Tax Rate (%)'}),
+            
         }
 
     def __init__(self, *args, **kwargs):
@@ -73,6 +74,7 @@ class SaleInvoiceForm(forms.ModelForm):
         self.fields['sale_shipment'].label = "sale shipment"
         self.fields['amount_due'].label = "Amount Due"
         self.fields['tax_rate'].label = "Tax Rate (%)"
+       
 
 
 

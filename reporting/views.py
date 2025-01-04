@@ -375,7 +375,7 @@ def generate_sale_challan(request, order_id):
         p.setFont("Helvetica", 14)
         p.drawString(50, y - 40, f"Amount in words: {grand_total_words}")        
    
-        cfo_employee = Employee.objects.filter(position='CFO').first()
+        cfo_employee = Employee.objects.filter(position__name='CFO').first()
         if cfo_employee:
             p.drawString(50,height - 660, f"Autorized Signature________________")  
             p.drawString(50, height - 680, f"Name:{cfo_employee.name}")  
@@ -397,6 +397,8 @@ def generate_sale_challan(request, order_id):
         p.save()
         return response
     return render(request, 'report/generate_sale_challan_pdf.html', {'sale_order': sale_order})
+
+
 
 
 @login_required

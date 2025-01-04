@@ -199,6 +199,11 @@
     labels.push(staticLabel1, staticLabel2); 
     totalScoreData.push(staticDataPoint1, staticDataPoint2);
 
+
+     // Calculate the max y-axis value
+     const maxYValue = Math.max(
+                ...totalScoreData,       
+            ) * 1.2;
     // Bar Chart
     // new Chart(barCtx, {
     //     type: 'bar',
@@ -240,7 +245,8 @@
     //                     display: true,
     //                     text: 'Total Score'
     //                 },
-    //                 beginAtZero: true
+    //                 beginAtZero: true,
+    //                  max:maxYValue
     //             }
     //         }
     //     }
@@ -275,6 +281,7 @@
                 },
                 y: {
                     beginAtZero: true,
+                    max:maxYValue,
                     title: {
                         display: true,
                         text: 'Total Score'

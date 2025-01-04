@@ -36,20 +36,25 @@
 
 <div class="container-fluid">
   <div class="row justify-content-center">
-      <div class="col-12 col-md-8">
-          <div class="card shadow-sm" style="padding: 15px; background-color: aliceblue;">
+      <div class="col-12 col-md-6">
+        <div class="card shadow-lg border-0 rounded-lg">
+             <!-- Card Header -->
+             <div class="card-header bg-primary text-white text-center">
+                <h3 class="mb-0"> Manager's evaluation</h3>
+            </div>
               <div class="card-body">
                   <h4 class="card-title text-center mb-4">
                       <span style="color:rgb(0, 11, 128);font-weight: bold; font-size: 20px;">Qualitative Evaluation for {{ employee.name }} - Task: {{ task.title }}</span><br>
                       <span style="color:green;font-weight: bold; font-size: 16px;">Assigned quantitative number for this Task was:{{ task.assigned_number }}</span><br>
+                      <span style="color:green;font-weight: bold; font-size: 16px;">As per progress, obtained number is:{{ task.obtained_number|floatformat:'2' }}</span><br>
                       <span style="color:rgb(22, 3, 236);font-weight: bold; font-size: 14px;">Task name: {{ task.title }}:Team name/Single member: {{ task.assigned_to_team.name}}/NA</span><br>
-                      <span style="color:rgb(5, 24, 239);font-weight: bold; font-size: 14px;">Team members/single member: {% for member in task.assigned_to_team.members.all %}
+                      <span style="color:rgb(5, 24, 239);font-weight: bold; font-size: 14px;">Member: {% for member in task.assigned_to_team.members.all %}
                         {{member.member.name}},                        
                         {% endfor %}
                         /{{ task.assigned_to_employee }}
                       </span>
                   </h4>
-                  <form method="POST">
+                  <form method="POST" class="p-4">
                       {% csrf_token %}
                       <div class="mb-3">
                         <label for="work_quality_score" class="form-label">Task Title</label>

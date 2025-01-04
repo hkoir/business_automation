@@ -5,6 +5,24 @@ from .models import Task, User
 from.models import TeamMember
 from .models import QualitativeEvaluation
 from core.models import Employee,Department,Position
+from.models import TimeExtensionRequest,TaskMessage
+from django.utils.timezone import make_aware
+
+
+class ChatForm(forms.ModelForm):
+    class Meta:
+        model = TaskMessage
+        fields = ['message']
+        widgets = {
+            'message': forms.Textarea(attrs=
+            {'placeholder': 'Enter your message here...',           
+            
+             
+             })
+        }
+
+
+
 
 
 
@@ -14,7 +32,7 @@ class TaskAssignmentForm(forms.ModelForm):
      member = forms.CharField(required=False)
      class Meta:
         model = Task
-        fields = ['title', 'priority', 'assigned_to', 'due_datetime']  
+        fields = ['department','title', 'priority', 'assigned_to', 'due_datetime']  
 
      assigned_to = forms.ModelChoiceField(
         queryset=Employee.objects.all(),
@@ -29,8 +47,7 @@ class TeamForm(forms.ModelForm):
     widget=forms.Textarea(
         attrs={
             'class': 'form-control custom-textarea',
-            'rows': 3, 
-            'style': 'height: 70px;',  
+            'rows': 2,           
             }
         )
     )
@@ -47,28 +64,19 @@ class AddMemberForm(forms.ModelForm):
 
 
 
-class TaskForm(forms.ModelForm):
-    due_datetime = forms.DateTimeField(label='Due datetime', required=False, widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}))   
-    assigned_to = forms.ChoiceField(
-        choices=[('team', 'Team'), ('member', 'Member')],
-        required=True,
-        label='Assigned To'
-    )
-
-    remarks = forms.CharField(required=False,
-    widget=forms.Textarea(
-        attrs={
-            'class': 'form-control custom-textarea',
-            'rows': 3, 
-            'style': 'height: 70px;',  
-            }
-        )
-    )
-
+class TaskForm(forms.ModelForm):    
     class Meta:
         model = Task
-        fields = ['title', 'assigned_to', 'assigned_to_employee', 'assigned_to_team','task_manager','assigned_number', 'due_datetime','priority','remarks']
+        fields = ['department','title', 'assigned_to', 'assigned_to_employee', 'assigned_to_team','task_manager','assigned_number', 'due_datetime','priority','remarks']
 
+        widgets={
+            'due_datetime':forms.DateTimeInput(attrs={'type':'datetime-local'}),
+            'remarks':forms.Textarea(attrs={
+                'rows':2,
+                'class':'form-control custom-textarea',
+                
+                })
+        }
 
     def clean(self):
         cleaned_data = super().clean()
@@ -81,6 +89,10 @@ class TaskForm(forms.ModelForm):
         if assigned_to == 'member' and not assigned_to_employee:
             raise forms.ValidationError('Please select a member for the task.')
         
+        due_datetime = cleaned_data.get('due_datetime')
+        if due_datetime and due_datetime.tzinfo is None:
+            cleaned_data['due_datetime'] = make_aware(due_datetime)
+
         return cleaned_data
 
    
@@ -107,17 +119,49 @@ class TaskProgressForm(forms.ModelForm):
 
 
 
-class RequestExtensionForm(forms.Form):
-    extension_datetime = forms.DateTimeField(widget=forms.DateInput(attrs={'type': 'datetime-local'}), label="Requested Extension Date")
-   
 
-class ApproveExtensionForm(forms.Form):
-    approve_choices = [('yes', 'Yes'), ('no', 'No')]
-    approve = forms.ChoiceField(choices=approve_choices, widget=forms.RadioSelect, label="Approve Extension?")
-    approval_datetime = forms.DateTimeField(widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}), label="Extended Datetime")
-   
-    comments = forms.CharField(widget=forms.Textarea(attrs={'rows': 4, 'cols': 50}), required=False, label="Manager Comments")
+class RequestExtensionForm(forms.ModelForm):
+    class Meta:
+        model = TimeExtensionRequest
+        fields = ['task', 'requested_extension_datetime', 'time_extension_reason']
+        widgets = {
+            'requested_extension_datetime': forms.DateTimeInput(attrs={'type': 'datetime-local'})
+        }
 
+    def clean_requested_extension_datetime(self):
+        requested_extension_datetime = self.cleaned_data.get('requested_extension_datetime')
+        if requested_extension_datetime and requested_extension_datetime.tzinfo is None:
+            requested_extension_datetime = make_aware(requested_extension_datetime)
+        
+        return requested_extension_datetime
+
+
+
+class ApproveExtensionForm(forms.ModelForm):    
+    class Meta:
+        model = TimeExtensionRequest
+        fields = ['is_approved', 'approved_extension_datetime', 'manager_comments']
+        
+        APPROVE_CHOICES = [
+        (True, 'Yes'),
+        (False, 'No')]
+        
+        widgets = {
+            'is_approved': forms.RadioSelect(choices=APPROVE_CHOICES),
+            'approved_extension_datetime': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'manager_comments': forms.Textarea(attrs={'rows': 4, 'cols': 50}),
+        }
+        labels = {
+            'is_approved': "Approve Extension?",
+            'approved_extension_datetime': "Extended Datetime",
+            'manager_comments': "Manager Comments",
+        }
+
+    def clean_approved_extension_datetime(self):
+        approved_extension_datetime = self.cleaned_data.get('approved_extension_datetime')
+        if approved_extension_datetime and approved_extension_datetime.tzinfo is None:
+            approved_extension_datetime = make_aware(approved_extension_datetime)        
+        return approved_extension_datetime
 
 
 
@@ -269,7 +313,7 @@ class GroupTrendForm(forms.Form):
 
     position = forms.ModelChoiceField(
         queryset=Position.objects.all(),  # Fetch all departments
-        label=Position,
+        label='Position',
         required=False,
         widget=forms.Select(
             attrs={
@@ -278,3 +322,209 @@ class GroupTrendForm(forms.Form):
             }
         ),
     )
+
+from core.models import SalaryIncrementAndPromotion
+
+class IncrementPromotionForm(forms.ModelForm):  
+    effective_date = forms.DateField(
+        label='Effective Date',
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=False
+    )
+    eligible_score_for_promotion= forms.FloatField(required=False)
+    max_promotion_limit = forms.FloatField(required=False)
+ 
+            
+    class Meta:
+        model=SalaryIncrementAndPromotion
+        exclude=[
+            'new_basic_salary',
+            'increment_amount',
+            'obtained_promotion_recommendation',
+            'promotion_recommendation',
+            'task_count',
+            'task_count_employee',
+            'avg_task_count',
+            'final_score',
+            'weighted_final_score',
+            'max_weighted_score',
+            'normalized_weighted_final_score',
+            'max_task_count',
+            'task_factor',   
+            'obtained_salary_increment_percentage',
+            'obtained_promotional_increment_percentage',
+            'salary_increment_amount',
+            'promotional_increment_amount'
+
+
+            ]
+        
+
+
+       
+
+
+class DownloadIncrementPromotionForm(forms.Form):
+
+    INCREMENT_TYPE_CHOICES = [
+        ('MONTHLY', 'Monthly'),
+        ('QUARTERLY', 'Quarterly'),
+        ('HALF-YEARLY', 'Half Yearly'),
+        ('YEARLY', 'Yearly'),
+    ]
+
+    INCREMENT_CATEGORY_CHOICES=[
+        ('BY_EMPLOYEE','By Employee'),
+        ('BY_DEPARTMENT','By department'),
+        ('BY_POSITION','By Position'),
+        ('BY_COMPANY','By Company')]
+
+    MONTH_CHOICES = [
+        ('JANUARY', 'January'),
+        ('FEBRUARY', 'February'),
+        ('MARCH', 'March'),
+        ('APRIL', 'April'),
+        ('MAY', 'May'),
+        ('JUNE', 'June'),
+        ('JULY', 'July'),
+        ('AUGUST', 'August'),
+        ('SEPTEMBER', 'September'),
+        ('OCTOBER', 'October'),
+        ('NOVEMBER', 'November'),
+        ('DECEMBER', 'December'),
+    ]
+
+    QUARTER_CHOICES = [
+        ('1ST_QUARTER', '1st Quarter'),
+        ('2ND_QUARTER', '2nd Quarter'),
+        ('3RD_QUARTER', '3rd Quarter'),
+        ('4TH_QUARTER', '4th Quarter'),
+    ]
+
+    HALF_YEAR_CHOICES = [
+        ('1ST-HALF-YEAR', 'First Half Year'),
+        ('2ND-HALF-YEAR', 'Second Half Year'),
+    ]
+
+
+    appraisal_year= forms.IntegerField(required=False)
+    appraisal_type = forms.ChoiceField(required=False,choices=INCREMENT_TYPE_CHOICES)
+    month=forms.ChoiceField(required=False,choices=MONTH_CHOICES)
+    quarter=forms.ChoiceField(required=False,choices=QUARTER_CHOICES)
+    half_year=forms.ChoiceField(required=False,choices=HALF_YEAR_CHOICES)
+    appraisal_category = forms.ChoiceField(required=False,choices=INCREMENT_CATEGORY_CHOICES)
+   
+
+   
+class GenerateIncrementPromotionPdfForm(forms.Form):
+
+    INCREMENT_TYPE_CHOICES = [
+        ('MONTHLY', 'Monthly'),
+        ('QUARTERLY', 'Quarterly'),
+        ('HALF-YEARLY', 'Half Yearly'),
+        ('YEARLY', 'Yearly'),
+    ]
+
+    INCREMENT_CATEGORY_CHOICES=[
+        ('BY_EMPLOYEE','By Employee'),
+        ('BY_DEPARTMENT','By department'),
+        ('BY_POSITION','By Position'),
+        ('BY_COMPANY','By Company')]
+
+    MONTH_CHOICES = [
+        ('JANUARY', 'January'),
+        ('FEBRUARY', 'February'),
+        ('MARCH', 'March'),
+        ('APRIL', 'April'),
+        ('MAY', 'May'),
+        ('JUNE', 'June'),
+        ('JULY', 'July'),
+        ('AUGUST', 'August'),
+        ('SEPTEMBER', 'September'),
+        ('OCTOBER', 'October'),
+        ('NOVEMBER', 'November'),
+        ('DECEMBER', 'December'),
+    ]
+
+    QUARTER_CHOICES = [
+        ('1ST_QUARTER', '1st Quarter'),
+        ('2ND_QUARTER', '2nd Quarter'),
+        ('3RD_QUARTER', '3rd Quarter'),
+        ('4TH_QUARTER', '4th Quarter'),
+    ]
+
+    HALF_YEAR_CHOICES = [
+        ('1ST-HALF-YEAR', 'First Half Year'),
+        ('2ND-HALF-YEAR', 'Second Half Year'),
+    ]
+
+    employee_name = forms.ModelChoiceField(
+        queryset=Employee.objects.all(), 
+        label='Employee_name',
+        required=False,        
+    )
+    appraisal_year= forms.IntegerField(required=False)
+    appraisal_type = forms.ChoiceField(required=False,choices=INCREMENT_TYPE_CHOICES)
+    month=forms.ChoiceField(required=False,choices=MONTH_CHOICES)
+    quarter=forms.ChoiceField(required=False,choices=QUARTER_CHOICES)
+    half_year=forms.ChoiceField(required=False,choices=HALF_YEAR_CHOICES)
+    appraisal_category = forms.ChoiceField(required=False,choices=INCREMENT_CATEGORY_CHOICES)
+   
+
+
+class IncrementPromotionCheckForm(forms.Form):
+
+    INCREMENT_TYPE_CHOICES = [
+        ('MONTHLY', 'Monthly'),
+        ('QUARTERLY', 'Quarterly'),
+        ('HALF-YEARLY', 'Half Yearly'),
+        ('YEARLY', 'Yearly'),
+    ]
+
+    INCREMENT_CATEGORY_CHOICES=[
+        ('BY_EMPLOYEE','By Employee'),
+        ('BY_DEPARTMENT','By department'),
+        ('BY_POSITION','By Position'),
+        ('BY_COMPANY','By Company')]
+
+    MONTH_CHOICES = [
+        ('JANUARY', 'January'),
+        ('FEBRUARY', 'February'),
+        ('MARCH', 'March'),
+        ('APRIL', 'April'),
+        ('MAY', 'May'),
+        ('JUNE', 'June'),
+        ('JULY', 'July'),
+        ('AUGUST', 'August'),
+        ('SEPTEMBER', 'September'),
+        ('OCTOBER', 'October'),
+        ('NOVEMBER', 'November'),
+        ('DECEMBER', 'December'),
+    ]
+
+    QUARTER_CHOICES = [
+        ('1ST-QUARTER', '1st Quarter'),
+        ('2ND-QUARTER', '2nd Quarter'),
+        ('3RD-QUARTER', '3rd Quarter'),
+        ('4TH-QUARTER', '4th Quarter'),
+    ]
+
+    HALF_YEAR_CHOICES = [
+        ('1ST-HALF-YEAR', 'First Half Year'),
+        ('2ND-HALF-YEAR', 'Second Half Year'),
+    ]
+
+    
+    appraisal_year= forms.IntegerField(required=False)
+    eligible_score_for_promotion= forms.FloatField(required=False)
+      
+    appraisal_type = forms.ChoiceField(required=False,choices=INCREMENT_TYPE_CHOICES)
+    month=forms.ChoiceField(required=False,choices=MONTH_CHOICES)
+    quarter=forms.ChoiceField(required=False,choices=QUARTER_CHOICES)
+    half_year=forms.ChoiceField(required=False,choices=HALF_YEAR_CHOICES)
+    eligible_score_for_promotion= forms.FloatField(required=False)
+    max_promotion_limit = forms.FloatField(required=False)
+    salary_increment_percentage = forms.FloatField(required=False)
+    promotional_increment_percentage = forms.FloatField(required=False)
+
+       

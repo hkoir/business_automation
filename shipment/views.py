@@ -8,6 +8,7 @@ from.models import PurchaseShipmentTracking,SaleShipmentTracking
 @login_required
 def update_shipment_tracking(request, shipment_id):
     shipment = get_object_or_404(PurchaseShipment, id=shipment_id)
+    status_options = ['On Board','In Transit', 'Out for Delivery', 'Delivered', 'Pending', 'Returned', 'Failed Delivery']
 
     if request.method == 'POST':
         status_update = request.POST.get('status_update')
@@ -22,6 +23,7 @@ def update_shipment_tracking(request, shipment_id):
         return redirect('logistics:purchase_shipment_detail', shipment_id=shipment.id)
     return render(request, 'shipment/purchase/update_shipment_tracking.html', {
         'shipment': shipment,
+        'status_options':status_options
     })
 
 
@@ -31,6 +33,7 @@ def update_shipment_tracking(request, shipment_id):
 @login_required
 def update_sale_shipment_tracking(request, shipment_id):
     shipment = get_object_or_404(SaleShipment, id=shipment_id)
+    status_options = ['On Board','In Transit', 'Out for Delivery', 'Delivered', 'Pending', 'Returned', 'Failed Delivery']
 
     if request.method == 'POST':
         status_update = request.POST.get('status_update')
@@ -46,6 +49,7 @@ def update_sale_shipment_tracking(request, shipment_id):
 
     return render(request, 'shipment/sales/update_shipment_tracking.html', {
         'shipment': shipment,
+        'status_options':status_options
     })
 
 

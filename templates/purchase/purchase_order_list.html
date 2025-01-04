@@ -133,7 +133,7 @@ table {
                     
 
                         <th class="text-center p-2">Total amount Paid</th>
-                        <th class="text-center p-2">Created at</th>                    
+                                     
                         <th class="text-center p-2">Status</th>
                 
                         <th class="text-center p-2">Prepared by</th>
@@ -142,15 +142,17 @@ table {
 
                         <th class="text-center p-2">Reviewal</th>
                         <th class="text-center p-2">Approval</th>                                     
-                        <th class="text-center p-2">Create shipment</th>
+                        <th class="text-center p-2">Create Parent schedule</th>
 
                         <th class="text-center p-2">Add child schedule</th>
+                        <th class="text-center p-2" style="background-color: rgb(235, 109, 12);">Update Shipment</th> 
+                        <th class="text-center p-2">Dispatched Items</th>
                         <th class="text-center p-2">QC Dashboard</th>                        
                         <th class="text-center p-2">Create Invoice</th>
 
                         <th class="text-center p-2">Payment Status</th>
                         <th class="text-center p-2">Make payment</th>
-                        <th class="text-center p-2">Update Dispatch Status</th> 
+                       
                         <th class="text-center p-2">Download invoice</th> 
                         <th class="text-center p-2">Upload invoice</th> 
                         <th class="text-center p-2">Upload Payment Docs</th> 
@@ -164,8 +166,8 @@ table {
                   
                         <tr>                           
                          
-                            <td class="text-center p-1" style="white-space: nowrap;">{{ order.order_id }}</td>                            
-                            <td class="text-center p-1" style="white-space: nowrap;">{{ order.purchase_request_order.order_id }}</td>
+                            <td class="text-center p-1" style="white-space: nowrap;font-size: 10px;">{{ order.order_id }}</td>                            
+                            <td class="text-center p-1" style="white-space: nowrap;font-size: 10px;">{{ order.purchase_request_order.order_id }}</td>
                             <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount}}</td>
                            
 
@@ -186,7 +188,7 @@ table {
                                     {% endif %}
                                 {% endwith %}
                             </td>
-                            <td class="text-center p-2" style="white-space: nowrap;">{{order.created_at}}</td>  
+                            
                                                
                             <td>
                                 {% if order.is_full_delivered %}   
@@ -198,55 +200,52 @@ table {
                                    
                             <td class="text-center p-2" style="white-space: nowrap;">{{order.user}}</td>
                             <td class="text-center p-1" style="white-space: nowrap;">
-                                <a href="{% url 'purchase:purchase_order_items' order.id %}">Order items</a>
+                                <a href="{% url 'purchase:purchase_order_items' order.id %}">Items</a>
                             </td>
                            
                             <!-- Requester Button -->
-<td>
-    {% if order.requester_approval_status == 'SUBMITTED' %}
-    <strong><i class="fas fa-check" style="color:green">Submitted</i></strong>   
-   {% else %}
-   <a href="{% url 'purchase:process_purchase_order' order.id %}" class="btn btn-primary">Submit Request</a>
-   {% endif %}
-</td>
+                        <td>
+                            {% if order.requester_approval_status == 'SUBMITTED' %}
+                            <strong><i class="fas fa-check" style="color:green">Submitted</i></strong>   
+                        {% else %}
+                        <a href="{% url 'purchase:process_purchase_order' order.id %}" class="btn btn-primary">Submit Request</a>
+                        {% endif %}
+                        </td>
 
-<!-- Reviewer Button -->
-<td>
-    {% if order.requester_approval_status != 'SUBMITTED'  %}   
-    <button class="btn btn-secondary" disabled>Pending Submission</button>
-    {% elif order.reviewer_approval_status == 'CANCELLED'  %}  
-    <strong><i class="fas fa-times" style="color:rgb(236, 17, 6)">Cancelled</i></strong> 
-   {% elif order.reviewer_approval_status == 'REVIEWED' %}
-   <strong><i class="fas fa-check" style="color:green">Reviewed</i></strong>  
-   {% else %}
-   <a href="{% url 'purchase:process_purchase_order' order.id %}" class="btn btn-primary">Review Request</a>
-   {% endif %}
-</td>
+                        <!-- Reviewer Button -->
+                        <td>
+                            {% if order.requester_approval_status != 'SUBMITTED'  %}   
+                            <button class="btn btn-secondary" disabled>Pending Submission</button>
+                            {% elif order.reviewer_approval_status == 'CANCELLED'  %}  
+                            <strong><i class="fas fa-times" style="color:rgb(236, 17, 6)">Cancelled</i></strong> 
+                        {% elif order.reviewer_approval_status == 'REVIEWED' %}
+                        <strong><i class="fas fa-check" style="color:green">Reviewed</i></strong>  
+                        {% else %}
+                        <a href="{% url 'purchase:process_purchase_order' order.id %}" class="btn btn-primary">Review Request</a>
+                        {% endif %}
+                        </td>
 
-<!-- Approver Button -->
-<td>
-    {% if order.reviewer_approval_status != 'REVIEWED'  %}
-    <button class="btn btn-secondary" disabled>Pending review</button>
-   {% elif order.approver_approval_status == 'APPROVED'  %}
-   <strong><i class="fas fa-check" style="color:green">Approved</i></strong> 
-   {% elif order.approver_approval_status == 'CANCELLED'  %}
-   <strong><i class="fas fa-check" style="color:rgb(235, 9, 9)">Cancelled</i></strong> 
-   {% else %}
-   <a href="{% url 'purchase:process_purchase_order' order.id %}" class="btn btn-primary">Approve Request</a>
-   {% endif %}
-</td>
-
-
-                        
+                        <!-- Approver Button -->
+                        <td>
+                            {% if order.reviewer_approval_status != 'REVIEWED'  %}
+                            <button class="btn btn-secondary" disabled>Pending review</button>
+                        {% elif order.approver_approval_status == 'APPROVED'  %}
+                        <strong><i class="fas fa-check" style="color:green">Approved</i></strong> 
+                        {% elif order.approver_approval_status == 'CANCELLED'  %}
+                        <strong><i class="fas fa-check" style="color:rgb(235, 9, 9)">Cancelled</i></strong> 
+                        {% else %}
+                        <a href="{% url 'purchase:process_purchase_order' order.id %}" class="btn btn-primary">Approve Request</a>
+                        {% endif %}
+                        </td>                        
 
                         <!-- Shipment section -->
                          {% if not order.purchase_shipment.first %}
                          <td class="text-center p-2" style="white-space: nowrap;">
-                             <a href="{% url 'logistics:create_purchase_shipment' order.id %}" class="btn btn-sm btn-primary">Create Shipment</a>
+                             <a href="{% url 'logistics:create_purchase_shipment' order.id %}" class="btn btn-sm btn-primary">Create</a>
                          </td>
                          {% else %}
                          <td>
-                             <i class="fas fa-check" style="color:green;font-weight: bold;">Completed</i>
+                             <i class="fas fa-check" style="color:green;font-weight: bold;">Created</i>
                          </td>
                          {% endif %}                       
                         
@@ -261,7 +260,7 @@ table {
                             <td><i class="fas fa-check" style="color:green;font-weight: bold;">All Scheduled</i></td>
                             {% else %}
                             <td class="text-center p-2" style="white-space: nowrap;">
-                                <a href="{% url 'logistics:create_purchase_dispatch_item' shipment.id %}" class="btn btn-sm btn-primary">Add child dispatch</a>
+                                <a href="{% url 'logistics:create_purchase_dispatch_item' shipment.id %}" class="btn btn-sm btn-primary">Add</a>
                             </td>
                             {% endif %}
                             {% else %}
@@ -269,6 +268,21 @@ table {
                         {% endif %}
                         {% endwith %}
                     {% endif %}
+
+
+                    <td style="background-color: aquamarine;">
+                        {% if order.approver_approval_status != 'APPROVED' %}
+                            <span>Approval Pending</span>>
+                            {% elif order.purchase_shipment.first.shipment_dispatch_item.first.status|item_list:'DELIVERED,REACHED,OBI' %}
+
+                        <i class="fas fa-check" style="color:green;font-weight: bold;">Delivered</i>
+                        {% else %}
+                            <a href="{% url 'logistics:dispatch_item_list' order.id %}">Update</a>
+                        {% endif %}
+                    </td>
+
+                    <td><a href="{% url 'logistics:dispatch_item_list' order.purchase_shipment.first.shipment_dispatch_item.first.id %}">Items</a></td>
+
                                           
 
                  <!-- QC Dashboard section -->
@@ -370,39 +384,31 @@ table {
                                 {% endif %}
                             {% endwith %}
                         {% endif %}
-                    </td>
-                    
-                    <td>
-                        {% if order.approver_approval_status != 'APPROVED' %}
-                            <span>Approval Pending</span>>
-                        {% else %}
-                            <a href="{% url 'logistics:dispatch_item_list' order.id %}">Update shipment</a>
-                        {% endif %}
-                    </td>
-
-                    <td>
-                      
-                        <a href="{% url 'finance:download_purchase_invoice' order.id %}?mode=preview" target="_blank">Preview</a> |
+                    </td>                    
+                   
+                    <td>                      
+                        <a href="{% url 'finance:download_purchase_invoice' order.id %}?mode=preview" target="_blank">Preview</a> 
                         <a href="{% url 'finance:download_purchase_invoice' order.id %}?mode=download">Download</a>
                     </td>
 
                     <td>
-                        {% if order.purchase_shipment.first.shipment_invoices.first %}
+                        {% if order.purchase_shipment.first.shipment_invoices.first and not order.purchase_shipment.first.shipment_invoices.first.purchase_invoice_attachment.first %}
                         <a href="{% url 'finance:add_purchase_invoice_attachment' order.purchase_shipment.first.shipment_invoices.first.id %}">Upload signed invoice</a>
+                        {% elif order.purchase_shipment.first.shipment_invoices.first.purchase_invoice_attachment.first %}
+                        <i class="fas fa-check" style="color: green; font-weight: bold;">Uploaded</i>
                         {% else %}
                         <span> Invoice not createt yet</span>
                         {% endif %}
                     </td>
 
                     <td>
-                        {% if order.has_payment_attachment %}
-                        <a href="{% url 'finance:add_purchase_payment_attachment' order.purchase_shipment.first.shipment_invoices.first.id %}">
-                            Upload payment docs
-                        </a>
-                    {% else %}
-                        <span>Payment not made yet</span>
-                    {% endif %}
-                    
+                        {% if order.purchase_shipment.first.shipment_invoices.first and not order.purchase_shipment.first.shipment_invoices.first.purchase_payment_attachment.first %}
+                        <a href="{% url 'finance:add_purchase_payment_attachment' order.purchase_shipment.first.shipment_invoices.first.id %}">Upload Payment Docs</a>
+                        {% elif order.purchase_shipment.first.shipment_invoices.first.purchase_payment_attachment.first %}
+                        <i class="fas fa-check" style="color: green; font-weight: bold;">Uploaded</i>
+                        {% else %}
+                        <span> Payment not made yet</span>
+                        {% endif %}
                     
                     </td>
                     
@@ -420,15 +426,15 @@ table {
                     </td>
 
                 <!-- view attachement -->
-                    <td>
-                        {% if order.purchase_shipment.first.shipment_invoices.first.purchase_payment_attachment.first.file.url %}
-                            <a href="{{ order.purchase_shipment.first.shipment_invoices.first.purchase_payment_attachment.first.file.url }}" target="_blank">
-                                <img src="{{ order.purchase_shipment.first.shipment_invoices.first.purchase_payment_attachment.first.file.url }}" alt="payment doc Attachment" style="max-width: 50px; max-height: 30px;">
-                            </a>
-                        {% else %}
-                            <span>No file</span>
-                        {% endif %}
-                    </td>                      
+                <td>
+                    {% if order.purchase_shipment.first.shipment_invoices.first.purchase_payment_attachment.first.file.url %}
+                        <a href="{{ order.purchase_shipment.first.shipment_invoices.first.purchase_payment_attachment.first.file.url }}" target="_blank">
+                            <img src="{{ order.purchase_shipment.first.shipment_invoices.first.purchase_payment_attachment.first.file.url }}" alt="Invoice Attachment" style="max-width: 50px; max-height: 30px;">
+                        </a>
+                    {% else %}
+                        <span>No file</span>
+                    {% endif %}
+                </td>        
                                       
 
                      </tr>

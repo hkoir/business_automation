@@ -43,36 +43,63 @@
        </style>
 
 
-<h2>Shipment Detail for {{ shipment.tracking_number }}</h2>
 
-<table class="table table-striped">
-    <tbody>
-        <tr>
-            <th>Carrier</th>
-            <td>{{ shipment.carrier }}</td>
-        </tr>
-        <tr>
-            <th>Status</th>
-            {% if shipment.is_fully_shipped %}
-            <td>Delivered</td>
-            {% else %}
-            <td>{{ shipment.get_status_display }}</td>
-            {% endif %}
-        </tr>
-        <tr>
-            <th>Estimated Delivery</th>
-            <td>{{ shipment.estimated_delivery }}</td>
-        </tr>
-        <tr>
-            <th>Created At</th>
-            <td>{{ shipment.created_at }}</td>
-        </tr>
-        <tr>
-            <th>Updated At</th>
-            <td>{{ shipment.updated_at }}</td>
-        </tr>
-    </tbody>
-</table>
+
+
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-2"></div>
+            <div class="col-12 col-md-8 mb-4">
+                <div class="card shadow-lg" style="background-color: aliceblue;">
+                    <!-- Card Header -->
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4>Shipment Detail for {{ shipment.tracking_number }}</h4>
+                    </div> 
+                    <div class="card-body">                    
+                                                
+                        <table class="table table-striped">
+                            <tbody>
+                                <tr>
+                                    <th>Carrier</th>
+                                    <td>{{ shipment.carrier }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status</th>
+                                    {% if shipment.is_fully_shipped %}
+                                    <td>Delivered</td>
+                                    {% else %}
+                                    <td>{{ shipment.get_status_display }}</td>
+                                    {% endif %}
+                                </tr>
+                                <tr>
+                                    <th>Estimated Delivery</th>
+                                    <td>{{ shipment.estimated_delivery }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Created At</th>
+                                    <td>{{ shipment.created_at }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Updated At</th>
+                                    <td>{{ shipment.updated_at }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+
+                    </div>
+                </div>           
+            </div>
+            <div class="col-2"></div>
+
+    </div>
+</div>
+
+
+
+
+
 
 <h3>Tracking Updates</h3>
 <table class="table table-striped">

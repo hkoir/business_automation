@@ -191,6 +191,11 @@
         labels.push(staticLabel1,staticDataPoint2);
         totalScores.push(staticDataPoint1,staticDataPoint2);
 
+        // Calculate the max y-axis value
+        const maxYValue = Math.max(
+                ...totalScores,       
+            ) * 1.2;
+
 
     // Line Chart Configuration
     const ctxLine = document.getElementById('lineChart').getContext('2d');
@@ -221,6 +226,7 @@
                 },
                 y: {
                     beginAtZero: true,
+                    max:maxYValue,
                     title: {
                         display: true,
                         text: 'Total Score'
@@ -257,6 +263,7 @@
     //             },
     //             y: {
     //                 beginAtZero: true,
+    //                  max:maxYValue
     //                 title: {
     //                     display: true,
     //                     text: 'Total Score'

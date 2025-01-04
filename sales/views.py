@@ -696,11 +696,11 @@ def qc_dashboard(request, sale_order_id=None):
     if sale_order_id:
         pending_items = SaleDispatchItem.objects.filter(
             sale_shipment__sales_order=sale_order_id,  
-            status = 'DISPATCHED'
+            status = 'READY_FOR_QC'
         )
         sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
     else:
-        pending_items = SaleDispatchItem.objects.filter(status='DISPATCHED')
+        pending_items = SaleDispatchItem.objects.filter(status='READY_FOR_QC')
         sale_order = None
 
     if not pending_items:
@@ -731,7 +731,7 @@ def qc_inspect_item(request, item_id):
             qc_entry.inspection_date = timezone.now()
             qc_entry.save()
             
-            sale_dispatch_item.status = 'DELIVERED'
+            sale_dispatch_item.status = 'DISPATCHED'
             sale_dispatch_item.save()
 
             good_quantity = qc_entry.good_quantity

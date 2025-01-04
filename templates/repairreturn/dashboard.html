@@ -2,51 +2,140 @@
 
 {% block content %}
 
+<style>
+    
+/* Small screens: Mobile devices */
+@media (max-width: 767px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
 
+/* Medium screens: Tablets and small laptops */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Large screens: Laptops and standard desktops */
+@media (min-width: 1025px) and (max-width: 1440px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Extra large screens: Wide desktops or monitors */
+@media (min-width: 1441px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+
+    .menu-card {
+        text-align: center;
+        padding: 10px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 10px;
+        background-color: aliceblue;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width:120px;
+        height:100px;
+
+    align-items: center;
+    justify-content: center;
+       
+    }
+
+    .menu-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .menu-icon {
+        font-size: 1.5rem;
+        color: #007bff;
+        width:20px;
+        height:20px;
+        justify-content: center;
+    }
+
+    .menu-title {
+        margin-top: 10px;       
+        font-size: 1rem;
+        font-weight: 600;
+        color: #333;
+        text-align: center;
+        
+    }
+
+    body {
+        background-color: #f8f9fa;
+    }
+
+</style>
 
 
 <div class="container-fluid">
     <div class="row">
-
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'repairreturn:sale_order_list' %}" class="btn btn-primary">View and apply RRR</a> 
-            </div> 
-        </div>
-        <div class="col-4 col-md-3">   
-            <div class="card">     
-            <a href="{% url 'repairreturn:return_request_list' %}" class="btn btn-primary">Initial Feedback</a> 
-        </div>
-        </div>
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'repairreturn:faulty_product_list' %}" class="btn btn-primary">Actions</a> 
-            </div> 
+       
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'repairreturn:sale_order_list' %}" class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-plus-square menu-icon"></i>
+                    <div class="menu-title">View and apply RRR</div>
+                </div>
+            </a>
         </div>
 
-             
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'repairreturn:replacement_product_list' %}" class="btn btn-primary">Replacement status</a> 
-            </div> 
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'repairreturn:return_request_list' %}" class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-plus-square menu-icon"></i>
+                    <div class="menu-title">Initial Feedback</div>
+                </div>
+            </a>
         </div>
 
 
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'repairreturn:scrap_order_list' %}" class="btn btn-primary">Scrap order list</a> 
-            </div> 
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'repairreturn:faulty_product_list' %}"  class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-plus-square menu-icon"></i>
+                    <div class="menu-title">Actions</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'repairreturn:replacement_product_list' %}"  class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-list menu-icon"></i>
+                    <div class="menu-title">Replacement status</div>
+                </div>
+            </a>
         </div>
 
-        
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'repairreturn:create_scrap_request' %}" class="btn btn-primary">Create scrap request</a> 
-            </div> 
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'repairreturn:scrap_order_list' %}" class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-list menu-icon"></i>
+                    <div class="menu-title">Scrap order list</div>
+                </div>
+            </a>
         </div>
-
       
-                            
+      
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'repairreturn:create_scrap_request' %}" class="text-decoration-none">
+                <div class="menu-card">
+                    <i class="fas fa-plus-square menu-icon"></i>
+                    <div class="menu-title">Scrap request</div>
+                </div>
+            </a>
+        </div>
+
+                             
         
 
     </div>

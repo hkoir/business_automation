@@ -289,15 +289,25 @@ def update_dispatch_status(request, dispatch_item_id):
 
     try:
         shipment = PurchaseShipment.objects.get(id=shipment.id)
-        all_items_reached = shipment.shipment_dispatch_item.filter(status__in =['REACHED','OBI']).count() == shipment.shipment_dispatch_item.count()
+
+        total_dispatch_items = shipment.shipment_dispatch_item.count()
+        reached_items_count = shipment.shipment_dispatch_item.filter(status__in=['REACHED', 'OBI']).count()
+
+        all_items_reached = reached_items_count == total_dispatch_items
+
         if all_items_reached:
             shipment.status = 'REACHED'
-            shipment.purchase_order.status='REACHED'
+            shipment.purchase_order.status = 'REACHED'
             shipment.save()
-            logger.info(f"Shipment {shipment.id} marked as DELIVERED.")
-            create_notification(request.user,f'item {dispatch_item.dispatch_item.product} has just reached')
+
+            logger.info(f"Shipment {shipment.id} marked as REACHED.")
+
+            for dispatch_item in shipment.shipment_dispatch_item.filter(status__in=['REACHED', 'OBI']):
+                create_notification(request.user, f'Item {dispatch_item.dispatch_item.product} has just reached')
+
     except PurchaseShipment.DoesNotExist:
         logger.error(f"Shipment {shipment.id} not found.")
+
 
     return redirect('logistics:dispatch_item_list', purchase_order_id=shipment.purchase_order.id)
 
@@ -507,7 +517,7 @@ def confirm_sale_dispatch_item(request):
                         delivery_date=item['delivery_date'],
                         warehouse = warehouse,
                         location=location,
-                        status='DISPATCHED',
+                        status='READY_FOR_QC',
                         user=request.user,
                     )
                 request.session['basket'] = []
@@ -575,15 +585,39 @@ def sale_dispatch_item_list(request, sale_order_id):
 
 @login_required
 def update_sale_dispatch_status(request, dispatch_item_id):
-    dispatch_item = get_object_or_404(SaleDispatchItem, id=dispatch_item_id)
+    dispatch_item = get_object_or_404(SaleDispatchItem, id=dispatch_item_id)  
+    
     if request.method == 'POST':
         new_status = request.POST.get('new_status')
+        old_status = dispatch_item.status
         dispatch_item.status = new_status
         dispatch_item.save()
+        create_notification(request.user, f'Product: {dispatch_item.dispatch_item.product} status updated from {old_status} to {new_status}')     
 
     shipment = dispatch_item.sale_shipment
     shipment.update_shipment_status()
+    try:
+        shipment = SaleShipment.objects.get(id=shipment.id)
+
+        total_dispatch_items = shipment.sale_shipment_dispatch.count()
+        reached_items_count = shipment.sale_shipment_dispatch.filter(status__in=['REACHED', 'OBI']).count()
+
+        all_items_reached = reached_items_count == total_dispatch_items
+
+        if all_items_reached:
+            shipment.status = 'REACHED'
+            shipment.sale_order.status = 'REACHED'
+            shipment.save()
+
+            logger.info(f"Shipment {shipment.id} marked as REACHED.")
+
+            for dispatch_item in shipment.sale_shipment_dispatch.filter(status__in=['REACHED', 'OBI']):
+                create_notification(request.user, f'Item { dispatch_item.dispatch_item.product} has just reached')
+
+    except SaleShipment.DoesNotExist:
+        logger.error(f"Shipment {shipment.id} not found.")   
     return redirect('logistics:sale_dispatch_item_list', sale_order_id=shipment.sales_order.id)
+
 
 
 @login_required

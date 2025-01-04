@@ -135,9 +135,7 @@ table thead th,td {
 }
 
 
-.notification.unread {
-    background-color: #f8d7da; 
-}
+
 
 /* Add a pulse animation to the bell when there are new notifications */
 @keyframes bounce {
@@ -173,6 +171,47 @@ table thead th,td {
     color: #FF5733; 
     animation: shake 1s ease-in-out infinite;
     /* animation: spin 1.5s linear infinite; */
+}
+
+
+
+.notification-dropdown {
+    max-height: 400px; 
+    overflow-y: auto; 
+    width: 500px; 
+    padding: 10px; 
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); 
+    border-radius: 8px; 
+    background-color: #fff; 
+}
+
+.notification-scroll {
+    max-height: 300px; 
+    overflow-y: auto; 
+}
+
+.notification.unread {
+    font-weight: bold; 
+    background-color: #f8f9fa; 
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 5px; 
+}
+
+
+.notification p {
+    margin: 0; 
+    white-space: normal; 
+    word-break: break-word; 
+}
+
+.badge.bg-danger {
+    position: absolute;
+    top: 8px; 
+    right: 5px;
+    font-size: 0.75rem;
+    padding: 0.3em 0.4em;
+    border-radius: 50%;
 }
 
 

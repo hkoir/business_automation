@@ -43,13 +43,19 @@
 <div class="container-fluid main-content">
     <div class="row">
         <div class="col-12 col-md-3">
-            <div class="card shadow" style="padding:10px;background-color:aliceblue;">
+            <div class="card shadow-lg" style="background-color: aliceblue;">
+                <!-- Card Header -->
+                <div class="card-header bg-primary text-white text-center">
+                    <h5 class="mb-0">Create sale request</h5>
+                </div> 
                 <div class="card-body">
-                    <h6 class="card-title text-center"><strong>Create sale Order</strong> </h6>
+                  
                     <form method="post" enctype="multipart/form-data" action="{% url 'sales:create_sale_request' %}" id="add_category">
                         {% csrf_token %}
                         {{ form.as_p }}
+                        <div class="d-grid">
                         <button type="submit" name="add_to_basket" class="btn btn-primary">Add to list</button>
+                        </div>
                     </form>
                  </div>
             </div>           

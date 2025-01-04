@@ -25,6 +25,8 @@ def in_list(value, arg):
         return False
     return value in arg
 
+
+
 @register.filter
 def item_list(value, arg):
     return value in arg.split(',')
@@ -36,7 +38,7 @@ def item_list(value, arg):
 def in_list2(value, arg):
     if isinstance(arg, str):
         try:
-            arg = ast.literal_eval(arg)  # Safely convert string to Python list
+            arg = ast.literal_eval(arg)  
         except (ValueError, SyntaxError):
             return False
     return value in arg
@@ -50,9 +52,14 @@ def add_class(value, css_class):
 
 
 
-
-
-
 @register.filter(name='has_group')
 def has_group(user, group_name):
     return user.groups.filter(name=group_name).exists()
+
+
+@register.filter
+def has_pending_extension_requests(task):
+    return task.time_extension_requests.filter(is_approved=False).exists()
+
+
+

@@ -188,6 +188,12 @@
         const labels = evaluationData.map(item => item.created_at);
         const scores = evaluationData.map(item => item.total_score);
 
+        // Calculate the max y-axis value
+        const maxYValue = Math.max(
+                ...scores,       
+            ) * 1.2;
+
+
         // Create the Bar Chart
         const ctxBar = document.getElementById('performanceBarChart').getContext('2d');
         const performanceBarChart = new Chart(ctxBar, {
@@ -206,7 +212,12 @@
                 responsive: true,
                 scales: {
                     y: {
+                        ticks:{
+                            callback: function(value, index, values) { 
+                        return value.toFixed(2);                     }
+                        },
                         beginAtZero: true,
+                        max:maxYValue
                     }
                 }
             }
@@ -221,7 +232,7 @@
                 datasets: [{
                     label: 'Total Score (Line)',
                     data: scores,
-                    borderColor: "rgba(255, 159, 64, 1)", 
+                    borderColor: "rgba(240, 128, 128, 1)", 
                     backgroundColor:  "rgba(255, 159, 64, .6)",
                     fill: false,  
                     borderWidth: 2,
@@ -232,7 +243,12 @@
                 responsive: true,
                 scales: {
                     y: {
+                        ticks:{
+                            callback: function(value, index, values) { 
+                        return value.toFixed(2);                     }
+                        },
                         beginAtZero: true,
+                        max:maxYValue
                     }
                 }
             }

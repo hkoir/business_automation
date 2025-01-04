@@ -116,15 +116,17 @@ table {
                         <th class="text-center p-2">Approval</th>
 
                
-                        <th class="text-center p-2">Create shipment</th>
+                        <th class="text-center p-2">Create Parent Schedule</th>
                         <th class="text-center p-2">Add child schedule</th>
+                        <th class="text-center p-2" style="background-color: rgb(235, 109, 12);">Update Shipment</th> 
+                        <th class="text-center p-2">Delivered Items</th>
 
                         <th class="text-center p-2">QC Dashboard</th>
                         
                         <th class="text-center p-2">Create Invoice</th>
 
                         <th class="text-center p-2">Make payment</th>
-                        <th class="text-center p-2">Dispatch Item</th>
+                        
                         <th class="text-center p-2">Invoice</th>
 
                         <th class="text-center p-2">Upload signed invoice</th>
@@ -138,8 +140,8 @@ table {
                     {% for order in page_obj %}
                         <tr>
                          
-                            <td class="text-center p-1" style="white-space: nowrap;">{{ order.sale_request_order.order_id }}</td>
-                            <td class="text-center p-1" style="white-space: nowrap;">{{ order.order_id }}</td>
+                            <td class="text-center p-1" style="white-space: nowrap; font-size: 10px;">{{ order.sale_request_order.order_id }}</td>
+                            <td class="text-center p-1" style="white-space: nowrap;font-size: 10px;">{{ order.order_id }}</td>
                             
                             <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount|add_commas}}</td>
                                                
@@ -154,7 +156,7 @@ table {
                            
                             <td class="text-center p-2" style="white-space: nowrap;">{{order.user}}</td>
                             <td class="text-center p-2" style="white-space: nowrap;">
-                              <a href="{% url 'sales:sale_order_items' order.id%}">Requested items</a>
+                              <a href="{% url 'sales:sale_order_items' order.id%}">Items</a>
                             </td>
 
 
@@ -196,11 +198,11 @@ table {
 
                             {% if not order.sale_shipment.first %}
                             <td class="text-center p-2" style="white-space: nowrap;">
-                                <a href="{% url 'logistics:create_sale_shipment' order.id %}" class="btn btn-sm btn-primary">Create Shipment</a>
+                                <a href="{% url 'logistics:create_sale_shipment' order.id %}" class="btn btn-sm btn-primary">Create</a>
                             </td>
                             {% else %}
                             <td>
-                                <i class="fas fa-check" style="color:green;font-weight: bold;">Completed</i>
+                                <i class="fas fa-check" style="color:green;font-weight: bold;">Created</i>
                             </td>
                             {% endif %}                       
                            
@@ -212,13 +214,29 @@ table {
                                     <td><i class="fas fa-check" style="color:green;font-weight: bold;">All Scheduled</i></td>
                                 {% else %}
                                     <td class="text-center p-2" style="white-space: nowrap;">
-                                        <a href="{% url 'logistics:create_sale_dispatch_item' shipment.id %}" class="btn btn-sm btn-primary">Add child dispatch</a>
+                                        <a href="{% url 'logistics:create_sale_dispatch_item' shipment.id %}" class="btn btn-sm btn-primary">Add</a>
                                     </td>
                                 {% endif %}
                             {% else %}
                                 <td>Make shipment first</td>
                             {% endif %}
-                        {% endwith %}                                                              
+                        {% endwith %}      
+                        
+
+                        <td style="background-color: aquamarine;">
+                            {% if order.approver_approval_status != 'APPROVED' %}
+                                <span>Approval Pending</span>>
+                                {% elif order.sale_shipment.first.sale_shipment_dispatch.first.status|item_list:'DELIVERED,REACHED,OBI' %}
+                                <i class="fas fa-check" style="color:green;font-weight: bold;">Delivered</i>
+                            {% else %}
+                                <a href="{% url 'logistics:sale_dispatch_item_list' order.id %}">Update</a>
+                            {% endif %}
+                        </td>
+                        
+                        <td>
+                            <a href="{% url 'logistics:sale_dispatch_item_list' order.id %}">
+                                 Items</a>
+                        </td>
                                                   
                         
                         <td class="text-center p-2" style="white-space: nowrap;">
@@ -280,13 +298,9 @@ table {
                                                 <span> No shipment found</span>
                                             {% endif %}
                                         {% endwith %}
-                                    </td>
-                                    
+                                    </td>                                 
+                                         
                         
-                                                       
-                        <td><a href="{% url 'logistics:sale_dispatch_item_list' order.id %}"
-                          >view dispatch Item</a>
-                        </td>
                         <td>
                             {% with order.sale_shipment.first.sale_shipment_invoices.first as first_invoice %}
                                 {% if first_invoice and first_invoice.status in 'SUBMITTED,FULLY_PAID,PARTIALLY_PAID' %}
@@ -299,25 +313,25 @@ table {
                         </td>
 
                         
-                       
                         <td>
-                            {% if order.sale_shipment.first.sale_shipment_invoices.first %}
+                            {% if order.sale_shipment.first.sale_shipment_invoices.first and not order.sale_shipment.first.sale_shipment_invoices.first.sale_invoice_attachment.first %}
                             <a href="{% url 'finance:add_sale_invoice_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">Upload signed invoice</a>
+                            {% elif order.sale_shipment.first.sale_shipment_invoices.first and order.sale_shipment.first.sale_shipment_invoices.first.sale_invoice_attachment.first %}
+                            <i class="fas fa-check" style="color:green;font-weight: bold;">Uploaded</i>
                             {% else %}
-                            <span> Invoice not createt yet</span>
+                            <span>Invoice not created yet</span>
                             {% endif %}
                         </td>
 
+
                         <td>
-                            {% if order.has_payment_attachment %}
-                            <a href="{% url 'finance:add_sale_payment_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">
-                                Upload payment docs
-                            </a>
-                        {% else %}
-                            <span>Payment not made yet</span>
-                        {% endif %}
-                        
-                        
+                            {% if order.sale_shipment.first.sale_shipment_invoices.first and not order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachement.first %}
+                            <a href="{% url 'finance:add_sale_invoice_attachment' order.sale_shipment.first.sale_shipment_invoices.first.id %}">Upload Payment docs</a>
+                            {% elif order.sale_shipment.first.sale_shipment_invoices.first and order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachement.first %}
+                            <i class="fas fa-check" style="color:green;font-weight: bold;">Uploaded</i>
+                            {% else %}
+                            <span>Invoice not created yet</span>
+                            {% endif %}
                         </td>
 
 
@@ -333,16 +347,14 @@ table {
                         </td>
     
                         <td>
-                            {% if order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachment.first.file.url %}
-                                <a href="{{ order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachment.first.file.url }}" target="_blank">
-                                    <img src="{{ order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachment.first.file.url }}" alt="payment doc Attachment" style="max-width: 50px; max-height: 30px;">
+                            {% if order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachement.first.file.url %}
+                                <a href="{{ order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachement.first.file.url }}" target="_blank">
+                                    <img src="{{ order.sale_shipment.first.sale_shipment_invoices.first.sale_payment_attachement.first.file.url }}" alt="Invoice Attachment" style="max-width: 50px; max-height: 30px;">
                                 </a>
                             {% else %}
                                 <span>No file</span>
                             {% endif %}
                         </td>
-                        
-
                    
                         </tr>
                     {% endfor %}

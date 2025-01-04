@@ -24,7 +24,7 @@ class TenantValidationMiddleware:
                 tenant = TenantModel.objects.get(domain_url=subdomain)  
                 request.tenant = tenant
             except TenantModel.DoesNotExist:               
-                if subdomain.startswith('company-'):
+                if subdomain.startswith('demo-'):
                     
                     logger.info(f"Unregistered tenant {subdomain} accessed. Redirecting to registration.")
                     return redirect('/apply_for_tenant/')  

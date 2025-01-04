@@ -7,7 +7,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from .forms import TenantApplicationForm
 
-from .models import TenantInfo,TenantApplication,Client
+from .models import TenantInfo,TenantData,Client
 from django.utils import timezone
 
 import requests
@@ -21,10 +21,10 @@ from django.core.management.base import BaseCommand
 @login_required(login_url='accounts:login')
 def tenant_dashboard(request):
     tenant = get_object_or_404(Client, schema_name=request.tenant.schema_name)
-    if tenant.name == "Company-1":
+    if tenant.name == "demo1-1":
         template_name = "tenant/tenant_1_dashboard.html"
         context = {"tenant": tenant, "welcome_message": "Welcome to Company 1's Dashboard"}
-    elif tenant.name == "Company-2":
+    elif tenant.name == "demo2-2":
         template_name = "tenant/tenant_2_dashboard.html"
         context = {"tenant": tenant, "custom_reports": True}
     else:
@@ -132,7 +132,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         current_date = timezone.now().date()
 
-        expired_tenants = TenantApplication.objects.filter(
+        expired_tenants = TenantData.objects.filter(
             expiration_date__lt=current_date, 
             status='active'
         )

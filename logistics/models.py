@@ -233,9 +233,15 @@ class SaleDispatchItem(models.Model):
     delivery_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=30,  null=True, blank=True, default='IN_PROCESS',   
     choices=[
-        ('IN_PROCESS', 'In Process'),   
-        ('DISPATCHED', 'Dispatched'),       
-        ('DELIVERED', 'Delivered'),      
+        ('IN_PROCESS', 'In Process'),
+        ('READY_FOR_QC', 'Ready for QC'),
+        ('DISPATCHED', 'Dispatched'),
+        ('ON_BOARD', 'On Board'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('CUSTOM_CLEARANCE_IN_PROCESS', 'Custom Clearance In Process'),   
+        ('REACHED', 'Reached'),         
+        ('OBI','OBI done'),
+        ('DELIVERED', 'Delivered'),     
         ('CANCELLED', 'Cancelled'),
     ],
     )  

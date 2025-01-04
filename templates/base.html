@@ -104,6 +104,44 @@ html, body {
 
 
 
+/* Add a pulse animation to the bell when there are new notifications */
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+@keyframes rotate {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(15deg); }
+}
+
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.navbar .nav-link .fas.fa-bell.new-notification {
+    color: #FF5733; 
+    animation: shake 1s ease-in-out infinite;
+    /* animation: spin 1.5s linear infinite; */
+}
+
+
+
 .notification-dropdown {
     max-height: 400px; 
     overflow-y: auto; 
@@ -127,6 +165,7 @@ html, body {
     margin-bottom: 5px; 
 }
 
+
 .notification p {
     margin: 0; 
     white-space: normal; 
@@ -141,7 +180,6 @@ html, body {
     padding: 0.3em 0.4em;
     border-radius: 50%;
 }
-
 
 </style>
 
@@ -239,20 +277,25 @@ html, body {
                         </a>
 
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdown" style="max-height: 400px; overflow-y: auto;">
-                          
-                            <li><a class="dropdown-item" href="">Dashboard</a></li>
-                            <li><a class="dropdown-item" href="">Create order</a></li>
-                            <li><a class="dropdown-item" href="">View all orders</a></li>
-                            <li><a class="dropdown-item" href="">View Central Warehouse</a></li>
+                            <li><hr class="dropdown-divider"style="background-color:red;"></li> 
+                            <li><hr class="dropdown-divider"style="background-color:red;"></li> 
+                            <li><a class="dropdown-item" href="{% url 'tasks:tasks_dashboard' %}">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:create_team' %}">Create team</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:add_member' %}">Add member</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:create_task' %}">Create task</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:tasks_list' %}">Task list</a></li>
+                            <li><hr class="dropdown-divider"style="background-color:red;"></li> 
+                            <li><hr class="dropdown-divider"style="background-color:red;"></li> 
+                            <li><a class="dropdown-item" href="{% url 'tasks:aggregated_report_sheet' %}">Performance Data</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:team_performance_chart' %}">Team Performance</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:employee_performance_chart' %}">Employee Performance</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:year_month_performance_chart' %}">Monthly Performance</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:year_quarter_performance_chart' %}">Quarterly Performance</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:yearly_performance_trend' %}">Yearly Performance</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:group_performance_chart' %}">Group Performance</a></li>     
+                            <li><a class="dropdown-item" href="{% url 'tasks:increment_promotion' %}">Appraisal Budget Analysis</a></li>                        
+                         
 
-                            <li><a class="dropdown-item" href="">Product Management</a></li>
-                           
-                            <li><a class="dropdown-item" href=""> Product List </a></li>
-
-                            <li><a class="dropdown-item" href=""> Total Inventory report </a></li>
-                            <li><a class="dropdown-item" href=""> Warehouse balance report</a></li>
-                            <li><a class="dropdown-item" href=""> Inventory report chart </a></li>
-                            <li><a class="dropdown-item" href=""> Inventory report chart combined </a></li>
                         </ul> 
                     </li> 
 
@@ -266,12 +309,13 @@ html, body {
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdown" style="max-height: 400px; overflow-y: auto;">
                             <li><hr class="dropdown-divider"style="background-color:red;"></li> 
                             <li><hr class="dropdown-divider"style="background-color:red;"></li> 
-                            <li><a class="dropdown-item" href="">Employee enrollment</a></li>
-                            <li><a class="dropdown-item" href="">Input attendance</a></li>
-                            <li><a class="dropdown-item" href="">View employee</a></li>
-                            <li><a class="dropdown-item" href="">View attendance</a></li>
-                           
-                            <li><a class="dropdown-item" href="">Create Monthly Salary Sheet</a></li>
+                            <li><a class="dropdown-item" href="{% url 'core:create_employee' %}">Employee enrollment</a></li>
+                            <li><a class="dropdown-item" href="{% url 'core:employee_list' %}">Employee list</a></li>
+                            <li><a class="dropdown-item" href="{% url 'core:view_employee' %}">View employee</a></li>
+                            <li><a class="dropdown-item" href="{% url 'tasks:increment_promotion' %}">Appraisal</a></li>
+                            <li><a class="dropdown-item" href="{% url 'core:create_salary' %}">Create salary sheet</a></li>                         
+                            <li><a class="dropdown-item" href="">View attendance</a></li>                           
+                       
                         </ul> 
                     </li> 
 

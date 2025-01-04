@@ -63,34 +63,56 @@ table {
     </style>
 
 
-<h2>Invoice number - {{ invoice.invoice_number }}</h2>
 
-<table class="table table-striped">
-    <tr>
-        <th>Shipment ID</th>
-        <td>{{ invoice.purchase_shipment }}</td>
-    </tr>
-    <tr>
-        <th>Invoice Number</th>
-        <td>{{ invoice.invoice_number }}</td>
-    </tr>
-    <tr>
-        <th>Purchase Order ID</th>
-        <td>{{ invoice.purchase_shipment.purchase_order.order_id }}</td>
-    </tr>
-    <tr>
-        <th>Amount Due</th>
-        <td>{{ invoice.amount_due|add_commas }}</td>
-    </tr>
-    <tr>
-        <th>Tax Rate</th>
-        <td>{{ invoice.tax_rate }}%</td>
-    </tr>
-    <tr>
-        <th>Issued Date</th>
-        <td>{{ invoice.issued_date }}</td>
-    </tr>
-</table>
+
+
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-2"></div>
+            <div class="col-12 col-md-8 mb-4">
+                <div class="card shadow-lg" style="background-color: aliceblue;">
+                    <!-- Card Header -->
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4>Invoice number - {{ invoice.invoice_number }}</h4>
+                    </div> 
+                    <div class="card-body">                      
+                        
+                        <table class="table table-striped">
+                            <tr>
+                                <th>Shipment ID</th>
+                                <td>{{ invoice.purchase_shipment }}</td>
+                            </tr>
+                            <tr>
+                                <th>Invoice Number</th>
+                                <td>{{ invoice.invoice_number }}</td>
+                            </tr>
+                            <tr>
+                                <th>Purchase Order ID</th>
+                                <td>{{ invoice.purchase_shipment.purchase_order.order_id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Amount Due</th>
+                                <td>{{ invoice.amount_due|add_commas }}</td>
+                            </tr>
+                            <tr>
+                                <th>Tax Rate</th>
+                                <td>{{ invoice.tax_rate }}%</td>
+                            </tr>
+                            <tr>
+                                <th>Issued Date</th>
+                                <td>{{ invoice.issued_date }}</td>
+                            </tr>
+                        </table>
+
+                    </div>
+                </div>           
+            </div>
+            <div class="col-2"></div>
+
+    </div>
+</div>
+
 
 
 

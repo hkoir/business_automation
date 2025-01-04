@@ -24,7 +24,7 @@ domain=Domain(domain ='demo2.localhost', tenant=tenant,is_primary=True)
 domain.save()
 
 
-python manage.py tenant_command createsuperuser --schema=demo1
+python manage.py tenant_command createsuperuser --schema=demo2
 
 
 
@@ -37,3 +37,12 @@ git branch -M main
 git push -u origin main
 
 
+weighted average appraisal:
+
+final score = total obtained/total assigned * 100
+task facotr = tasks completed  by employee /avg number of task completed 
+weighted final score = final score * task factor
+
+max weighted final score = max(weighted final score)
+
+normalized final score = weighted final score / max weighted final score * 100

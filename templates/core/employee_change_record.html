@@ -65,8 +65,8 @@
                         <tr>
                             <td class="text-center p-2">{{ change.employee }}</td>
                             <td class="text-center p-2">{{ change.field_name }}</td>
-                            <td class="text-center p-2">{{ change.old_value }}</td>
-                            <td class="text-center p-2">{{ change.new_value }}</td>
+                            <td class="text-center p-2">{{ change.old_value|floatformat:'2' }}</td>
+                            <td class="text-center p-2">{{ change.new_value|floatformat:'2' }}</td>
                             <td class="text-center p-2">{{ change.changed_at }}</td>
                         </tr>
                         {% endfor %}
@@ -92,8 +92,8 @@
             <tr>
                 <td class="text-center p-2">{{ change.employee }}</td>
                 <td class="text-center p-2">{{ change.field_name }}</td>
-                <td class="text-center p-2">{{ change.old_value }}</td>
-                <td class="text-center p-2">{{ change.new_value }}</td>
+                <td class="text-center p-2">{{ change.old_value|floatformat:'2' }}</td>
+                <td class="text-center p-2">{{ change.new_value|floatformat:'2' }}</td>
                 <td class="text-center p-2">{{ change.changed_at }}</td>
             </tr>
             {% endfor %}

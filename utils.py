@@ -146,7 +146,7 @@ def update_sale_request_order(request_order_id):
 
 def update_sale_shipment_status(shipment_id):
     shipment = SaleShipment.objects.get(id=shipment_id)
-    all_items_delivered = shipment.sale_shipment_dispatch.filter(status='DELIVERED').count() == shipment.sale_shipment_dispatch.count()
+    all_items_delivered = shipment.sale_shipment_dispatch.filter(status__in=['DELIVERED','REACHED','OBI']).count() == shipment.sale_shipment_dispatch.count()
     if all_items_delivered:
         shipment.status = 'DELIVERED'
         shipment.save()

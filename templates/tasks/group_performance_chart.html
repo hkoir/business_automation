@@ -146,65 +146,73 @@
 <script>
     const chartData = JSON.parse('{{ chart_data|safe }}');
     const ctx = document.getElementById('gmPerformanceTrendChart').getContext('2d');
-const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: chartData.labels, // Dates (x-axis)
-        datasets: chartData.datasets // Data for each position and person
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: true, // Ensure the legend is displayed
-                position: 'top', // Position it at the top
-                labels: {
+
+    let allScores = [];
+    chartData.datasets.forEach(dataset => {
+        allScores = allScores.concat(dataset.data);
+    });
+    const maxYValue = Math.max(...allScores) * 1.4; 
+    
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels, // Dates (x-axis)
+            datasets: chartData.datasets // Data for each position and person
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true, // Ensure the legend is displayed
+                    position: 'top', // Position it at the top
+                    labels: {
+                        font: {
+                            size: 12 // Adjust font size if needed
+                        },
+                        color: '#000' // Set legend text color
+                    }
+                },
+                tooltip: {
+                    enabled: true, 
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            // Customize tooltip content (optional)
+                            const label = tooltipItem.dataset.label || '';
+                            const value = tooltipItem.raw || 'N/A';
+                            return `${label}: ${value}`;
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Performance Trend',
                     font: {
-                        size: 12 // Adjust font size if needed
-                    },
-                    color: '#000' // Set legend text color
-                }
-            },
-            tooltip: {
-                enabled: true, 
-                callbacks: {
-                    label: function(tooltipItem) {
-                        // Customize tooltip content (optional)
-                        const label = tooltipItem.dataset.label || '';
-                        const value = tooltipItem.raw || 'N/A';
-                        return `${label}: ${value}`;
+                        size: 16 
                     }
                 }
             },
-            title: {
-                display: true,
-                text: 'Performance Trend',
-                font: {
-                    size: 16 
-                }
-            }
-        },
-        interaction: {
-            mode: 'nearest', 
-            intersect: false 
-        },
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Date'
-                }
+            interaction: {
+                mode: 'nearest', 
+                intersect: false 
             },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Total Score'
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
                 },
-                beginAtZero: true
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Total Score'
+                    },
+                    beginAtZero: true,
+                    max:maxYValue
+                }
             }
         }
-    }
-});
+    });
 
 
 

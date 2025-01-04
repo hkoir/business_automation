@@ -51,9 +51,10 @@
        
     </style>
 
+
    
-<h4>Challan/Invoice Details for Order: {{ sale_order.sale_order_id }}</h4>
-<p>Date: {{ sale_order.order_date }}: Customer:{{  sale_order.customer.customer_name}}</p>
+<h4>Challan/Invoice Details for Order: {{ sale_order.order_id }}</h4>
+<p>Date: {{ sale_order.order_date }}: Customer:{{  sale_order.customer.name}}</p>
 <table class="table table-striped">
     <thead>
         <tr>
@@ -64,9 +65,9 @@
         </tr>
     </thead>
     <tbody>
-        {% for sale in sale_order.sales_order.all %}
+        {% for sale in sale_order.sale_order.all %}
         <tr>
-            <td>{{ sale.product.product_name }}</td>
+            <td>{{ sale.product.name }}</td>
             <td>{{ sale.quantity }}</td>
             <td>{{ sale.product.product_type }}</td>
             <td>${{ sale.product.unit_price }}</td>

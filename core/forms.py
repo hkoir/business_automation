@@ -145,7 +145,7 @@ class NoticeForm(forms.ModelForm):
     ))
     class Meta:
         model = Notice
-        exclude =['created_at']
+        exclude =['created_at','user']
 
 
 
@@ -305,6 +305,7 @@ class CommonFilterForm(forms.Form):
 #####################################################################
 
     year = forms.IntegerField(required=False, label="Year")
+    year = forms.IntegerField(required=False, label="Month")
     start_year = forms.IntegerField(label='Start Year',required=False)
     end_year = forms.IntegerField(label='End Year',required=False)
     
@@ -347,4 +348,15 @@ class CommonFilterForm(forms.Form):
                 'class': 'custom-select',  # Optional styling
             }
         ),
+    )
+
+
+    aggregation_type = forms.ChoiceField(
+        choices=[
+            ('month_wise', 'Month-wise'),
+            ('quarter_wise', 'Quarter-wise'),
+            ('year_wise', 'Year-wise'),
+        ],
+        required=False,
+        label="Aggregation Type"
     )

@@ -9,6 +9,8 @@ from core.utils import DEPARTMENT_CHOICES
 
 
 
+
+
 class Team(models.Model):   
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True,related_name='team_department')
     user=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)   
@@ -57,19 +59,19 @@ class Task(models.Model):
     title = models.CharField(max_length=200,null=True, blank=True)
     priority = models.CharField(max_length=20,choices=[('LOW','low'),('medium','medium'),('high','high'),('critical','critical')],null=True, blank=True)
     description = models.TextField(null=True, blank=True)
+    
     assigned_datetime = models.DateTimeField(auto_now_add=True)
-    due_datetime = models.DateTimeField(null=True, blank=True)
-    extension_request_datetime = models.DateTimeField(null=True, blank=True)
-    extension_approval_datetime = models.DateTimeField(null=True, blank=True)
-    extension_approval = models.BooleanField(default=False,null=True, blank=True)   
-    extended_due_date = models.DateTimeField(blank=True, null=True)  # For manager-approved extensions
-      
+    due_datetime = models.DateTimeField(null=True, blank=True)    
+    extended_due_datetime = models.DateTimeField(blank=True, null=True)  # For manager-approved extensions
+    
+    time_extension_approval_status= models.CharField(max_length=30,choices=[('APPROVED','Approved'),('REJECTED','Rejected')],null=True,blank=True)  
+   
     assigned_number = models.FloatField(default=0,null=True, blank=True) 
     obtained_number = models.FloatField(default=0,null=True, blank=True) 
     obtained_score = models.FloatField(default=0,null=True, blank=True) 
 
-    original_obtained_number = models.FloatField(null=True, blank=True)
-    original_obtained_score = models.FloatField(null=True, blank=True)
+    manager_given_number = models.FloatField(null=True, blank=True)
+    manager_given_score = models.FloatField(null=True, blank=True)
     
 
     status = models.CharField(max_length=50, choices=[
@@ -95,51 +97,99 @@ class Task(models.Model):
             ("can_create_task", "Can create a task"),
         ]
 
+    def calculate_obtained_number(self):
+        if self.pk is None: 
+            return 0  
 
-    def calculate_obtained_number2(self):
         if self.progress > 0:
             progress_factor = self.progress / 100
-            if self.status in ['OVERDUE', 'TIME_EXTENSION'] and self.extended_due_date and self.due_date and self.assigned_number is not None:
-                extension_duration = self.extended_due_date - self.due_date
-                extension_hours = extension_duration.total_seconds() / 3600  
-                reduction = extension_hours * 1 / 100  
-                return max(0, (self.assigned_number - self.assigned_number * min(reduction, 1)) * progress_factor)
-            else:
-                return (self.assigned_number or 0) * progress_factor
-        return 0
-    
-    def calculate_obtained_number(self):
-        if self.progress > 0:           
-            progress_factor = self.progress / 100
-            if self.due_datetime and self.extension_approval_datetime and self.assigned_number is not None:
+
+            if self.due_datetime and self.assigned_number is not None:
                 task_duration = (self.due_datetime - self.assigned_datetime).total_seconds() / 3600
-                extension_duration = (self.extension_approval_datetime - self.due_datetime).total_seconds() / 3600
-                if task_duration > 0:  
+
+                latest_extension_request = self.time_extension_requests.filter(is_approved=True).order_by('-updated_at').first()
+                if latest_extension_request and latest_extension_request.approved_extension_datetime:
+                    extension_duration = (latest_extension_request.approved_extension_datetime - self.due_datetime).total_seconds() / 3600
+                else:
+                    extension_duration = 0
+
+                if task_duration > 0:   
                     reduction_factor = extension_duration / task_duration
-                    reduction_number = self.assigned_number * reduction_factor    
+                    reduction_number = self.assigned_number * reduction_factor
                     remaining_number = self.assigned_number - reduction_number
+
+                    if remaining_number <= 0.0:   
+                        remaining_number = self.assigned_number * 0.25
+                        
                     return max(0, remaining_number * progress_factor)
+                else:     
+                    return 0
+            else:  
+                return (self.assigned_number or 0) * progress_factor
+        else: 
+            return 0
 
-            return (self.assigned_number or 0) * progress_factor
-        
-        return 0
 
-    
-       
+
     def save(self, *args, **kwargs):
         if not self.task_id:
-            self.task_id = f"TASK-{uuid.uuid4().hex[:8].upper()}"
-        if not self.extended_due_date:
-            self.extended_due_date = self.due_datetime
-        if self.extension_approval_datetime:
-            self.extended_due_date = self.extension_approval_datetime    
-        
+            self.task_id = f"TASK-{uuid.uuid4().hex[:8].upper()}"        
+
+        is_new = self.pk is None
+
         super().save(*args, **kwargs)
+
+        if is_new:
+            latest_request = self.time_extension_requests.filter(is_approved=True).order_by('-created_at').first()
+            if latest_request:
+                self.extended_due_datetime = latest_request.approved_extension_datetime
+                super().save(update_fields=['extended_due_datetime'])
+
 
 
     def __str__(self):
         return self.title
     
+
+
+class TaskMessage(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="task_messages",null=True,blank=True)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)  
+    created_at=models.DateTimeField(auto_now_add=True,null=True,blank=True)
+
+    def __str__(self):
+        return f"{self.message} - {self.timestamp}"
+
+
+
+class TimeExtensionRequest(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="time_extension_requests",null=True,blank=True)
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE,null=True,blank=True)
+    requested_extension_datetime = models.DateTimeField(null=True,blank=True)  
+    time_extension_reason=models.CharField(max_length=50,null=True,blank=True,
+    choices=[
+        ('INTERNAL_AFFAIR','Internal Affair'),
+        ('EXTERNAL_AFFAIR','External affair'),
+        ('LOGISTICS_AFFAIR','Logistics affair'),
+        ('FINANCIAL_AFFAIR','Financial affair'),
+        ('LABOR_CRISIS','Labor crisis'),
+        ('BAD_WEATHER','Bad weather'),
+        ('OTHER_DEPARTMENT_DEPENDENCY','Other department dependency')
+        ])
+    
+    is_approved = models.BooleanField(default=False)
+    approved_extension_datetime = models.DateTimeField(null=True, blank=True)
+    manager_comments = models.TextField(null=True, blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at =models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Request for Task {self.task.id} - Approved: {self.is_approved}"
+
+
 
 
 class PerformanceEvaluation(models.Model):
@@ -152,56 +202,57 @@ class PerformanceEvaluation(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True, related_name='team_ev') 
     evaluation_date = models.DateField(auto_now_add=True)
 
-    quantitative_score = models.FloatField(default=0.0, null=True, blank=True) 
-    qualitative_score = models.FloatField(default=0.0, null=True, blank=True)
-    total_score = models.FloatField(default=0.0, null=True, blank=True)
-
-    obtained_quantitative_number = models.FloatField(default=0.0, null=True, blank=True) 
-    obtained_qualitative_number = models.FloatField(default=0.0, null=True, blank=True)
-    total_obtained_number = models.FloatField(default=0.0, null=True, blank=True)
-    
-    manager_given_quantitative_number = models.FloatField(default=0.0, null=True, blank=True)
-    manager_given_quantitative_score = models.FloatField(default=0.0, null=True, blank=True)
-
     assigned_quantitative_number = models.FloatField(default=0.0, null=True, blank=True) 
-    assigned_qualitative_number = models.FloatField(default=0.0, null=True, blank=True)
-    total_assigned_number = models.FloatField(default=0.0, null=True, blank=True)
+    assigned_qualitative_number = models.FloatField(default=0.0, null=True, blank=True)    
 
+    obtained_quantitative_number = models.FloatField(default=0.0, null=True, blank=True)   
+    given_quantitative_number = models.FloatField(default=0.0, null=True, blank=True) 
+    obtained_quantitative_score = models.FloatField(default=0.0, null=True, blank=True) 
+    given_quantitative_score = models.FloatField(default=0.0, null=True, blank=True)      
+    
+    obtained_qualitative_number = models.FloatField(default=0.0, null=True, blank=True)  
+    obtained_qualitative_score = models.FloatField(default=0.0, null=True, blank=True)
+  
+    total_assigned_number = models.FloatField(default=0.0, null=True, blank=True)
+    total_obtained_number = models.FloatField(default=0.0, null=True, blank=True)
+    total_given_number = models.FloatField(default=0.0, null=True, blank=True)
+    total_given_score = models.FloatField(default=0.0, null=True, blank=True)
+    total_obtained_score = models.FloatField(default=0.0, null=True, blank=True) 
+
+    evaluator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,related_name='evaluation_evaluator')  
+   
+    half_year = models.CharField(max_length=20, null=True, blank=True)
     quarter = models.CharField(max_length=20, null=True, blank=True)
     month = models.CharField(max_length=20, null=True, blank=True)
-    year = models.IntegerField(null=True, blank=True)  # Added year field
+    year = models.IntegerField(null=True, blank=True) 
     remarks = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-   
-    def save(self, *args, **kwargs):           
+    def save(self, *args, **kwargs):         
         if not self.ev_id:
-            self.ev_id = f"ev-{uuid.uuid4().hex[:8].upper()}"   
-        
+            self.ev_id = f"EV-{uuid.uuid4().hex[:8].upper()}"   
+
         if self.employee:
             self.department = self.employee.department  
             self.position = self.employee.position  
 
         if self.evaluation_date:
-            self.year = self.evaluation_date.year      
-
-        if self.evaluation_date:
-            month_name = self.evaluation_date.strftime("%B")
-            self.month = month_name
-            
-        if self.evaluation_date:
+            self.year = self.evaluation_date.year
+            self.month = self.evaluation_date.strftime("%B")
             self.quarter = self.get_quarter(self.evaluation_date)
+            self.half_year = self.get_half_year(self.evaluation_date)
 
-        if self. manager_given_quantitative_score:
-            self.total_score = (self.qualitative_score + self.manager_given_quantitative_score) /2 
+        self.total_assigned_number = (self.assigned_quantitative_number or 0) + (self.assigned_qualitative_number or 0)
+        self.total_obtained_number = (self.obtained_quantitative_number or 0) + (self.obtained_qualitative_number or 0)
+        self.total_given_number = (self.given_quantitative_number or 0) + (self.obtained_qualitative_number or 0)
+
+        if self.total_assigned_number > 0:
+            self.total_obtained_score = (self.total_obtained_number / self.total_assigned_number) * 100
+            self.total_given_score = (self.total_given_number / self.total_assigned_number) * 100
         else:
-            self.total_score =  self.quantitative_score
-
-        self.total_assigned_number = self.assigned_quantitative_number + self.assigned_qualitative_number
-        self.total_obtained_number = self.obtained_quantitative_number + self.obtained_qualitative_number
-
-      
+            self.total_obtained_score = 0
+            self.total_given_score = 0
         super().save(*args, **kwargs)
 
     def get_quarter(self, evaluation_date):
@@ -215,6 +266,16 @@ class PerformanceEvaluation(models.Model):
         elif month in [10, 11, 12]:
             return '4TH-QUARTER'
         return ''
+    
+    def get_half_year(self, evaluation_date):
+        month = evaluation_date.month
+        if month in [1, 2, 3, 4, 5, 6]:
+            return '1ST-HALF-YEAR'
+        elif month in [7, 8, 9, 10, 11, 12]:
+            return '2ND-HALF-YEAR'
+        return ''
+
+
 
 
     def __str__(self):
@@ -251,7 +312,10 @@ class QualitativeEvaluation(models.Model):
     
     def save(self, *args, **kwargs):       
         if not self.ev_id:
-            self.ev_id = f"evq{uuid.uuid4().hex[:8].upper()}"       
+            self.ev_id = f"evq{uuid.uuid4().hex[:8].upper()}"  
+        if not self.performance_evaluation.evaluator:
+            self.performance_evaluation.evaluator = self.evaluator    
+            self.performance_evaluation.save()
         
         super().save(*args, **kwargs)
 

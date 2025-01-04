@@ -55,29 +55,122 @@ table {
         width: 100%;
         left: 0;
             }
-    </style>
+
+
+
+          
+
+/* Small screens: Mobile devices */
+@media (max-width: 767px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Medium screens: Tablets and small laptops */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Large screens: Laptops and standard desktops */
+@media (min-width: 1025px) and (max-width: 1440px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+/* Extra large screens: Wide desktops or monitors */
+@media (min-width: 1441px) {
+    .menu-cardx {
+        width:100px;
+    }
+}
+
+
+    .menu-card {
+        text-align: center;
+        padding: 10px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 10px;
+        background-color: aliceblue;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width:130px;
+        height:120px;
+
+    align-items: center;
+    justify-content: center;
+       
+    }
+
+    .menu-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .menu-icon {
+        font-size: 1.5rem;
+        color: #007bff;
+        width:20px;
+        height:20px;
+        justify-content: center;
+    }
+
+    .menu-title {
+        margin-top: 10px;       
+        font-size: 1rem;
+        font-weight: 600;
+        color: #333;
+        text-align: center;
+        
+    }
+
+    body {
+        background-color: #f8f9fa;
+    }
+
+
+
+
+</style>
+
+
+
+
+ 
 
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-4 col-md-3">   
-            <div class="card">     
-            <a href="{% url 'purchase:qc_dashboard' %}" class="btn btn-primary">Purchase QC</a> 
-        </div>
-        </div>
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'sales:qc_dashboard' %}" class="btn btn-primary">Sales QC</a> 
-            </div> 
-        </div>
-    
-        
-        <div class="col-4 col-md-3">  
-            <div class="card">     
-                <a href="{% url 'manufacture:qc_dashboard' %}" class="btn btn-primary">Production QC</a> 
-            </div> 
+
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'purchase:qc_dashboard' %}" class="text-decoration-none">
+                <div class="menu-card">
+                    <i class=" fas fa-solid fa-check-square menu-icon"></i>
+                    <div class="menu-title">Purchase QC</div>
+                </div>
+            </a>
         </div>
 
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'sales:qc_dashboard' %}"class="text-decoration-none">
+                <div class="menu-card">
+                    <i class=" fas fa-solid fa-check-square menu-icon"></i>
+                    <div class="menu-title">Sales QC</div>
+                </div>
+            </a>
+        </div>
+
+
+        <div class="col-6 col-md-3 col-lg-2 p-2">
+            <a href="{% url 'manufacture:qc_dashboard' %}" class="text-decoration-none">
+                <div class="menu-card">
+                    <i class=" fas fa-solid fa-check-square menu-icon"></i>
+                    <div class="menu-title">Production QC</div>
+                </div>
+            </a>
+        </div>
         
     </div>
 </div>

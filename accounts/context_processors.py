@@ -1,5 +1,7 @@
 
 from .models import UserProfile
+from tasks.models import TaskMessage
+
 
 def user_info(request):
 
@@ -33,3 +35,25 @@ def notifications_context(request):
 def tenant_schema(request):
     schema_name = getattr(request.tenant, 'schema_name', 'public')
     return {'schema_name': schema_name}
+
+
+
+# def unread_messages(request):
+#     unread_msgs_by_task = {}
+#     if request.user.is_authenticated:
+#         unread_msgs = TaskMessage.objects.filter(sender=request.user, read=False)
+#         for message in unread_msgs:
+#             unread_msgs_by_task[message.task_id] = True
+
+#     return {'unread_messages': unread_msgs_by_task}
+
+def unread_messages(request):
+    unread_msgs_by_task = {}
+    if request.user.is_authenticated:
+        unread_msgs = TaskMessage.objects.filter(sender=request.user, read=False)
+
+        for message in unread_msgs:
+            if message.task_id not in unread_msgs_by_task:
+                unread_msgs_by_task[message.task_id] = True
+
+    return {'unread_messages': unread_msgs_by_task}

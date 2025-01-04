@@ -27,21 +27,35 @@ def home(request):
 
 
 
+from django.contrib.auth.models import User
+from django.db import transaction
+from clients.models import Client
+
 def register_view(request):
     current_tenant = None
     if hasattr(connection, 'tenant'):
         current_tenant = connection.tenant.schema_name
 
     if request.method == 'POST':
-        form = TenantUserRegistrationForm(request.POST, request.FILES,tenant=current_tenant)
+        form = TenantUserRegistrationForm(request.POST, request.FILES, tenant=current_tenant)
         if form.is_valid():
-            form.save()
+            with transaction.atomic():    
+                user = form.save(commit=False)
+                user.email = form.cleaned_data['email']
+                user.save()
+                UserProfile.objects.create(
+                    user=user,
+                    tenant=Client.objects.filter(schema_name=current_tenant).first(),
+                    profile_picture=form.cleaned_data.get('profile_picture'),
+                )
+
             messages.success(request, "User registered successfully!")
-            return redirect('accounts:login')  
+            return redirect('accounts:login')
         else:
             messages.error(request, "There was an error with your registration.")
     else:
         form = TenantUserRegistrationForm(tenant=current_tenant)
+
     return render(request, 'accounts/registration/register.html', {'form': form})
 
 

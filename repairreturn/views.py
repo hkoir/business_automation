@@ -333,7 +333,7 @@ def replacement_return_repaired_product(request, faulty_product_id):
 @login_required
 def replacement_product_list(request):
     replacement_ID = None
-    replacement_products =Replacement.objects.all()
+    replacement_products =Replacement.objects.all().order_by('-created_at')
     
     form=CommonFilterForm(request.GET or None)
     if form.is_valid():

@@ -70,7 +70,8 @@
             <h4 class="text-center mb-2 mt-4" style="color:blue;font-weight: bolder;">
                 Performance for the team:<span style="color:green"> {{ team_scores.0.team }}, Department:{{ department }}</span></h4>
             <sapn class="text-center"><a href="{% url 'tasks:employee_performance_chart' %}">GoTo Employee performance</a></sapn>
-            <div class="col-3">
+           
+            <div class="col-12 col-md-4">
                
                 <!-- Table Section -->
                 <div class="table-container mt-4">
@@ -115,7 +116,7 @@
                 </div>
             </div>
 
-            <div class="col-9">
+            <div class="col-12 col-md-8">
                 <div class="container">                   
                     <div class="row">
                             <!-- line Chart -->
@@ -206,7 +207,12 @@
             // Prepare data for the charts
             const labels = selectedTeamData.map(item => item.date);
             const scores = selectedTeamData.map(item => item.score);
-    
+            
+            // Calculate the max y-axis value
+            const maxYValue = Math.max(
+                    ...scores,       
+                ) * 1.2;
+
             // Line Chart
             const lineCtx = document.getElementById('lineChart').getContext('2d');
             const lineChart = new Chart(lineCtx, {
@@ -225,13 +231,14 @@
                 },
                 options: {
                     responsive: true,
+                    spanGaps: true,
                     plugins: {
                         legend: { display: true },
                         tooltip: { enabled: true }
                     },
                     scales: {
                         x: { title: { display: true, text: 'Date' } },
-                        y: { title: { display: true, text: 'Score' }, beginAtZero: true }
+                        y: { title: { display: true, text: 'Score' }, beginAtZero: true ,max:maxYValue}
                     }
                 }
             });
@@ -258,7 +265,7 @@
                     },
                     scales: {
                         x: { title: { display: true, text: 'Date' } },
-                        y: { title: { display: true, text: 'Score' }, beginAtZero: true }
+                        y: { title: { display: true, text: 'Score' }, beginAtZero: true,maxYValue }
                     }
                 }
             });

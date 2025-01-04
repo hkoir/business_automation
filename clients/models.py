@@ -17,7 +17,8 @@ class Domain(DomainMixin):
 
 
 
-class TenantApplication(models.Model):
+
+class TenantData(models.Model):
     tenant = models.ForeignKey(Client,on_delete=models.CASCADE,related_name='tenant',null=True,blank=True)
     name = models.CharField(max_length=100) 
     subdomain = models.CharField(max_length=100, unique=True)  
@@ -44,6 +45,11 @@ class TenantApplication(models.Model):
 
     class Meta:
         ordering = ['-created_on'] 
+
+
+
+
+
 
 
 

@@ -10,6 +10,7 @@ app_name = 'tasks'
 urlpatterns = [
     
   path('', views.tasks_dashboard, name='tasks_dashboard'),
+  path('chat/<str:task_id>/', views.chat, name='chat'), 
   
   path('update-task-progress/<int:task_id>/update/', views.update_task_progress, name='update_task_progress'),
   path('request-extension/<int:task_id>/', views.request_extension, name='request_extension'),
@@ -27,7 +28,7 @@ urlpatterns = [
 
   path('qualitative-evaluation/<int:task_id>/', views.create_qualitative_evaluation, name='qualitative_evaluation'),
 
- path('team_performance_chart,/', views.team_performance_chart, name='team_performance_chart'), 
+ path('team_performance_chart/', views.team_performance_chart, name='team_performance_chart'), 
  path('employee_performance_chart/', views.employee_performance_chart, name='employee_performance_chart'),
  path('aggregated_report_sheet/', views.aggregated_report_sheet, name='aggregated_report_sheet'),
  path('year_month_performance_chart/', views.year_month_performance_chart, name='year_month_performance_chart'),
@@ -35,4 +36,10 @@ urlpatterns = [
  path('yearly_performance_trend/', views.yearly_performance_trend, name='yearly_performance_trend'),
  path('group_performance_chart/', views.group_performance_chart, name='group_performance_chart'),
 
+
+ path('increment_promotion_check/', views.increment_promotion_check, name='increment_promotion_check'),
+ path('increment_promotion/', views.increment_promotion, name='increment_promotion'),
+ path('download_increment_promotion/', views.download_increment_promotion, name='download_increment_promotion'),
+ path('generate_increment_promotion_letter/<int:emp_id>/', views.generate_increment_promotion_letter, name='generate_increment_promotion_letter_with_id'),
+ path('generate_increment_promotion_letter/', views.generate_increment_promotion_letter, name='generate_increment_promotion_letter'),
 ]

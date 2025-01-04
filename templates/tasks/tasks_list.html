@@ -2,14 +2,16 @@
 
 {% load custom_filters %}
 
+{% load static %}
+
 {% block content %}
+
 
 <style>
     
 .select2-container {
-        width: 40% !important; /* Ensure the container is 100% wide */
+        width: 40% !important; 
     }
- 
   
     
 .select2-search__field {
@@ -30,6 +32,7 @@
         display: flex;
         align-items: center;
     }
+    
 .main-content {   
     overflow-y: auto;
     margin-left:0px;
@@ -40,6 +43,33 @@
 
 .progress {
     background-color: #eb1616 !important;
+}
+
+
+
+
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes glow {
+    0% { text-shadow: 0 0 5px #FF5733, 0 0 10px #FF5733, 0 0 15px #FF5733; }
+    50% { text-shadow: 0 0 10px #FF5733, 0 0 15px #FF5733, 0 0 20px #FF5733; }
+    100% { text-shadow: 0 0 5px #FF5733, 0 0 10px #FF5733, 0 0 15px #FF5733; }
+}
+
+.fa.fa-exclamation-circle {
+    color: #FF5733;  
+    animation: rotate 5s infinite, glow 5s ease-in-out infinite;
 }
 
 
@@ -81,8 +111,9 @@
             <table class="table table-striped">
                 <thead>
                     <tr class="bg-primary text-white">
+                        <th>Chat</th>
                         <th>Task ID</th>
-                        <th>Title</th>
+                        <th>Task Title</th>
                         <th>Priority</th>
                         <th>Assigned Date</th>
 
@@ -91,26 +122,29 @@
                         <th>Assigned to</th>
                         <th>Progress</th>
                    
-                        <th>Update task</th>
-                        <th>Extension Req.</th>
-                        <th>Extension Approval</th>
+                        <th>Update task Progress</th>
+                        <th>Time extension Request</th>
+                        <th>Time extension Approval</th>
                                           
                         <th>Manager's Final evaluation</th>
                         <th>Remarks</th>  
                         <th>Updated</th>
 
-                        <th>Assigned number</th>
-                        <th>obtained number</th>
-                        <th>Manager given number</th>
-                        <th>Obtained score</th>                       
-                        <th>Manager Givem score</th>
+                        <th>Assigned quantitative number</th>
+                        <th>Obtained quantitative number</th>
+                        <th>Given quantitative number</th>
+                        <th>Obtained quantitative score</th>   
+                        <th>Given quantitative score</th>                                                                                    
 
                         <th>Assigned Qualitative number</th>                       
                         <th>Obtained Qualitative Number</th>
+                        <th>Obtained Qualitative Score</th>
 
                         <th>Total assigned number</th>
                         <th>Total obtained number</th>
-                        <th>Final score</th>
+                        <th>Total given number</th>
+                        <th>Final obtained score</th>
+                        <th>Final given score</th>
                         
                         
                     </tr>
@@ -118,7 +152,23 @@
                 <tbody>
                     {% for task in page_obj %}
                     <tr>
-                        <td>{{ task.task_id }}</td>
+                        <td style="white-space: nowrap;">
+                            <a href="{% url 'tasks:chat' task.id %}" style="text-decoration:none;">
+                                {% if unread_messages|get_item:task.id %}
+                                    <i class="fa fa-exclamation-circle">
+                                        {{ unread_messages|get_item:task.id|length }}
+                                    </i>
+                                {% else %}
+                                    <i class="fa fa-envelope"></i>
+                                {% endif %}
+                            </a>                       
+                        </td>
+                        
+                        
+                        
+                        
+                        
+                        <td style="font-size: 10px;">{{ task.task_id }}</td>
                         <td>{{ task.title }}</td>
 
                         
@@ -128,9 +178,16 @@
                         <td class="bg-info">{{ task.priority }} </td>
                         {% endif %}
 
-                        <td>{{ task.assigned_datetime }}</td>
-                        <td>{{ task.due_datetime }}</td>
-                        <td>{{ task.extended_due_date }}</td>
+                        <td>{{ task.assigned_datetime|date:'d M,h:i' }}</td>
+                        <td>{{ task.due_datetime|date:'d M,h:i' }}</td>
+
+                        <td>
+                            {% if task.extended_due_datetime %}
+                            {{ task.extended_due_datetime|date:'d M,h:i' }}
+                            {% else %}
+                            <span style="color:green;font-weight: bold;">No extension</span>
+                            {% endif %}
+                        </td>
                         
                         <td>
                             {% if task.assigned_to_employee %}
@@ -168,7 +225,7 @@
                             {% endif %}
                         </td>
                 
-                        
+                        <!-- Update tasks -->
                         <td>
                             {% if task.task_qualitative_evaluations.first and task.status != 'COMPLETED' %}
                                 <span class="bg-warning"> Task ended by manager</span>
@@ -176,59 +233,83 @@
                                 {% if task.status == 'COMPLETED' %}
                                     <i class="fas fa-check" style="color:green;font-weight: bold;">Completed</i>
                                 {% else %}
-                                    <a href="{% url 'tasks:update_task_progress' task.id %}">Update Progress</a>
+                                    <a href="{% url 'tasks:update_task_progress' task.id %}" class="btn btn-sm btn-primary">Update</a>
                                 {% endif %}
                             {% endif %}
                         </td>
                         
-
-
-                        <td>
-                            {% if task.task_qualitative_evaluations.first and task.status != 'COMPLETED' %}
-                            <span class="bg-warning"> Task ended by manager</span>
-                            {% else %}
-                            {% if task.status == 'COMPLETED' %}
-                            <i class="fas fa-check" style="color:rgb(245, 11, 46);font-weight: bold;"></i>
-                            {% else %}
-                            <a href="{% url 'tasks:request_extension' task.id %}">Request Time ext</a>
-                            {% endif %}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if task.task_qualitative_evaluations.first and task.status != 'COMPLETED' %}
-                            <span class="bg-warning"> Task ended by manager</span>
-                            {% else %}
-                            {% if task.status == 'COMPLETED' %}
-                            <i class="fas fa-check" style="color:rgb(245, 11, 46);font-weight: bold;"></i>
-                            {% else %}
-                            <a href="{% url 'tasks:approve_extension' task.id %}">Approval</a>
-                            {% endif %}
-                           {% endif %}
-                        </td>                       
                         
+                        <!-- request time extension button -->
                         <td>
                             {% if task.task_qualitative_evaluations.first and task.status != 'COMPLETED' %}
-                            <i class="fas fa-check" style="color:rgb(233, 14, 79);font-weight: bold;">Task early ended</i>
-                            {% elif not task.task_qualitative_evaluations.first %}                                                   
-                            <a href="{% url 'tasks:qualitative_evaluation' task.id %}">Manager's evaluation</a>
+                                <span class="bg-warning">Task ended by manager</span>
                             {% else %}
-                            <i class="fas fa-check" style="color:green;font-weight: bold;">Completed</i>
+                                {% if task.status == 'COMPLETED' %}
+                                    <i class="fas fa-check" style="color:rgb(245, 11, 46); font-weight: bold;">Task completed</i>
+                                {% elif task.status == 'TIME_EXTENSION' %}
+                                    {% if not task.time_extension_requests.first.is_approved %}
+                                        <span class="bg-warning">Approval Pending</span>
+                                    {% else %}
+                                        <a href="{% url 'tasks:request_extension' task.id %}" class="btn btn-sm btn-primary">Apply</a>
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{% url 'tasks:request_extension' task.id %}" class="btn btn-sm btn-primary">Apply</a>
+                                {% endif %}
                             {% endif %}
-                          
                         </td>
+                        
+                        
+
+                        <!-- time extension approval button -->
+                        <td>
+                            {% if task.status == 'TIME_EXTENSION' %}
+                                {% if not task.time_extension_requests.first.is_approved %}
+                                    <a href="{% url 'tasks:approve_extension' task.id %}" class="btn btn-sm btn-success">Approve Extension</a>
+                                {% else %}
+                                    <span><i class="fas fa-check" style="color:green;font-weight: bolder;">Approved</i></span>
+                                {% endif %}
+                                {% else %}
+                                <i class="fas fa-check" style="color:rgb(0, 17, 255);font-weight: bolder;"></i>
+                            {% endif %}
+                        </td>
+                        
+                        
+                                        
+                                    
+                        <!-- manager's evaluation button -->
+                            <td>
+                                {% if task.task_qualitative_evaluations.first and task.status != 'COMPLETED' %}
+                                    <i class="fas fa-check" style="color:rgb(233, 14, 79);font-weight: bold;">Task early ended</i>
+                                {% elif task.status == 'COMPLETED' and not task.task_qualitative_evaluations.first %}
+                                    <a href="{% url 'tasks:qualitative_evaluation' task.id %}" class="btn btn-sm btn-primary">Evaluate</a>
+                                {% elif task.task_qualitative_evaluations.first and task.status == 'COMPLETED' %}
+                                    <i class="fas fa-check" style="color:green;font-weight: bold;">Completed</i>
+                                {% else %}
+                                <a href="{% url 'tasks:qualitative_evaluation' task.id %}" class="btn btn-sm btn-primary">Evaluate</a>
+                                {% endif %}
+                            </td>
+                            
                         <td>{{ task.remarks }}</td>
 
-                        <td>{{ task.updated_at }}</td>
-                        <td>{{ task.assigned_number }}</td>
-                        <td>{{ task.obtained_number }}</td>
-                        <td>{{ task.task_ev.first.manager_given_quantitative_number }}</td>
-                        <td>{{ task.obtained_score|floatformat:'2' }}%</td>
-                        <td>{{ task.task_ev.first.manager_given_quantitative_score|floatformat:'2' }}%</td>
-                        <td>{{ task.task_ev.first.assigned_qualitative_number }}</td>
-                        <td>{{ task.task_ev.first.obtained_qualitative_number }}</td>
-                        <td>{{ task.task_ev.first.total_assigned_number }}</td>
-                        <td>{{ task.task_ev.first.total_obtained_number }}</td>
-                        <td class="bg-success">{{ task.task_ev.first.total_score|floatformat:'2'}}%</td>
+                        <td>{{ task.updated_at|date:'d M,h:i' }}</td>
+                      
+
+                        <td>{{ task.task_ev.first.assigned_quantitative_number|floatformat:'2' }}</td>
+                        <td>{{ task.task_ev.first.obtained_quantitative_number|floatformat:'2' }}</td>
+                        <td>{{ task.task_ev.first.given_quantitative_number|floatformat:'2'}}</td>
+                        <td>{{ task.task_ev.first.obtained_quantitative_score|floatformat:'2' }}%</td>
+                        <td>{{ task.task_ev.first.given_quantitative_score|floatformat:'2' }}%</td>
+
+                                           
+                        <td>{{ task.task_ev.first.assigned_qualitative_number|floatformat:'2' }}</td>
+                        <td>{{ task.task_ev.first.obtained_qualitative_number|floatformat:'2' }}</td>
+                        <td>{{ task.task_ev.first.obtained_qualitative_score|floatformat:'2' }}%</td>
+
+                        <td>{{ task.task_ev.first.total_assigned_number|floatformat:'2' }}</td>
+                        <td>{{ task.task_ev.first.total_obtained_number|floatformat:'2' }}</td>
+                        <td>{{ task.task_ev.first.total_given_number|floatformat:'2' }}</td>
+                        <td class="bg-success">{{ task.task_ev.first.total_obtained_score|floatformat:'2'}}%</td>
+                        <td class="bg-info">{{ task.task_ev.first.total_given_score|floatformat:'2'}}%</td>
                     </tr>
                     {% empty %}
                     <tr>
