@@ -11,6 +11,7 @@ from django.apps import apps
 import uuid
 
 
+
 class ReturnOrRefund(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True, related_name='return_or_refund_user')
     return_id = models.CharField(max_length=20,null=True, blank=True)
@@ -39,9 +40,11 @@ class ReturnOrRefund(models.Model):
     requested_date = models.DateTimeField(auto_now_add=True,null=True)
     processed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     processed_date = models.DateTimeField(null=True, blank=True)
+    progress_by_customer = models.FloatField(default=0,null=True, blank=True)  
+    progress_by_user = models.FloatField(default=0,null=True, blank=True)  
     remarks = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True)    
 
     def save(self, *args, **kwargs):
         if not self.warehouse and self.sale.warehouse:
@@ -55,14 +58,13 @@ class ReturnOrRefund(models.Model):
 
         if not self.return_id:
             self.return_id= f"RID-{uuid.uuid4().hex[:8].upper()}"  
-
+        
         super().save(*args,**kwargs)
 
     def __str__(self):
         return f"{self.quantity_refund} nos {self.sale.product.name} refund applied by customer"
 
-       
-
+      
 class FaultyProduct(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True,related_name='user_faulty_product')
     return_request = models.ForeignKey(ReturnOrRefund, on_delete=models.CASCADE, related_name='faulty_products', null=True, blank=True,)
@@ -152,6 +154,45 @@ class Replacement(models.Model):
     def __str__(self):
         return f"Replacement for {self.faulty_product.product.name} in {self.warehouse.name}"
     
+
+
+class RepairReturnCustomerFeedback(models.Model):
+    feedback_id =models.CharField(max_length=30)
+    repair_return = models.ForeignKey(ReturnOrRefund,on_delete=models.CASCADE,null=True,blank=True,related_name='return_feedback')
+    is_work_completed = models.BooleanField('Is Work Completed?',default=False,choices=[(False, 'No'), (True, 'Yes')]) 
+    progress=models.CharField(max_length=100,choices=
+            [                        
+                ('PROGRESS-20%','Progress 20%'),
+                ('PROGRESS-30%','Progress 30%'),
+                ('PROGRESS-40%','Progress 40%'),
+                ('PROGRESS-50%','Progress 50%'),
+                ('PROGRESS-60%','Progress 60%'),
+                ('PROGRESS-70%','Progress 70%'),
+                ('PROGRESS-80%','Progress 80%'),
+                ('PROGRESS-90%','Progress 90%'),
+                ('PROGRESS-100%','Progress 100%'),                             
+               
+            ], null=True, blank=True
+            )
+    work_quality_score = models.FloatField(default=0.0,blank=True, null=True)  
+    communication_quality_score = models.FloatField(default=0.0,blank=True, null=True) 
+    timely_completion_score= models.FloatField(default=0.0,blank=True, null=True)  
+    behavoiural_quality_score = models.FloatField(default=0.0,blank=True, null=True)  
+    product_quality = models.FloatField(default=0.0,blank=True, null=True)  
+    image = models.ImageField(upload_to='repair_return',blank=True, null=True)  
+    comments = models.TextField(blank=True, null=True)  
+
+    def save(self, *args, **kwargs):       
+        if not self.feedback_id:
+            self.feedback_id= f"CFBK-{uuid.uuid4().hex[:8].upper()}"      
+
+        super().save(*args,**kwargs)
+           
+    def __str__(self):
+        return f"Customer_feedback-{self.feedback_id} "
+
+
+
 
 
 class ScrappedOrder(models.Model):

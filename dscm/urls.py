@@ -28,7 +28,11 @@ urlpatterns = [
     path('repairreturn/',include('repairreturn.urls',namespace='repairreturn')),
     path('operations/',include('operations.urls',namespace='operations')),
     path('tasks/',include('tasks.urls',namespace='tasks')),
-
+    path('commonapp/',include('commonapp.urls',namespace='commonapp')),
+    path('transport/',include('transport.urls',namespace='transport')),
+    path('customerportal/',include('customerportal.urls',namespace='customerportal')),
+    path('recruitment/',include('recruitment.urls',namespace='recruitment')),
+   
    
     
 ]

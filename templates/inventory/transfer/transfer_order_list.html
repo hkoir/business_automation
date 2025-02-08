@@ -32,9 +32,9 @@
         <div class="col">        
             <!-- Table for displaying existing categories -->
             <h4>Transfer Order list</h4>
-            <table class="table table-striped">
-                <thead>
-                    <tr class="bg-primary text-white">
+            <table class="bg-light">
+                <thead class="bg-dark text-white">
+                    <tr>
                         
                         <th class="text-center p-2">Transfer Number</th>                      
                          <th class="text-center p-2">Status</th>
@@ -128,16 +128,5 @@
     });
 
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        const messagesContainer = document.getElementById('messagesContainer');
-        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
-            const modalInstance = new bootstrap.Modal(messageModal);
-            modalInstance.show();
-            setTimeout(() => {
-                    modalInstance.hide();
-                }, 5000)
-        }
-    });
     </script>
 {% endblock %}

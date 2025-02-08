@@ -1,12 +1,14 @@
 from django import forms
-from .models import Task, Team, Employee
+from .models import Task, Team, Employee,Ticket,TeamMember
 from django import forms
-from .models import Task, User
-from.models import TeamMember
+
 from .models import QualitativeEvaluation
 from core.models import Employee,Department,Position
 from.models import TimeExtensionRequest,TaskMessage
 from django.utils.timezone import make_aware
+from core.models import SalaryIncrementAndPromotion
+
+
 
 
 class ChatForm(forms.ModelForm):
@@ -20,10 +22,6 @@ class ChatForm(forms.ModelForm):
              
              })
         }
-
-
-
-
 
 
 class TaskAssignmentForm(forms.ModelForm):  
@@ -60,42 +58,73 @@ class AddMemberForm(forms.ModelForm):
     member = forms.ModelChoiceField(queryset=Employee.objects.all(), required=True, label='Member')
     class Meta:
         model = TeamMember
-        fields = ['team','member','is_team_leader']
+        exclude=['user']
 
 
 
 class TaskForm(forms.ModelForm):    
     class Meta:
         model = Task
-        fields = ['department','title', 'assigned_to', 'assigned_to_employee', 'assigned_to_team','task_manager','assigned_number', 'due_datetime','priority','remarks']
+        fields = ['department','task_type','title','ticket','assigned_to', 'assigned_to_employee', 'assigned_to_team','task_manager','assigned_number','assigned_datetime', 'due_datetime','priority','remarks']
 
         widgets={
             'due_datetime':forms.DateTimeInput(attrs={'type':'datetime-local'}),
+             'assigned_datetime':forms.DateTimeInput(attrs={'type':'datetime-local'}),
             'remarks':forms.Textarea(attrs={
                 'rows':2,
                 'class':'form-control custom-textarea',
                 
-                })
+                }),           
+        }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)       
+        self.fields['ticket'].queryset = Ticket.objects.all()
+
+    
+class AssignTaskForm(forms.ModelForm):    
+    class Meta:
+        model = Task
+        fields = ['department','assigned_to', 'assigned_to_employee', 'assigned_to_team','task_manager','assigned_number','assigned_datetime', 'due_datetime','priority','remarks']
+
+        widgets={
+            'due_datetime':forms.DateTimeInput(attrs={'type':'datetime-local'}),
+             'assigned_datetime':forms.DateTimeInput(attrs={'type':'datetime-local'}),
+            'remarks':forms.Textarea(attrs={
+                'rows':2,
+                'class':'form-control custom-textarea',
+                
+                }),           
+        }
+   
+
+
+class TicketForm(forms.ModelForm):    
+    class Meta:
+        model = Ticket
+
+        fields = ['ticket_type','sales','operations', 'production', 'subject', 'priority','description','status']
+        widgets={
+            'description':forms.Textarea(attrs={
+                'row':3,
+                'style':'height:100px;width:15opx'
+            })
         }
 
-    def clean(self):
-        cleaned_data = super().clean()
-        assigned_to = cleaned_data.get('assigned_to')
-        assigned_to_employee = cleaned_data.get('assigned_to_employee')
-        assigned_to_team = cleaned_data.get('assigned_to_team')
-
-        if assigned_to == 'team' and not assigned_to_team:
-            raise forms.ValidationError('Please select a team for the task.')
-        if assigned_to == 'member' and not assigned_to_employee:
-            raise forms.ValidationError('Please select a member for the task.')
+    
+class CustomerUpdateTicketForm(forms.ModelForm):    
+    class Meta:
+        model = Ticket
+        fields = ['status','customer_feedback','ticket_resolution_date','customer_comments']
+        widgets = {
+            'customer_comments': forms.Textarea(attrs={
+                'class': 'form-control',  
+                'placeholder': 'Provide your comments here...', 
+                'rows': 4, 
+                'style': 'resize: vertical;', 
+            }),
+            'ticket_resolution_date':forms.DateTimeInput(attrs={'type':'datetime-local'}),
+        }
         
-        due_datetime = cleaned_data.get('due_datetime')
-        if due_datetime and due_datetime.tzinfo is None:
-            cleaned_data['due_datetime'] = make_aware(due_datetime)
-
-        return cleaned_data
-
-   
 
 
 class TaskProgressForm(forms.ModelForm):
@@ -323,7 +352,7 @@ class GroupTrendForm(forms.Form):
         ),
     )
 
-from core.models import SalaryIncrementAndPromotion
+
 
 class IncrementPromotionForm(forms.ModelForm):  
     effective_date = forms.DateField(
@@ -361,6 +390,10 @@ class IncrementPromotionForm(forms.ModelForm):
         
 
 
+class IncrementPromotionFinalDataForm(forms.ModelForm):                  
+    class Meta:
+        model=SalaryIncrementAndPromotion
+        fields=['appraisal_year','appraisal_category','appraisal_type','year','month','quarter','half_year']
        
 
 
@@ -395,10 +428,10 @@ class DownloadIncrementPromotionForm(forms.Form):
     ]
 
     QUARTER_CHOICES = [
-        ('1ST_QUARTER', '1st Quarter'),
-        ('2ND_QUARTER', '2nd Quarter'),
-        ('3RD_QUARTER', '3rd Quarter'),
-        ('4TH_QUARTER', '4th Quarter'),
+        ('1ST-QUARTER', '1st Quarter'),
+        ('2ND-QUARTER', '2nd Quarter'),
+        ('3RD-QUARTER', '3rd Quarter'),
+        ('4TH-QUARTER', '4th Quarter'),
     ]
 
     HALF_YEAR_CHOICES = [
@@ -447,10 +480,10 @@ class GenerateIncrementPromotionPdfForm(forms.Form):
     ]
 
     QUARTER_CHOICES = [
-        ('1ST_QUARTER', '1st Quarter'),
-        ('2ND_QUARTER', '2nd Quarter'),
-        ('3RD_QUARTER', '3rd Quarter'),
-        ('4TH_QUARTER', '4th Quarter'),
+        ('1ST-QUARTER', '1st Quarter'),
+        ('2ND-QUARTER', '2nd Quarter'),
+        ('3RD-QUARTER', '3rd Quarter'),
+        ('4TH-QUARTER', '4th Quarter'),
     ]
 
     HALF_YEAR_CHOICES = [
@@ -458,8 +491,57 @@ class GenerateIncrementPromotionPdfForm(forms.Form):
         ('2ND-HALF-YEAR', 'Second Half Year'),
     ]
 
-    employee_name = forms.ModelChoiceField(
-        queryset=Employee.objects.all(), 
+ 
+    appraisal_year= forms.IntegerField(required=False)
+    appraisal_type = forms.ChoiceField(required=False,choices=INCREMENT_TYPE_CHOICES)
+    month=forms.ChoiceField(required=False,choices=MONTH_CHOICES)
+    quarter=forms.ChoiceField(required=False,choices=QUARTER_CHOICES)
+    half_year=forms.ChoiceField(required=False,choices=HALF_YEAR_CHOICES)
+    appraisal_category = forms.ChoiceField(required=False,choices=INCREMENT_CATEGORY_CHOICES)
+   
+
+class GenerateIncrementPromotionGeneralPdfForm(forms.Form):
+    INCREMENT_TYPE_CHOICES = [
+        ('MONTHLY', 'Monthly'),
+        ('QUARTERLY', 'Quarterly'),
+        ('HALF-YEARLY', 'Half Yearly'),
+        ('YEARLY', 'Yearly'),
+    ]
+
+    INCREMENT_CATEGORY_CHOICES=[
+        ('BY_EMPLOYEE','By Employee'),
+        ('BY_DEPARTMENT','By department'),
+        ('BY_POSITION','By Position'),
+        ('BY_COMPANY','By Company')]
+
+    MONTH_CHOICES = [
+        ('JANUARY', 'January'),
+        ('FEBRUARY', 'February'),
+        ('MARCH', 'March'),
+        ('APRIL', 'April'),
+        ('MAY', 'May'),
+        ('JUNE', 'June'),
+        ('JULY', 'July'),
+        ('AUGUST', 'August'),
+        ('SEPTEMBER', 'September'),
+        ('OCTOBER', 'October'),
+        ('NOVEMBER', 'November'),
+        ('DECEMBER', 'December'),
+    ]
+
+    QUARTER_CHOICES = [
+        ('1ST-QUARTER', '1st Quarter'),
+        ('2ND-QUARTER', '2nd Quarter'),
+        ('3RD-QUARTER', '3rd Quarter'),
+        ('4TH-QUARTER', '4th Quarter'),
+    ]
+
+    HALF_YEAR_CHOICES = [
+        ('1ST-HALF-YEAR', 'First Half Year'),
+        ('2ND-HALF-YEAR', 'Second Half Year'),
+    ]
+
+    employee_name = forms.CharField(        
         label='Employee_name',
         required=False,        
     )
@@ -470,7 +552,6 @@ class GenerateIncrementPromotionPdfForm(forms.Form):
     half_year=forms.ChoiceField(required=False,choices=HALF_YEAR_CHOICES)
     appraisal_category = forms.ChoiceField(required=False,choices=INCREMENT_CATEGORY_CHOICES)
    
-
 
 class IncrementPromotionCheckForm(forms.Form):
 
@@ -513,15 +594,14 @@ class IncrementPromotionCheckForm(forms.Form):
         ('1ST-HALF-YEAR', 'First Half Year'),
         ('2ND-HALF-YEAR', 'Second Half Year'),
     ]
-
-    
     appraisal_year= forms.IntegerField(required=False)
-    eligible_score_for_promotion= forms.FloatField(required=False)
+    appraisal_type = forms.ChoiceField(required=False,choices=INCREMENT_TYPE_CHOICES)   
+    year= forms.IntegerField(required=False)      
       
-    appraisal_type = forms.ChoiceField(required=False,choices=INCREMENT_TYPE_CHOICES)
     month=forms.ChoiceField(required=False,choices=MONTH_CHOICES)
     quarter=forms.ChoiceField(required=False,choices=QUARTER_CHOICES)
     half_year=forms.ChoiceField(required=False,choices=HALF_YEAR_CHOICES)
+    eligible_score_for_promotion= forms.FloatField(required=False) 
     eligible_score_for_promotion= forms.FloatField(required=False)
     max_promotion_limit = forms.FloatField(required=False)
     salary_increment_percentage = forms.FloatField(required=False)

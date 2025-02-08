@@ -55,6 +55,7 @@ class Product(models.Model):
     reorder_level = models.PositiveIntegerField(default=10,null=True,blank=True)
     lead_time = models.PositiveIntegerField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    product_image= models.ImageField(upload_to='products',null=True,blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 

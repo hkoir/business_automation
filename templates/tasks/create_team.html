@@ -3,42 +3,6 @@
 {% block content %}
 
 
-<style>
-
-    .table th{
-        text-align: center;
-    }
-    .table td{
-        text-align: center;
-        white-space: nowrap;
-    }
-
-           
-.select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-</style>
-
 
 
 <div class="container-fluid main-content">
@@ -50,12 +14,17 @@
                 <div class="row">
                         <div class="col-4">                            
                             <div class="card shadow" style="padding:10px;background-color:aliceblue;">
-                                <div class="card-body">
-                                    <h6 class="card-title text-center"><strong>Create Team</strong> </h6>
+                                  <!-- Card Header -->
+                                  <div class="card-header bg-primary text-white text-center">
+                                    <h3 class="mb-0"> Create Team</h3>
+                                </div> 
+                                <div class="card-body">                                   
                                     <form method="post" enctype="multipart/form-data" action="{% url 'tasks:create_team' %}" id="add_category">
                                         {% csrf_token %} 
                                         {{ form.as_p }}
-                                        <button type="submit" name="add_to_basket" class="btn btn-primary">Submit</button>
+                                        <div class="d-grid">
+                                        <button type="submit" name="add_to_basket" class="btn btn-primary bg-lg">Submit</button>
+                                    </div>
                                     </form>
                                  </div>
                             </div>        
@@ -73,10 +42,11 @@
                             
    
                             <h2>Teams List</h2>
-                            <table class="table table-striped">
+                            <table class="table table-hover">
+                              
                                 <a href="{% url 'tasks:add_member' %}" class="btn btn-primary mb-2">Add member</a>
-                                <thead>
-                                    <tr class="bg-primary text-white">
+                                <thead class="table-dark">
+                                    <tr>
                                         <th>Team ID</th>
                                         <th>Team Name</th>
                                         <th>Created at</th>
@@ -151,38 +121,6 @@
                       
       
        
-    <!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<script>
-     document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        const messagesContainer = document.getElementById('messagesContainer');
-        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
-            const modalInstance = new bootstrap.Modal(messageModal);
-            modalInstance.show();
-            setTimeout(() => {
-                    modalInstance.hide();
-                }, 5000)
-        }
-    });
-</script>
 
 <script>
     $(document).ready(function() {

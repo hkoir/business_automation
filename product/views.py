@@ -15,33 +15,24 @@ def product_dashboard(request):
     return render(request,'product/product_dashboard.html')
 
 
+
 @login_required
-def manage_category(request, id=None):
-    try:
-        if request.method == 'POST' and 'delete_id' in request.POST:
-            instance = get_object_or_404(Category, id=request.POST.get('delete_id'))
-            instance.delete()
-            messages.success(request, "Deleted successfully")
-            return redirect('product:create_category')
+def manage_category(request, id=None):  
+    instance = get_object_or_404(Category, id=id) if id else None
+    message_text = "updated successfully!" if id else "added successfully!"  
+    form = AddCategoryForm(request.POST or None, request.FILES or None, instance=instance)
 
-        instance = get_object_or_404(Category, id=id) if id else None
-        message_text = "updated successfully!" if id else "added successfully!"
-        form = AddCategoryForm(request.POST or None, instance=instance)
+    if request.method == 'POST' and form.is_valid():
+        form_intance=form.save(commit=False)
+        form_intance.user = request.user
+        form_intance.save()        
+        messages.success(request, message_text)
+        return redirect('product:create_category')
 
-        if request.method == 'POST' and form.is_valid():
-            form_instance=form.save(commit=False)
-            form_instance.user = request.user
-            form_instance.save()
-            messages.success(request, message_text)
-            return redirect('product:create_category')
-  
-
-        datas = Category.objects.all().order_by('-created_at')
-        paginator = Paginator(datas, 10)
-        page_number = request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-    except ProgrammingError as e:    
-        return redirect('core:home')
+    datas = Category.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     return render(request, 'product/manage_category.html', {
         'form': form,
@@ -52,28 +43,33 @@ def manage_category(request, id=None):
 
 
 
+@login_required
+def delete_category(request, id):
+    instance = get_object_or_404(Category, id=id)
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, "Deleted successfully!")
+        return redirect('product:create_category')
+
+    messages.warning(request, "Invalid delete request!")
+    return redirect('product:create_category')
+
 
 @login_required
-def manage_product(request, id=None):
-    if request.method == 'POST' and 'delete_id' in request.POST:
-        instance = get_object_or_404(Product, id=request.POST.get('delete_id'))
-        instance.delete()
-        messages.success(request, "Deleted successfully")
-        return redirect('product:create_product')
-
+def manage_product(request, id=None):  
     instance = get_object_or_404(Product, id=id) if id else None
-    message_text = "updated successfully!" if id else "added successfully!"
-    form = AddProductForm(request.POST or None, instance=instance)
+    message_text = "updated successfully!" if id else "added successfully!"  
+    form = AddProductForm(request.POST or None, request.FILES or None, instance=instance)
 
     if request.method == 'POST' and form.is_valid():
-        form_instance=form.save(commit=False)
-        form_instance.user = request.user
-        form_instance.save()
+        form_intance=form.save(commit=False)
+        form_intance.user = request.user
+        form_intance.save()        
         messages.success(request, message_text)
-        return redirect('product:create_product')
+        return redirect('product:create_product') 
 
     datas = Product.objects.all().order_by('-created_at')
-    paginator = Paginator(datas, 10)
+    paginator = Paginator(datas, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -83,6 +79,19 @@ def manage_product(request, id=None):
         'datas': datas,
         'page_obj': page_obj
     })
+
+
+
+@login_required
+def delete_product(request, id):
+    instance = get_object_or_404(Product, id=id)
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, "Deleted successfully!")
+        return redirect('product:create_product')
+
+    messages.warning(request, "Invalid delete request!")
+    return redirect('product:create_product')
 
 
 @login_required

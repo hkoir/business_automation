@@ -36,38 +36,60 @@ class TenantValidationMiddleware:
 
 
 
+from django.http import HttpResponseForbidden
+from django.urls import resolve
 
-class CustomGeneralPurposeMiddleWare:
-    TENANT_APPS = ['customer','accounts','core','finance','inventory','logistics','manufacture','operations','product','purchase','repairreturn','reporting','sales','supplier','shipment','tasks'] 
+class CustomGeneralPurposeMiddleWare:    
+    TENANT_APPS = ['customer','accounts','core','finance','inventory','logistics','manufacture','operations','product','purchase','repairreturn','reporting','sales','supplier','shipment','tasks','transport'] 
     def __init__(self, get_response):
         self.get_response = get_response
+        self.restricted_apps = ['purchase']
 
     def __call__(self, request):
         current_schema=request.tenant.schema_name == get_public_schema_name()
         tenant = getattr(request, 'tenant', None) 
 
+        if request.user.is_authenticated:     
+            view_name = resolve(request.path_info).app_name       
+            if request.user.groups.filter(name='Customer').exists() and view_name in self.restricted_apps:
+                return HttpResponseForbidden("You are not allowed to access this page.")
+            elif request.user.groups.filter(name='job_seekers').exists() and view_name in self.restricted_apps:
+                return HttpResponseForbidden("You are not allowed to access this page.")
+       
+
+        if tenant.tenant.first():
+            if tenant and tenant.tenant.first().subscription:
+                if tenant and tenant.tenant.first().subscription.is_expired():
+                    messages.error(request, "Your subscription has expired. Please renew to continue.")
+                    return redirect('clients:dashboard') 
 
         if request.user.is_authenticated and hasattr(request, 'tenant'):
             current_tenant = request.tenant
             if hasattr(request.user, 'tenant') and request.user.tenant != current_tenant:               
                 messages.error(request, "You are not allowed to log in to this tenant.")
-                return redirect('accounts:login') 
+                return redirect('clients:dashboard') 
            
 
         if request.path.startswith('/admin/'):
             if hasattr(request, 'tenant') and request.tenant.schema_name == get_public_schema_name():   
                 messages.error(request, "You are not authorized to access this page.")              
-                return redirect('/')   
+                return redirect('clients:dashboard')   
+        
             
         if current_schema and any(app in request.path for app in self.TENANT_APPS): 
-            messages.error(request, "You are not authorized to access this page.")          
-            return redirect('/')   
+            messages.warning(request, "You are not authorized to access this page.Please login with your credentials")          
+            return redirect('accounts:login')      
         
-        if tenant:
-            tenant_instance = tenant.tenant.first() 
-            if tenant_instance and tenant_instance.status == 'suspended':
-                messages.error(request, 'Your subscription has expired. Please renew to continue.')
-                return redirect('clients:renew_tenant')               
+        if tenant:   
+            if tenant.tenant:  
+                tenant_instance = tenant.tenant.first()
+                if tenant_instance and tenant_instance.subscription.status == 'suspended':
+                    messages.error(request, 'Your subscription has expired. Please renew to continue.')
+                    return redirect('clients:apply_for_tenant')
+            else:
+                messages.error(request, 'No tenant found for this user.')
+        else:
+            return redirect('clients:dashboard') 
+            # return redirect('clients:apply_for_tenant')  
 
         return self.get_response(request)
-

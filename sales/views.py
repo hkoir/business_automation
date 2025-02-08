@@ -821,7 +821,7 @@ def qc_inspect_item(request, item_id):
             update_sale_shipment_status(shipment.id)
             update_sale_request_order(sale_request_order.id)
 
-            create_notification(request.user, f'Sale request order number: {sale_request_order} has been dispatched')
+            create_notification(request.user, f'Sale request order number: {sale_request_order} has been dispatched', notification_type='SALES-NOTIFICATION')
 
             messages.success(request, "Quality control inspection recorded and inventory updated successfully.")
             return redirect('sales:qc_dashboard')
@@ -843,4 +843,93 @@ def qc_inspect_item(request, item_id):
     return render(request, 'sales/qc_inspect_item.html', {
         'form': form,
         'sale_dispatch_item': sale_dispatch_item
+    })
+
+
+
+
+from django.db.models import Sum, F
+from django.db.models.functions import TruncDate
+from collections import defaultdict
+import json
+
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
+from collections import defaultdict
+from.forms import SalesReportForm
+
+def product_sales_report(request):
+    chart_data={}
+    sales_table_data = []
+    products = set()
+    dates = set()
+
+    form=SalesReportForm(request.GET or None)
+    if form.is_valid():
+        start_date = form.cleaned_data['start_date']
+        end_date = form.cleaned_data['end_date']
+
+        sales_data = SaleOrderItem.objects.all()
+
+        if start_date and end_date:
+            sales_data = sales_data.filter(sale_order__order_date__range=(start_date,end_date))
+        
+        sales_data = (
+            sales_data.annotate(order_date=TruncDate(F('sale_order__order_date')))
+            .values('order_date', 'product__name')
+            .annotate(total_sold=Sum('quantity'))
+            .order_by('order_date', 'product__name')
+        )
+
+
+
+        sales_dict = defaultdict(lambda: defaultdict(int))
+
+        for sale in sales_data:
+            product_name = sale['product__name']
+            order_date = sale['order_date'].strftime('%Y-%m-%d')
+            total_sold = sale['total_sold']
+
+            products.add(product_name)
+            dates.add(order_date)
+            sales_dict[product_name][order_date] = total_sold
+
+        products = sorted(products)
+        dates = sorted(dates)
+
+        
+        for product in products:
+            product_sales = [sales_dict[product].get(date, 0) for date in dates]
+            sales_table_data.append({
+                'product': product,
+                'sales': product_sales
+            })
+
+
+        chart_data = {
+            'labels': dates,
+            'datasets': []
+        }
+        for product in products:
+            chart_data['datasets'].append({
+                'label': product,
+                'data': [sales_dict[product].get(date, 0) for date in dates],
+                'backgroundColor': f'rgba({hash(product) % 255}, {hash(product) // 255 % 255}, 150, 0.6)',
+                'borderColor': f'rgba({hash(product) % 255}, {hash(product) // 255 % 255}, 150, 1)',
+                'borderWidth': 2
+            })
+
+       
+    else:
+        print('form is invalid')
+    paginator=Paginator(sales_table_data,8)
+    page_number=request.GET.get('page')
+    page_obj=paginator.get_page(page_number)
+
+    return render(request, 'sales/sales_report.html', {
+        'chart_data': json.dumps(chart_data),
+        'sales_table_data': sales_table_data,
+        'dates': dates,
+        'page_obj':page_obj,
+        'form':form
     })

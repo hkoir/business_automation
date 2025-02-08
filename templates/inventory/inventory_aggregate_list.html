@@ -48,7 +48,7 @@
 
         <h4 class="text-center" style="color:blue;font-weight: bold;"></h4>
         <h4 class="text-center" style="color: rgb(231, 51, 11);font-weight: bold;">
-           <span style="color: rgb(6, 37, 216);font-weight: bold;">Product: {{ reported_product }}</span> :Total Stock Value: {{ grand_total_stock_value|add_commas }}&nbsp;&nbsp;
+           <span style="color: rgb(6, 37, 216);font-weight: bold;">Product: {{ product_name }}</span> :Total Stock Value: {{ grand_total_stock_value|add_commas }}&nbsp;&nbsp;
         <span style="font-size: 14px;">
         <a href="{% url 'inventory:inventory_executive_sum' %}" class="btn btn-sm btn-primary">Grand Stock value</a>
         <a href="{% url 'inventory:inventory_list' %}" class="btn btn-sm btn-primary">Product by warehouse</a>
@@ -60,11 +60,11 @@
         <div class="col-12" style="margin-bottom: 20px;">
             <div class="container-fluid">
                 <div class="row">
-                    <div class="col-8">
+                    <div class="col-8 bg-light">
                         <canvas id="barChart" ></canvas>
                         <div id="warehouseNames"></div>
                     </div>
-                    <div class="col-4">
+                    <div class="col-4 bg-light">
                         <canvas id="doughnutChart"></canvas>
                     </div>
 
@@ -82,11 +82,10 @@
                     <div class="row">
                         <div class="col"></div>
                         <div class="col">                           
-                            <table class="table table-striped">
-                               
-                                <thead>                                   
+                            <table class="table table-hover">
+                                <thead class="table-dark">                                 
                                        
-                                    <tr class="bg-primary text-white">
+                                    <tr>
                                     <th>Product Name</th>
 
                                     <th>Total stock</th>
@@ -179,32 +178,6 @@
 <div style="height:1500px"></div>
 
 
-
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-
-
-
-
 <script>
     // Parse the JSON data passed from the view
     const chartData = JSON.parse('{{ warehouse_json|escapejs }}');
@@ -214,6 +187,7 @@
     const totalPurchase = [];
     const totalSold = [];
     const totalAvailable = [];
+    const reorderLevel= [];
 
     const totalManufactureIn = [];
     const totalManufactureOut = [];
@@ -234,6 +208,7 @@
         totalPurchase.push(chartData.total_purchase[index] || 0);
         totalSold.push(chartData.total_sold[index] || 0);
         totalAvailable.push(chartData.total_available[index] || 0);
+        reorderLevel.push(chartData.reorder_level[index] || 0);
 
         totalManufactureIn.push(chartData.total_manufacture_in[index] || 0);
         totalManufactureOut.push(chartData.total_manufacture_out[index] || 0);
@@ -252,21 +227,26 @@
 
 
     const colors = [
+        'rgba(255, 152, 0, 0.5)',  // Orange
         'rgba(76, 175, 80, 0.5)',  // Green
         'rgba(255, 87, 34, .8)',  // Deep Orange
-        'rgba(33, 150, 243, 0.5)', // Blue
+        'rgba(255, 0, 0, 0.8)', // red
+
         'rgba(255, 193, 7, 0.5)',  // Amber
         'rgba(156, 39, 176, 0.5)', // Purple
         'rgba(0, 188, 212, 0.5)',  // Teal
         'rgba(255, 87, 34, 0.5)',  // Deep Orange
+
         'rgba(0, 150, 136, 0.5)',  // Sea Green
         'rgba(255, 152, 0, 0.5)',  // Orange
         'rgba(0, 188, 212, 0.5)',  // Teal
         'rgba(233, 30, 99, 0.5)',  // Pink
-        'rgba(0, 150, 136, 0.5)',  // Sea Green
 
+        'rgba(255, 50, 6, 0.5)',  // Sea Green
         'rgba(255, 87, 34, 0.8)',  // Deep Orange
         'rgba(0, 150, 136, 0.8)',  // Sea Green
+
+        'rgba(255, 152, 0, 0.5)',  // Orange
     ];
 
      
@@ -301,105 +281,114 @@
                 },
 
                 {
+                    label: 'Total Purchase',
+                    data: totalPurchase,
+                    backgroundColor: colors[1], // Purple
+                    borderColor: colors[1],       // Dark Purple
+                    borderWidth: 1
+                },
+
+                {
                     label: 'Total Available',
                     data: totalAvailable,
-                    backgroundColor: colors[1],  
-                    borderColor: colors[1],        
+                    backgroundColor: colors[2],  
+                    borderColor: colors[2],        
+                    borderWidth: 1
+                },
+                {
+                    label: 'Reorder level',
+                    data: reorderLevel,
+                    backgroundColor: colors[3],  
+                    borderColor: colors[3],        
                     borderWidth: 1
                 },
                 
-                {
-                    label: 'Total Purchase',
-                    data: totalPurchase,
-                    backgroundColor: colors[2], // Purple
-                    borderColor: colors[2],       // Dark Purple
-                    borderWidth: 1
-                },
+            
                                             
                 {
                     label: 'Total Sold',
                     data: totalSold,
-                    backgroundColor: colors[3],  // Deep Orange
-                    borderColor: colors[3],        // Dark Deep Orange
+                    backgroundColor: colors[4],  // Deep Orange
+                    borderColor: colors[4],        // Dark Deep Orange
                     borderWidth: 1
                 },
                 
                 {
                     label: 'Total Existing in',
                     data: totalExistingIn,
-                    backgroundColor: colors[4],  // Teal
-                    borderColor: colors[4],        // Dark Teal
+                    backgroundColor: colors[5],  // Teal
+                    borderColor: colors[5],        // Dark Teal
                     borderWidth: 1
                 },
                 
                 {
                     label: 'Total Operations Out',
                     data: totalOperationsOut,
-                    backgroundColor: colors[5],  // Orange
-                    borderColor: colors[5],        // Dark Orange
+                    backgroundColor: colors[6],  // Orange
+                    borderColor: colors[6],        // Dark Orange
                     borderWidth: 1
                 },
                 
                 {
                     label: 'Total Manufacture in',
                     data: totalManufactureIn,
-                    backgroundColor: colors[6],  // Amber
-                    borderColor: colors[6],        // Dark Amber
-                    borderWidth: 1
-                },
-
-                {
-                    label: 'Total Manufacture out',
-                    data: totalManufactureOut,
                     backgroundColor: colors[7],  // Amber
                     borderColor: colors[7],        // Dark Amber
                     borderWidth: 1
                 },
 
                 {
+                    label: 'Total Manufacture out',
+                    data: totalManufactureOut,
+                    backgroundColor: colors[8],  // Amber
+                    borderColor: colors[8],        // Dark Amber
+                    borderWidth: 1
+                },
+
+                {
                     label: 'Total Transfer In',
                     data: totalTransferIn,
-                    backgroundColor: colors[8],  // Sea Green
-                    borderColor: colors[8],        // Dark Sea Green
+                    backgroundColor: colors[9],  // Sea Green
+                    borderColor: colors[9],        // Dark Sea Green
                     borderWidth: 1
                 },
 
                 {
                     label: 'Total Transfer Out',
                     data: totalTransferOut,
-                    backgroundColor: colors[9],  // Orange
-                    borderColor: colors[9],        // Dark Orange
+                    backgroundColor: colors[10],  // Orange
+                    borderColor: colors[10],        // Dark Orange
                     borderWidth: 1
                 },
 
                 {
                     label: 'Total Replacement out',
                     data: totalReplacementOut,
-                    backgroundColor: colors[10],  // Pink
-                    borderColor: colors[10],        // Dark Pink
+                    backgroundColor: colors[11],  // Pink
+                    borderColor: colors[11],        // Dark Pink
                     borderWidth: 1
                 },
 
                 {
                     label: 'Total Replacement in',
                     data: totalReplacementIn,
-                    backgroundColor: colors[11],  // Pink
-                    borderColor: colors[11],        // Dark Pink
+                    backgroundColor: colors[12],  // Pink
+                    borderColor: colors[12],        // Dark Pink
                     borderWidth: 1
                 },
 
                 {
                     label: 'Total scrapped in',
                     data: totalScrappedIn,
-                    backgroundColor: colors[11],  // Pink
-                    borderColor: colors[11],        // Dark Pink
+                    backgroundColor: colors[13],  // Pink
+                    borderColor: colors[13],        // Dark Pink
                     borderWidth: 1
                 },
                 {
                     label: 'Total scrapped out',
                     data: totalScrappedOut,
-                    backgroundColor: colors[11],  // Pink
-                    borderColor: colors[11],        // Dark Pink
+                    backgroundColor: colors[14],  // Pink
+                    borderColor: colors[14],        // Dark Pink
                     borderWidth: 1
                 }
             ]
@@ -428,9 +417,11 @@
 
     // Doughnut chart
     const totalMetrics = {
-        'Total Stock': totalStock.reduce((a, b) => a + b, 0),       
-        'Total Available': totalAvailable.reduce((a, b) => a + b, 0),
+        'Total Stock': totalStock.reduce((a, b) => a + b, 0),          
         'Total Purchase': totalPurchase.reduce((a, b) => a + b, 0),
+        'Total Available': totalAvailable.reduce((a, b) => a + b, 0),
+        'Reorder order': reorderLevel.reduce((a, b) => a + b, 0),
+      
         'Total Sold': totalSold.reduce((a, b) => a + b, 0),
 
         'Total existing in': totalExistingIn.reduce((a, b) => a + b, 0),
@@ -477,9 +468,12 @@
                    colors[11],
                    colors[12],
                    colors[13],
+                   colors[141],
+                   colors[15],
+                   colors[16],
                 ],
                 borderColor: [
-                colors[0],  
+                   colors[0],  
                    colors[1],
                    colors[2],
                    colors[3],
@@ -493,6 +487,9 @@
                    colors[11],
                    colors[12],
                    colors[13],
+                   colors[14],
+                   colors[15],
+                   colors[16],
                 ],
                 borderWidth: 1
             }]
@@ -509,27 +506,6 @@
  
 
 </script>
-
-
-
-
-<script>
-
-     // Show Django message modal if there are messages
-     document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal) {
-            const messagesContainer = document.getElementById('messagesContainer');
-            if (messagesContainer && messagesContainer.children.length > 0) {
-                const modalInstance = new bootstrap.Modal(messageModal);
-                modalInstance.show();
-            }
-        }
-    });
-    
-
-</script>
-
 
 
 {% endblock %}

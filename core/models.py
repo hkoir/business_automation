@@ -23,7 +23,7 @@ class Notice(models.Model):
 
 
 class Department(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100,choices=DEPARTMENT_CHOICES)
     description = models.TextField(null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
@@ -33,21 +33,51 @@ class Department(models.Model):
         return self.name
 
 
-class Position(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
-    name = models.CharField(max_length=100,choices=POSITION_CHOICES)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="positions")
+class Employeelevel(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=100,choices=EMPLOYEE_LEVEL_CHOICES)  
     description = models.TextField(null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+            return self.name
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['name', 'department'], name='unique_position_in_department')
-        ]
-
+class Position(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=100, choices=POSITION_CHOICES)
+    employee_level = models.ForeignKey(Employeelevel, on_delete=models.CASCADE, related_name="employee_level", null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="positions")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return self.name
+    
+
+class JobRequirement(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)    
+    department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True, blank=True)  
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name="requirements",null=True, blank=True)  # ✅ Related name added
+    requirement = models.TextField()     
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.position.name} - {self.requirement}"  
+
+
+class JobDescription(models.Model):  
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  
+    department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True, blank=True)  
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name="descriptions",null=True, blank=True)  # ✅ Related name added
+    description = models.TextField()     
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.position.name} - {self.description}"  
+
+
+
 
 
 class Company(models.Model):
@@ -55,6 +85,8 @@ class Company(models.Model):
     name = models.CharField(max_length=255)
     logo = models.ImageField(upload_to='company_logo/',blank=True, null=True)
     contact_person = models.CharField(max_length=30,null=True,blank=True)
+    phone = models.IntegerField(null=True,blank=True)
+    email= models.EmailField(null=True,blank=True)
     website = models.URLField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -84,63 +116,231 @@ class Location(models.Model):
 
     def __str__(self):
         return f"{self.name}"
-
-
-
-class Employee(models.Model):   
-    user_profile = models.ForeignKey(UserProfile,on_delete=models.CASCADE,null=True, blank=True)
-    name = models.CharField(max_length=100, null=True, blank=True,default="Nome")    
-    first_name = models.CharField(max_length=100, null=True, blank=True,default="Nome")
-    last_name = models.CharField(max_length=100,null=True, blank=True,default="Nome")     
-    location = models.ForeignKey(Location,on_delete=models.SET_NULL,null=True,blank=True,related_name='employee_location')
-    position = models.ForeignKey(Position,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_position')
-    department = models.ForeignKey(Department,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_department')   
-    company = models.ForeignKey(Company,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_company')          
-    employe_level= models.CharField(max_length=100, choices=EMPLOYEE_LEVEL_CHOICES, default='executive',null=True, blank=True)
-    employee_code = models.CharField(max_length=100, null=True, blank=True)
+    
    
+class PoliciesAndGuideline(models.Model):
+    company = models.ForeignKey(Company,on_delete=models.CASCADE,null=True,blank=True)
+    workplace_security_policies = models.ImageField(upload_to='workplace_security_policies',null=True,blank=True)
+    workplace_health_safety = models.ImageField(upload_to='workplace_health_safety',null=True,blank=True)
+    equal_opportunity_policy = models.ImageField(upload_to='equal_opportunity_policy',null=True,blank=True)
+    employee_code_of_conduct_policy = models.ImageField(upload_to='employee_code_of_conduct_policy ',null=True,blank=True)
+    leave_of_absence_policy = models.ImageField(upload_to='leave_of_absence_policy',null=True,blank=True)
+    employee_disciplinary_action_policy = models.ImageField(upload_to='employee_disciplinary_action_policy',null=True,blank=True)
+    travel_policies = models.ImageField(upload_to='travel_policies',null=True,blank=True)
+    remote_work_policy = models.ImageField(upload_to=' remote_work_policy',null=True,blank=True)
+    work_schedule_and_rest_period_policies = models.ImageField(upload_to='work_schedule_and_rest_period_policies',null=True,blank=True)
+    ethics_policy = models.ImageField(upload_to='ethics_policy',null=True,blank=True)
+    employee_complaint_policies = models.ImageField(upload_to='employee_complaint_policies',null=True,blank=True)
+    compensation_and_benefits_policy = models.ImageField(upload_to='compensation_and_benefits_policy',null=True,blank=True)
+    employee_fraternization_policy = models.ImageField(upload_to='employee_fraternization_policy',null=True,blank=True)   
+    BYOD = models.ImageField(upload_to='BYOD',null=True,blank=True)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f" {self.company}"
+
+
+class CompanyPolicy(models.Model):
+    name =models.CharField(max_length=30,null=True,blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    policy_code = models.CharField(max_length=30,null=True,blank=True)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE,null=True,blank=True)
+    hra_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=40.00,null=True, blank=True)
+    medical_allowance_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00,null=True, blank=True)
+    conveyance_allowance_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00,null=True, blank=True)
+    performance_bonus_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00,null=True, blank=True)
+    festival_bonus_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00,null=True, blank=True)
+    provident_fund_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=12.00,null=True, blank=True)
+    professional_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,null=True, blank=True)
+    grauity_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=12.00,null=True, blank=True)
+    leave_travel_allowance_performance = models.DecimalField(max_digits=5, decimal_places=2, default=12.00,null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.policy_code:
+            self.policy_code = f"CPC-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Policy: {self.policy_code}-{self.name}"
+
+
+class Festival(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=50,null=True,blank=True,help_text='any name you prefer')
+    company_policy = models.ForeignKey(CompanyPolicy, on_delete=models.CASCADE)   
+    month = models.PositiveIntegerField(help_text='use numerical month like 1,2 etc. 1=January, 2=February')  
+    description =models.CharField(max_length=255,null=True,blank=True)  
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)    
+
+    def __str__(self):
+        return f"{self.name} ({self.month})"
+    
+
+
+class PerformanceBonus(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=50,null=True,blank=True,help_text='any name you prefer')
+    company_policy = models.ForeignKey(CompanyPolicy, on_delete=models.CASCADE)
+    month = models.PositiveIntegerField(help_text='use numerical month like 1=January, 2=February')
+    description =models.CharField(max_length=255,null=True,blank=True)  
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)    
+
+    def __str__(self):
+        return f"{self.name} ({self.month})"
+
+
+class SalaryStructure(models.Model):
+    name =models.CharField(max_length=30,null=True,blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    salary_structure_code = models.CharField(max_length=50,null=True,blank=True)
+    company_policy = models.ForeignKey(CompanyPolicy,on_delete=models.CASCADE,null=True,blank=True)
+
+    SALARY_LEVEL_CHOICES =[
+        ('LEVEL-1','Level-1'),
+        ('LEVEL2','Level-2'),
+        ('LEVEL-3','Level-3'),
+        ('LEVEL-4','Level-4'),
+        ('LEVEL-5','Level-5'),
+        ('LEVEL-6','Level-6'),
+        ('LEVEL-7','Level-7'),
+        ('LEVEL-8','Level-8'),
+        ('LEVEL-9','Level-9'),
+        ('LEVEL-10','Level-10'),
+    ]
+    salary_level = models.CharField(max_length=50,choices= SALARY_LEVEL_CHOICES,null=True,blank=True)   
+
+    basic_salary = models.DecimalField(max_digits=15, decimal_places=2, help_text="Base salary of the employee",null=True,blank=True)
+    car_entitle_status = models.BooleanField("Entitled to a car?", default=False,null=True,blank=True)   
+    food_allowance = models.DecimalField(max_digits=10, decimal_places=2, null=True,blank=True, help_text="Allowance for meals or food")
+    insurance = models.BooleanField('Cover insurance policy?', default=False,null=True,blank=True)
+    stock_options = models.BooleanField('have stock option?', default=False,null=True,blank=True)   
+    overtime_pay_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,null=True,blank=True, help_text="Rate per hour for overtime work")    
+    income_tax_percentage = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,null=True,blank=True, help_text="Income tax deduction")
+    created_at=models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+   
+    @property
+    def hra(self): return (self.basic_salary * self.company_policy.hra_percentage) / 100
+    @property
+    def medical_allowance(self):return (self.basic_salary * self.company_policy.medical_allowance_percentage) / 100
+    @property
+    def conveyance_allowance(self): return (self.basic_salary * self.company_policy.conveyance_allowance_percentage) / 100
+    @property
+    def performance_bonus(self): return (self.basic_salary * self.company_policy.performance_bonus_percentage) / 100
+    @property
+    def festival_allowance(self): return (self.basic_salary * self.company_policy.festival_bonus_percentage) / 100
+    @property
+    def provident_fund(self): return (self.basic_salary * self.company_policy.provident_fund_percentage) / 100
+    @property
+    def professional_tax(self): return (self.basic_salary * self.company_policy.professional_tax) / 100
+    @property
+    def income_tax(self): return (self.basic_salary * self.income_tax_percentage) / 100
+
+    def is_festival_month(self):   
+        return Festival.objects.filter(
+            company_policy=self.company_policy,
+            month=datetime.now().month
+        ).exists()
+    
+    def is_performance_bonus_month(self):   
+        return Festival.objects.filter(
+            company_policy=self.company_policy,
+            month=datetime.now().month
+        ).exists()
+    
+
+    def gross_salary(self):
+        base_gross_salary= (
+            self.basic_salary
+            + self.hra
+            + self.medical_allowance
+            + self.conveyance_allowance         
+        )
+    
+        if self.is_festival_month():
+            base_gross_salary += self.festival_allowance
+        if self.is_performance_bonus_month():
+            base_gross_salary += self.performance_bonus
+        if self.is_festival_month() and self.is_performance_bonus_month():
+            base_gross_salary += self.performance_bonus + self.festival_allowance
+
+        return base_gross_salary
+    
+    def net_salary(self):
+        return (
+            self.gross_salary()
+            - self.professional_tax
+            - self.income_tax    
+            - self.provident_fund      
+        )
+    
+    def save(self, *args, **kwargs):
+        if not self.salary_structure_code:
+            self.salary_structure_code = f"SSC-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)  
+                
+
+    def __str__(self):
+        return f"Salary Structure: {self.name}-{self.salary_level}"
+
+
+
+class Employee(models.Model):  
+    employee_code = models.CharField(max_length=100, null=True, blank=True)   
+    name = models.CharField(max_length=100, null=True, blank=True,default="Nome")  
+    first_name = models.CharField(max_length=100, null=True, blank=True,default="Nome")
+    last_name = models.CharField(max_length=100,null=True, blank=True,default="Nome")   
+    phone = models.IntegerField(null=True,blank=True)
+    email = models.EmailField(null=True, blank=True)
+    father_name = models.CharField(max_length=100,null=True, blank=True,default="Nome") 
+    mother_name = models.CharField(max_length=100,null=True, blank=True,default="Nome") 
+    
+    user_profile = models.ForeignKey(UserProfile,on_delete=models.CASCADE,null=True, blank=True)   
+             
+    company = models.ForeignKey(Company,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_company')    
+    department = models.ForeignKey(Department,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_department')   
+    position = models.ForeignKey(Position,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_position')            
+    location = models.ForeignKey(Location,on_delete=models.SET_NULL,null=True,blank=True,related_name='employee_location')   
+    employee_level = models.ForeignKey(Employeelevel,on_delete=models.CASCADE,null=True,blank=True)
+    salary_structure=models.ForeignKey(SalaryStructure,on_delete=models.CASCADE,null=True,blank=True)
+         
     gender_choices =[
         ('Male','Male'),
         ('Female','Female'),
         ('Others', 'Others')
-    ]
+    ]   
     gender = models.CharField(max_length=20,choices= gender_choices,null=True, blank=True,default="Nome")
+    state = models.CharField(max_length=50,null=True,blank=True)
+    district = models.CharField(max_length=50,null=True,blank=True)
+    city = models.CharField(max_length=50,null=True,blank=True)
+    postal_code = models.CharField(max_length=50,null=True,blank=True)
+    address=models.TextField(null=True,blank=True)    
+  
+    employee_photo_ID = models.ImageField(upload_to='employee_photo_ID/', null=True, blank=True) 
+    employee_education_certificate = models.ImageField(upload_to='employee_edu/', null=True, blank=True,help_text='pls upload single image file') 
+    employee_NID = models.ImageField(upload_to='employee_nid/', null=True, blank=True,help_text='pls upload single image file')     
+    
     joining_date = models.DateField(null=True,blank=True)
     resignation_date = models.DateField(null=True, blank=True, default=timezone.now, help_text="Format: YYYY-MM-DD")
-      
-    basic_salary = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True,default=0.00)
-    car_entitle_status = models.BooleanField(default=False)
-    house_allowance = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,default=0.00)
-    medical_allowance = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True, default=0.00)
-    transportation_allowance = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True, default=0.00)
-    bonus = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    overtime_pay_rate = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True, default=0.00)
-    employee_photo_ID = models.ImageField(upload_to='employee_photo_ID/', null=True, blank=True)
-    gross_monthly_salary = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True, default=0.00)
-    
-    promotion_status = models.BooleanField(db_default=False)
-    incremental_status = models.BooleanField(default=False)   
-
+                   
     created_at=models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         if not self.employee_code or self.employee_code == 'None':
             self.employee_code = f"EMP-{uuid.uuid4().hex[:8].upper()}"
+        
         super().save(*args, **kwargs)
 
-        percentage_40 = Decimal('0.4')
-        percentage_30 = Decimal('0.3')
-        self.house_allowance = self.basic_salary * percentage_40
-        self.medical_allowance = self.basic_salary * percentage_40
-        self.transportation_allowance = self.basic_salary * percentage_30
-        self.bonus = self.basic_salary * percentage_40
-        self. gross_monthly_salary = self.basic_salary + self.house_allowance + self.medical_allowance + self.transportation_allowance
-        super().save(*args, **kwargs)
-
-
+            
     def __str__(self):
-        return self.name
+        return f'{self.name}-{self.employee_code}'
+
 
 
 
@@ -194,7 +394,8 @@ class SalaryIncrementAndPromotion(models.Model):
     month = models.CharField(max_length=30, choices=MONTH_CHOICES, blank=True, null=True)
     quarter = models.CharField(max_length=30, choices=QUARTER_CHOICES, blank=True, null=True)
     half_year = models.CharField(max_length=30, choices=HALF_YEAR_CHOICES, blank=True, null=True)
-  
+    year = models.IntegerField(blank=True, null=True)
+
     salary_increment_percentage = models.FloatField(blank=True, null=True)
     promotional_increment_percentage = models.FloatField(blank=True, null=True)
     obtained_salary_increment_percentage = models.FloatField(blank=True, null=True)

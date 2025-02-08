@@ -34,6 +34,7 @@ urlpatterns = [
   path('sale_order_item_dispatch/<str:order_id>/', views.sale_order_item_dispatch, name='sale_order_item_dispatch'),
   path('update_sale_order_status/<int:order_id>/', views.update_sale_order_status, name='update_sale_order_status'),
 
+ path('product_sales_report/', views.product_sales_report, name='product_sales_report'),
 
 
 ]

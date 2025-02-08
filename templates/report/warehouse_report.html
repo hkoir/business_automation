@@ -3,47 +3,6 @@
 {% block content %}
 
 
-<style>
-
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    }
-
-
-.table,th,td{
-    text-align: center;
-    white-space: nowrap;
-}
-
-    
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
-
 
 
 <div class="container-fluid main-content">
@@ -97,7 +56,7 @@
                             <hr>
                         {% endfor %}
                     </div>   
-                    <div class="col-4" style="margin-top:20px">  
+                    <div class="col-4 bg-light" style="margin-top:20px">  
                         {% for warehouse in warehouse_data %}
                             <h4 style="color:blue">WH: {{ warehouse.warehouse_name }}</h4>               
                             <canvas style="margin-right: 0px;" id="doughnutChart-{{ forloop.counter }}" width="400" height="200"></canvas>
@@ -115,8 +74,8 @@
               
                 {% for warehouse in warehouse_data %}
                     <h6 style="color:blue;margin-top: 40px;">Warehouse: {{ warehouse.warehouse_name }}</h6>
-                    <table class="table table-striped">
-                        <thead>
+                    <table class="table table-hover">
+                        <thead class="table-dark">
                             <a href="{% url 'inventory:all_inventory' %}" class="btn btn-sm btn-primary">All Stocks</a>
                             <tr>
                                 <th>Product Name</th>

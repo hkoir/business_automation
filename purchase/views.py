@@ -19,6 +19,8 @@ from inventory.models import Warehouse,Location
 from purchase.models import PurchaseOrder,PurchaseOrderItem,PurchaseRequestOrder
 from core.forms import CommonFilterForm
 from django.core.paginator import Paginator
+from utils import create_notification
+
 
 
 
@@ -26,6 +28,7 @@ from django.core.paginator import Paginator
 def purchase_dashboard(request):
     return render(request,'purchase/purchase_dashboard.html')
 
+ 
 
 @login_required
 def create_purchase_request(request):
@@ -527,10 +530,13 @@ def qc_dashboard(request, purchase_order_id=None):
             purchase_shipment__purchase_order=purchase_order_id,
             status__in=['REACHED', 'OBI']
         )
+        create_notification(request.user,'QC pending')
+
         purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)
     else:
         pending_items = PurchaseDispatchItem.objects.filter(status__in=['REACHED', 'OBI'])
         purchase_order = None
+        create_notification(request.user,message='QC pending',notification_type='PURCHASE-NOTIFICATION')
     if not pending_items:
         messages.info(request, "No items pending for quality control inspection.No new goods arrived yet")
     return render(request, 'purchase/qc_dashboard.html', {'pending_items': pending_items, 'purchase_order': purchase_order})

@@ -62,11 +62,11 @@
             <div class="container">
                 <div class="row">                   
 
-                    <div class="col-12 col-md-8">
+                    <div class="col-12 col-md-8 bg-light">
                         <canvas id="barChart"></canvas>
                         <div id="warehouseNames"></div>
                     </div>
-                    <div class="col-12 col-md-4">                      
+                    <div class="col-12 col-md-4 bg-light">                      
                               <!-- Canvas for the doughnut chart -->
                         <canvas id="warehouseDoughnutChart" width="200" height="100"></canvas>
                                                     
@@ -88,15 +88,15 @@
                 {% for warehouse, products, warehouse_total_stock_value in grouped_data %}
                 <div class="row mt-4">
                     <div class="col">
-                        <h6 style="font-weight: bold; color:green">Warehouse: {{ warehouse }}</h6>
+                        <h6 style="font-weight: bold; color:yellow">Warehouse: {{ warehouse }}</h6>
                         
                         <div>
                             <h5 style="color: blue;">Stock Value: {{ warehouse_total_stock_value|add_commas }}</h5>
                             
                         </div>
                         
-                        <table class="table table-striped">
-                            <thead>
+                        <table class="table table-hover">
+                            <thead class="table-dark">
                                 <tr class="bg-primary text-white">
                                     <th>Product Name</th>
 
@@ -197,31 +197,6 @@
 
 
 
-<div style="height:1500px"></div>
-
-
-
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
 <div style="height:1200px"></div>
 
 
@@ -237,6 +212,7 @@
     const totalPurchase = [];
     const totalSold = [];
     const totalAvailable = [];
+    const reorderLevel = [];
 
     const totalManufactureIn = [];
     const totalManufactureOut = [];
@@ -261,6 +237,7 @@
         totalPurchase.push(chartData.total_purchase[index] || 0);
         totalSold.push(chartData.total_sold[index] || 0);
         totalAvailable.push(chartData.total_available[index] || 0);
+        reorderLevel.push(chartData.reorder_level[index] || 0);
 
         totalManufactureIn.push(chartData.total_manufacture_in[index] || 0);
         totalManufactureOut.push(chartData.total_manufacture_out[index] || 0);
@@ -285,6 +262,7 @@
         'rgba(255, 87, 34, .8)',  // Deep Orange
         'rgba(33, 150, 243, 0.5)', // Blue
         'rgba(255, 193, 7, 0.5)',  // Amber
+        'rgba(76, 175, 80, 0.5)',  // Green
         'rgba(156, 39, 176, 0.5)', // Purple
         'rgba(0, 188, 212, 0.5)',  // Teal
         'rgba(255, 87, 34, 0.5)',  // Deep Orange
@@ -299,23 +277,24 @@
     ];
 
     
-    // Calculate the max y-axis value
     const maxYValue = Math.max(
-        ...totalPurchase,
-        ...totalSold,
-        ...totalAvailable,
-        ...totalManufactureIn,
-        ...totalTransferIn,
-        ...totalTransferOut,
-        ...totalReplacementOut,
-        ...totalStock,
-    ) * 1.4;
+    ...totalPurchase,
+    ...totalSold,
+    ...totalAvailable,
+    ...totalManufactureIn,
+    ...totalTransferIn,
+    ...totalTransferOut,
+    ...totalReplacementOut,
+    ...totalStock,
+    ...reorderLevel
+) * 1.4;
 
 
     
-    const barThickness=15
+    const barThickness=30
     // Bar chart
     const ctxBar = document.getElementById('barChart').getContext('2d');
+    
     const barChart = new Chart(ctxBar, {
         type: 'bar',
         data: {
@@ -330,15 +309,7 @@
                     borderWidth: 1,
                     barThickness:barThickness
                 },  
-                {
-                    label: 'Total Available',
-                    data: totalAvailable,
-                    backgroundColor: 'rgba(0, 150, 136, 1)',  // Pink
-                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Pink
-                    borderWidth: 1,
-                    barThickness:barThickness
-                },  
-                
+
                 {
                     label: 'Total Purchase',
                     data: totalPurchase,
@@ -347,7 +318,25 @@
                     borderWidth: 1,
                     barThickness:barThickness
                 },
+                {
+                    label: 'Total Available',
+                    data: totalAvailable,
+                    backgroundColor: 'rgba(0, 150, 136, 1)',  // Pink
+                    borderColor: 'rgba(0, 150, 136, 1)',        // Dark Pink
+                    borderWidth: 1,
+                    barThickness:barThickness
+                },  
 
+                {
+                    label: 'Reorder Level',
+                    data: reorderLevel,
+                    backgroundColor: 'rgba(255, 50, 36, 1)',  // Pink
+                    borderColor: 'rgba(255, 50, 36, 1)',        // Dark Pink
+                    borderWidth: 1,
+                    barThickness:barThickness
+                },  
+                
+                              
                 {
                     label: 'Total Sold',
                     data: totalSold,
@@ -452,7 +441,8 @@
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: maxYValue
+                    max: maxYValue,
+                    min: 0,
                 }
             }
         }
@@ -483,6 +473,7 @@ const totalScrappedInSum = totalScrappedIn.reduce((a, b) => a + b, 0);
 const totalScrappedOutSum = totalScrappedOut.reduce((a, b) => a + b, 0);
 
 const totalAvailableSum = totalAvailable.reduce((a, b) => a + b, 0);
+const reorderLevelSum = reorderLevel.reduce((a, b) => a + b, 0);
 
 const warehouseDoughnutChart = new Chart(doughnutCtx, {
     type: 'doughnut',
@@ -490,6 +481,7 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
         labels: [
             'Total stock',
             'Available Stock',
+            'Reorder level',
             'Total Purchased',
             'Total Sold',
 
@@ -508,6 +500,7 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
             data: [
                 totalStockSum,
                 totalAvailableSum,
+                reorderLevelSum,
                 totalPurchasedSum,
                 totalSoldSum,
 
@@ -525,6 +518,7 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
             backgroundColor: [
                 'rgba(76, 175, 80, 0.5)',  // Green
                 'rgba(33, 150, 243, 0.5)', // Blue
+                'rgba(255, 08, 2, 0.5)',  // Teal
                 'rgba(255, 87, 34, 0.5)',  // Deep Orange
                 'rgba(255, 193, 7, 0.5)',  // Amber
 
@@ -541,6 +535,7 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
             borderColor: [
                 'rgba(76, 175, 80, 1)', 
                 'rgba(33, 150, 243, 1)', 
+                'rgba(255, 8, 212, 0.5)',  // Teal
                 'rgba(255, 87, 34, 1)',                 
                 'rgba(255, 193, 7, 1)', 
 
@@ -576,24 +571,6 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
     }
 });
 
-</script>
-
-
-
-<script>
-    
-
-    // Show Django message modal if there are messages
-    document.addEventListener("DOMContentLoaded", function() {
-     const messageModal = document.getElementById('messageModal');
-        if (messageModal) {
-            const messagesContainer = document.getElementById('messagesContainer');
-            if (messagesContainer && messagesContainer.children.length > 0) {
-                const modalInstance = new bootstrap.Modal(messageModal);
-                modalInstance.show();
-            }
-        }
-    });
 </script>
 
 

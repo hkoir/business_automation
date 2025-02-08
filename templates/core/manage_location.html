@@ -4,215 +4,244 @@
 
 {% block content %}
 
-<style>
-
-
-    html, body {
-       margin: 0;
-       padding: 0;
-       overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-       }
-   
-   
-       
-       .select2-container {
-           width: 60% !important; /* Ensure the container is 100% wide */
-       }
-       
-       .select2-container .select2-selection--single {
-           width: 100% !important; /* Ensure the selection area is also 100% wide */
-       }
-       
-       .select2-dropdown {
-           width: auto !important; 
-       }
-       
-       .select2-search__field {
-           width: 80% !important; 
-       }
-       
-       .main-content {   
-           overflow-y: auto;
-           margin-left:0px;
-           position: absolute;
-           width: 100%;
-           left: 0;
-               }
-       </style>
 
 <div class="container-fluid main-content">
     <div class="row">
         <div class="col-12 col-md-4">
-            <div class="card shadow-lg" style="background-color: aliceblue;">
-                <div class=" card-body">
+            <div class="card shadow-lg border-0 rounded-lg">
+                <div class="card-body">
                     <div class="card-header bg-primary text-white text-center mb-4">
-                        <h3 class="mb-0"> {% if instance %} Update Location {% else %} Add Location {% endif %}</h3>
+                        <h3 class="mb-0"> {% if instance %} Update {% else %} Add {% endif %}</h3>
                     </div>
-                    <form method="POST" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="p-1">                          
-                                Company{{ form.company }}
-                            </div>
-                        <div class="p-2">
-                        Choose Location or Enter custom Location
-                            {{ form.name }}
-                        </div>
-                        <div class="p-1">
-                            {{ form.custom_location_name.label_tag }}
-                            {{ form.custom_location_name }}
-                        </div>
-                        <div class="p-1">
-                            {{ form.description.label_tag }}
-                            {{ form.description }}
-                        </div>
-                        <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg"> {% if instance %} Update {% else %} Add {% endif %}</button>
-                        </div>               
-                    </form>
-                </div>
-                <p class="p-2">If location is not listed then use custom name.</p>
+                
+                <form method="POST" class="p-2 m-3">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" name="entity_submit"class="btn btn-primary btn-lg"> {% if instance %} Update {% else %} Add {% endif %}</button>
+                    </div>   
+                    
+                </form>
             </div>
         </div>
+        </div>
         <div class="col-12 col-md-8">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th class="text-center p-2">Location</th>   
-                        <th class="text-center p-2">Company</th>                                            
-                        <th class="text-center p-2">Created at</th>
-                        <th class="text-center p-2">Updated at</th>                                             
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr class="bg-primary text-white">
+                        <th class="text-center p-2">Name</th>
+                        <th class="text-center p-2">Company</th>
+                        <th class="text-center p-2">Address</th>                       
+                       
+
+                        <th class="text-center p-2">Phone</th>
+                        <th class="text-center p-2">Email</th>
+                        <th class="text-center p-2">City</th>     
+                        
+                        <th class="text-center p-2">State</th>
+                        <th class="text-center p-2">Country</th>   
+                        <th class="text-center p-2">Postal code</th>
+
                         <th class="text-center p-2">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for data in page_obj %}
-                        <tr>
-                            <td class="text-center p-1">{{ data.name }}</td>    
-                            <td class="text-center p-1">{{ data.company.name }}</td>    
-                            <td class="text-center p-1">{{ data.created_at }}</td>   
-                            <td class="text-center p-1">{{ data.updated_at }}</td>                      
+
+                   
+                  {% for entity in page_obj %}
+                        <tr class="table-stripped">
+                            <td class="text-center p-1">{{ entity.name }}</td>
+                            <td class="text-center p-1">{{ entity.company }}</td>                            
+                            <td class="text-center p-2" style="white-space: nowrap;">{{entity.address}}</td>
                            
+                            <td class="text-center p-1">{{ entity.phone }}</td>
+                            <td class="text-center p-1">{{ entity.email }}</td> 
+                            <td class="text-center p-1">{{ entity.city}}</td>
+                            <td class="text-center p-1">{{ entity.state }}</td> 
+
+                            <td class="text-center p-1">{{ entity.country}}</td>
+                            <td class="text-center p-1">{{ entity.postal_code }}</td> 
+
                             <td class="text-center">
-                                <a href="{% url 'core:create_location' %}" class="btn btn-sm btn-info">Add</a>
-                                <a href="{% url 'core:update_location' data.id %}" class="btn btn-sm btn-info">Edit</a>
-                               
-                                <button type="button" class="btn btn-sm btn-danger" data-toggle="modal" data-target="#deleteModal" 
-                                    data-id="{{ data.id }}" 
-                                    data-name="{{ data.name }}">
-                                    
+                                <!-- Update Button -->
+                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#updateEntityModal"
+                                    data-id="{{ entity.id }}"
+                                    data-name="{{ entity.name }}"
+                                    data-company="{{ entity.company }}"
+                                    data-company-id="{{ entity.company.id }}"
+                                    data-address="{{ entity.address }}">
+                                    Update
+                                    </button>
+
+                
+                                <!-- Delete Button -->
+                                <button type="button" class="btn btn-danger btn-sm delete-button text-center" data-bs-toggle="modal" data-bs-target="#deleteEntityModal"
+                                    data-id="{{ entity.id }}"
+                                    data-name="{{ entity.name }}">
                                     Delete
                                 </button>
-                               
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center">No Location available.</td>
+                            <td colspan="5" class="text-center">No record available.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
-                
             </table>
-                    
-            <!-- Pagination Controls -->
-            <div class="pagination">
-                <span class="step-links">
-                    {% if page_obj.has_previous %}
-                        <a href="?page=1">&laquo; first</a>
-                        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
-                    {% endif %}
 
-                    <span class="current">
-                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
-                    </span>
-
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}">next</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
-                    {% endif %}
-                </span>
-            </div>
-
-            
         </div>
     </div>
-
     
-</div>
+     <!-- Pagination Controls -->
+     <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
 
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
 
-
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to delete <strong id="locationName"></strong>?
-            </div>
-            <div class="modal-footer">
-                <form method="POST" id="deleteForm">
-                    {% csrf_token %}
-                    <input type="hidden" name="delete_id" id="deleteId" value="">
-                    <button type="submit" class="btn btn-danger">Confirm Delete</button>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                </form>
-            </div>
-        </div>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
     </div>
+
 </div>
 
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+
+
+<!-- Generalized Update Modal -->
+<div class="modal fade" id="updateEntityModal" tabindex="-1" aria-labelledby="updateEntityModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
+            <form id="updateEntityForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" id="entity_id" name="entity_id">
+                <input type="hidden" name="action" value="update">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateEntityModalLabel">Update</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="entity_name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="entity_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="entity_company" class="form-label">Company</label>
+                        <select class="form-select" id="entity_company" name="company" required>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}">{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="entity_address" class="form-label">Address</label>
+                        <input type="text" class="form-control" id="entity_address" name="address" required>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Generalized Delete Confirmation Modal -->
+<div class="modal fade" id="deleteEntityModal" tabindex="-1" aria-labelledby="deleteEntityModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="deleteEntityForm">
+                {% csrf_token %}
+                <input type="hidden" name="entity_id" id="delete_entity_id" value="">
+                <input type="hidden" name="action" value="delete">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteEntityModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete <strong id="entityToDeleteName"></strong>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No Cancel</button>
+                    <button type="submit" class="btn btn-primary">Yes Delete</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 
-<div style="height:1000px"></div>
-
-<!-- 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script> -->
 
 <script>
-    // Show Django message modal if there are messages
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
-            new bootstrap.Modal(messageModal).show();
-        }
+        document.addEventListener('DOMContentLoaded', function () {
+            // Update Modal Logic
+            var updateModal = document.getElementById('updateEntityModal');
+if (updateModal) {
+    updateModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var entityId = button.getAttribute('data-id');
+        var entityName = button.getAttribute('data-name');
+        var entityAddress = button.getAttribute('data-address');
+        var entityCompanyId = button.getAttribute('data-company-id');
+
+        var modal = updateModal;
+        modal.querySelector('#entity_id').value = entityId;
+        modal.querySelector('#entity_name').value = entityName;
+        modal.querySelector('#entity_address').value = entityAddress;
+        modal.querySelector('#entity_company').value = entityCompanyId;
     });
+}
 
-</script>
 
-<script>
-    $(document).ready(function() {
-        $('#deleteModal').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget);
-            var locationId = button.data('id');
-            var locationName = button.data('name');
+    // Delete Modal Logic
+    var deleteModal = document.getElementById('deleteEntityModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var entityId = button.getAttribute('data-id');
+            var entityName = button.getAttribute('data-name');
 
-            $('#locationName').text(locationName);
-            $('#deleteId').val(locationId);  // Set the hidden input value
+            var modal = deleteModal;
+            modal.querySelector('#delete_entity_id').value = entityId;
+            modal.querySelector('#entityToDeleteName').textContent = entityName;
+        });
+    }
+
+    // Delete Form Submission Logic
+    $('#deleteEntityForm').on('submit', function (event) {
+        event.preventDefault();
+        var form = $(this);
+
+        $.ajax({
+            type: "POST",
+            url: window.location.href, 
+            data: form.serialize(),
+            success: function () {
+                window.location.reload();
+            },
+            error: function (xhr, status, error) {
+                console.error("An error occurred: " + error);
+            }
         });
     });
+});
+
+
+
 </script>
+
 
 
 

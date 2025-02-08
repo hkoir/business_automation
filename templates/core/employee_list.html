@@ -4,29 +4,6 @@
 
 {% block content %}
 
-<style>
-    
-.select2-container {
-        width: 40% !important; /* Ensure the container is 100% wide */
-    }
- 
-  
-    
-.select2-search__field {
-        width: 100% !important; 
-    }
-
-  
-.select2-container--default .select2-selection--single {
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-    }
-
-</style>
-
 
 <div class="container-fluid main-content">
     <div class="row">           
@@ -45,11 +22,11 @@
         <div class="col">
 
             <h4>Employee list:  
-                <a href="{% url 'tasks:download_increment_promotion' %}"class="btn btn-success">Download appraisal data</a>
-                <a href="{% url 'tasks:generate_increment_promotion_letter' %}"class="btn btn-success">Generate Increment Promotion Letter</a>
+                <a href="{% url 'tasks:preview_increment_promotion_general' %}"class="btn btn-success">Preview Appraisal letter</a>
+                <a href="{% url 'tasks:generate_and_send_appraisal_letter_to_all_eligible' %}"class="btn btn-success">Send appraisal_letter to all eligibles</a>
             </h4>
-            <table class="table table-border">
-                <thead>
+            <table class="table table-hover">
+                <thead class="table-dark">
                     <tr class="bg-primary text-white">
                         <th>Name</th>
                         <th>Employee ID</th>
@@ -60,17 +37,19 @@
 
                         <th>Update record</th>                      
 
-                        <th>Generate Increment Promotion letter</th>
-            
-                        <th>Create Pay slip</th>
-                        <th>Create salary certicate</th>
-                        <th>Create experience certificate</th>
+                        <th>Preview appraisal letter</th>            
+                        <th>Create, preview, send, pay Slip</th>                       
+                        <th>Create, preview, send, Salary certicate</th>
+                        <th>Create, preview, send, experience certicate</th>
+
+                       
                         <th>Change history</th>
                      
                        
                     </tr>
                 </thead>
                 <tbody>
+
                     {% for employee in page_obj %}
                     <tr>
                         <td>{{ employee.name }}</td>    
@@ -82,22 +61,22 @@
                         <td>
                             <a href="{% url 'core:update_employee' employee.id %}">Update</a>
                         </td>                
-                                           
-
+                                          
                         <td>
-                            <a href="{% url 'tasks:generate_increment_promotion_letter_with_id' employee.id %}">Generate increment paper pdf</a>
-                        </td>
+                            <a href="{% url 'tasks:preview_increment_promotion' employee.id %}">Preview increment promotion</a>
+                        </td> 
             
                         <td>
-                            <a href="{% url 'core:generate_pay_slip' employee.id %}">Click to create</a>
+                            <a href="{% url 'core:preview_pay_slip' employee.id %}">Click to view</a>
                         </td>           
+                        
                         <td>
-                            <a href="{% url 'core:generate_salary_certificate' employee.id %}">Click to create</a>
+                            <a href="{% url 'core:preview_salary_certificate' employee.id %}">Click to view</a>
                         </td> 
                         <td>
-                            <a href="{% url 'core:generate_experience_certificate' employee.id %}">Click to create</a>
+                            <a href="{% url 'core:preview_experience_certificate' employee.id %}">Click to view</a>
                         </td> 
-
+                                     
                         <td>
                             <a href="{% url 'core:view_employee_changes_single' employee.id %}">Change History</a>
                         </td> 

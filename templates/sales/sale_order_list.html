@@ -5,65 +5,6 @@
 {% block content %}
 
 
-<style>
-
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    }
-
-table {
-        border-collapse: collapse;
-        width: 100%;
-    
-    }
-    
-    th, td {
-       
-        vertical-align: middle;
-        padding: 0px;
-    }
-    
-    th {
-        background-color: rgb(118, 242, 10);
-        
-    }
-    
-    table thead th {
-    white-space: normal;
-    }
-    .table td{
-        white-space: nowrap;
-    }
-
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
-
-
 
 <div class="container-fluid main-content">
     <div class="row">    
@@ -94,45 +35,45 @@ table {
         <div class="col">       
 
             <h4> Placed Sale orders</h4>
-            <table class="table table-striped">
-                <thead>
-                    <tr class="btn-primary text-white">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
                    
-                        <th class="text-center p-2">Request Order Number</th>
-                        <th class="text-center p-2">Sale Order Number</th>
+                        <th>Request Order Number</th>
+                        <th>Sale Order Number</th>
                     
-                        <th class="text-center p-2">Total amount</th> 
+                        <th>Total amount</th> 
                                       
-                        <th class="text-center p-2">Status</th>
+                        <th>Status</th>
                      
 
-                        <th class="text-center p-2">Prepared by</th>
+                        <th>Prepared by</th>
 
-                        <th class="text-center p-2">Items requested</th>
+                        <th>Items requested</th>
                        
 
-                        <th class="text-center p-2">Submission</th>
-                        <th class="text-center p-2">Reviewed</th>
-                        <th class="text-center p-2">Approval</th>
+                        <th>Submission</th>
+                        <th>Reviewed</th>
+                        <th>Approval</th>
 
                
-                        <th class="text-center p-2">Create Parent Schedule</th>
-                        <th class="text-center p-2">Add child schedule</th>
-                        <th class="text-center p-2" style="background-color: rgb(235, 109, 12);">Update Shipment</th> 
-                        <th class="text-center p-2">Delivered Items</th>
+                        <th>Create Parent Schedule</th>
+                        <th>Add child schedule</th>
+                        <th style="background-color: rgb(235, 109, 12);">Update Shipment</th> 
+                        <th>Delivered Items</th>
 
-                        <th class="text-center p-2">QC Dashboard</th>
+                        <th>QC Dashboard</th>
                         
-                        <th class="text-center p-2">Create Invoice</th>
+                        <th>Create Invoice</th>
 
-                        <th class="text-center p-2">Make payment</th>
+                        <th">Make payment</th>
                         
-                        <th class="text-center p-2">Invoice</th>
+                        <th>Invoice</th>
 
-                        <th class="text-center p-2">Upload signed invoice</th>
-                        <th class="text-center p-2">Upload payment Doc</th>
-                        <th class="text-center p-2">View invoice</th>
-                        <th class="text-center p-2">View payment Doc</th>
+                        <th>Upload signed invoice</th>
+                        <th>Upload payment Doc</th>
+                        <th>View invoice</th>
+                        <th>View payment Doc</th>
                      
                     </tr>
                 </thead>
@@ -140,10 +81,10 @@ table {
                     {% for order in page_obj %}
                         <tr>
                          
-                            <td class="text-center p-1" style="white-space: nowrap; font-size: 10px;">{{ order.sale_request_order.order_id }}</td>
-                            <td class="text-center p-1" style="white-space: nowrap;font-size: 10px;">{{ order.order_id }}</td>
+                            <td style="white-space: nowrap; font-size: 10px;">{{ order.sale_request_order.order_id }}</td>
+                            <td style="white-space: nowrap;font-size: 10px;">{{ order.order_id }}</td>
                             
-                            <td class="text-center p-2" style="white-space: nowrap;">{{order.total_amount|add_commas}}</td>
+                            <td style="white-space: nowrap;">{{order.total_amount|add_commas}}</td>
                                                
                            
                             <td> 
@@ -154,8 +95,8 @@ table {
                                  {% endif %}
                             </td>             
                            
-                            <td class="text-center p-2" style="white-space: nowrap;">{{order.user}}</td>
-                            <td class="text-center p-2" style="white-space: nowrap;">
+                            <td style="white-space: nowrap;">{{order.user}}</td>
+                            <td style="white-space: nowrap;">
                               <a href="{% url 'sales:sale_order_items' order.id%}">Items</a>
                             </td>
 
@@ -197,7 +138,7 @@ table {
 
 
                             {% if not order.sale_shipment.first %}
-                            <td class="text-center p-2" style="white-space: nowrap;">
+                            <td style="white-space: nowrap;">
                                 <a href="{% url 'logistics:create_sale_shipment' order.id %}" class="btn btn-sm btn-primary">Create</a>
                             </td>
                             {% else %}
@@ -213,7 +154,7 @@ table {
                                 {% if shipment.is_fully_shipped %}
                                     <td><i class="fas fa-check" style="color:green;font-weight: bold;">All Scheduled</i></td>
                                 {% else %}
-                                    <td class="text-center p-2" style="white-space: nowrap;">
+                                    <td style="white-space: nowrap;">
                                         <a href="{% url 'logistics:create_sale_dispatch_item' shipment.id %}" class="btn btn-sm btn-primary">Add</a>
                                     </td>
                                 {% endif %}
@@ -239,7 +180,7 @@ table {
                         </td>
                                                   
                         
-                        <td class="text-center p-2" style="white-space: nowrap;">
+                        <td  style="white-space: nowrap;">
                             {% with sale_shipment=order.sale_shipment.first %}
                                 {% if sale_shipment %}
                                     {% with dispatch_item=sale_shipment.sale_shipment_dispatch.first %}
@@ -257,7 +198,7 @@ table {
                         
              
                                             
-                                    <td class="text-center p-2" style="white-space: nowrap;">   
+                                    <td style="white-space: nowrap;">   
                                         
                                         {% with shipment=order.sale_shipment.first %}
                                         {% if shipment%}      
@@ -274,7 +215,7 @@ table {
                            
                         
 
-                                    <td class="text-center p-2" style="white-space: nowrap;">
+                                    <td style="white-space: nowrap;">
                                         {% with shipment=order.sale_shipment.first %}
                                             {% if shipment %}
                                                 {% with invoice=shipment.sale_shipment_invoices.first %}
@@ -399,31 +340,6 @@ table {
 
 
 
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-
-
-
-
-
 <script>
     $(document).ready(function() {
         $('#id_sale_order_id').select2({
@@ -458,17 +374,7 @@ table {
     });
 
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        const messagesContainer = document.getElementById('messagesContainer');
-        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
-            const modalInstance = new bootstrap.Modal(messageModal);
-            modalInstance.show();
-            setTimeout(() => {
-                    modalInstance.hide();
-                }, 5000)
-        }
-    });
+   
     </script>
     
 

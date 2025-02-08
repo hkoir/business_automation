@@ -5,61 +5,12 @@
 {% block content %}
 
 
-<style>
-
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    }
-
-    
-    .table th, td {
-
-        /* border: 1px solid black;  */
-        vertical-align: middle;
-        padding: 0px;
-        text-align: center;
-        font-size: 14px;
-        padding:10px;
-    }
-
-    .table td{
-        white-space: nowrap;
-    }
-       
-    
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
 
 <div class="container main-content" style="margin-left: 50px;">
     <h4 class="text-center" style="color:blue;font-weight: bold;">DOPS Inventory Summary</h4>
     <div class="row">
 
-        <h4 class="text-center" style="margin-top: 20px; color: rgb(242, 59, 8);font-weight: bold;">
+        <h4 class="text-center" style="margin-top: 20px; color: yellow;font-weight: bold;">
             Current Stock Value: {{ grand_total_stock_value|add_commas }}&nbsp;&nbsp;
            
             <span style="font-size: 14px;">
@@ -75,7 +26,7 @@
 
         <!-- Bar Chart (Left) -->
         <div class="col-md-8" style="margin-bottom: 20px;">
-            <div>
+            <div class="bg-light">
                 <canvas id="barChart" width="400" height="200"></canvas>
                 <div id="warehouseNames"></div>
             </div>
@@ -85,11 +36,9 @@
         <div class="col-md-4">
             <div class="container-fluid">
                 <div class="row">
-                    <div class="col-12">
-                        <div class="product-chart">
-                            <h4 class="text-center">Warehouse Stock</h4>
-                            <canvas id="warehousePieChart" width="400" height="200"></canvas>
-                        </div>
+                    <div class="col-12 product-chart bg-light">                        
+                        <h4 class="text-center">Warehouse Stock</h4>
+                        <canvas class="mb-2" id="warehousePieChart" width="400" height="200"></canvas>                        
                     </div>
                 </div>
             </div>
@@ -103,11 +52,7 @@
 <div style="height:1000px"></div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-
-
 <script>
-
 const chartData = JSON.parse('{{ chart_data_json|escapejs }}');
 
 // Bar Chart
@@ -211,23 +156,6 @@ new Chart(pieChartCtx, {
         }
     }
 });
-
-</script>
-
-<script>
-
-     // Show Django message modal if there are messages
-     document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal) {
-            const messagesContainer = document.getElementById('messagesContainer');
-            if (messagesContainer && messagesContainer.children.length > 0) {
-                const modalInstance = new bootstrap.Modal(messageModal);
-                modalInstance.show();
-            }
-        }
-    });
-    
 
 </script>
 

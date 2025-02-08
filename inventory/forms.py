@@ -104,3 +104,38 @@ class TransferProductForm(forms.ModelForm):
         exclude=['transfer_order','user']
 
     
+# Form for filtering by transaction type and product
+class TransactionFilterForm(forms.Form):
+    transaction_type_choices=[
+        ('INBOUND', 'Inbound'),
+        ('OUTBOUND', 'Outbound'),
+        ('MANUFACTURE_IN', 'Manufacture IN'),
+        ('MANUFACTURE_OUT', 'Manufacture OUT'),
+        ('REPLACEMENT_OUT', 'Replacement Out'),
+        ('REPLACEMENT_IN', 'Replacement In'),
+        ('TRANSFER_OUT', 'Transfer Out'),
+        ('TRANSFER_IN', 'Transfer In'),
+        ('EXISTING_ITEM_IN', 'Existing items'),
+        ('OPERATIONS_OUT', 'Operations out'),
+        ('SCRAPPED_OUT', 'Scrapped out'),
+        ('SCRAPPED_IN','Scrapped in'),
+    ]
+    transaction_type = forms.ChoiceField(choices=transaction_type_choices, required=True)
+    product = forms.ModelChoiceField(queryset=Product.objects.all(), required=True)
+
+    start_date = forms.DateField(
+        label='Start Date',
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=False
+    )
+    end_date = forms.DateField(
+        label='End Date',
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=False
+    )
+    days = forms.IntegerField(
+        label='Number of Days',
+        min_value=1,
+        required=False
+    )
+   

@@ -8,17 +8,19 @@
   <div class="row">
     <div class="col-12 col-md-3"></div>
     <div class="col-12 col-md-6">
-      <div class="card shadow m-2 p-4" style="background-color: aliceblue;">
+      <div class="card shadow" style="background-color: aliceblue;">
+         <!-- Card Header -->
+         <div class="card-header bg-primary text-white text-center">
+          <h3 class="mb-0">{% if performance %}Update{% else %}Add{% endif %} Customer Performance</h3>
+      </div> 
         <div class="card-body">
-
-
-          <h2>{% if performance %}Update{% else %}Add{% endif %} Customer Performance</h2>
-
-          <form method="post">
+          <form method="post" class="m-3">
             {% csrf_token %}
             {{ form.as_p }}
-            <button type="submit" class="btn btn-success">{% if performance %}Update{% else %}Add{% endif %} Performance</button>
-            <a href="{% url 'supplier:supplier_performance_list' %}" class="btn btn-secondary">Cancel</a>
+            <div class="d-grid">
+            <button type="submit" class="btn btn-success btn-lg">{% if performance %}Update{% else %}Add{% endif %} Performance</button>
+          </div>
+            <a href="{% url 'supplier:supplier_performance_list' %}" class="btn btn-danger mt-2">Cancel</a>
           </form>
         </div>
       </div>
@@ -37,35 +39,5 @@
 
   
 
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-      <div class="modal-content">
-          <div class="modal-header">
-              <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body" id="messagesContainer">
-              {% for message in messages %}
-                  <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-              {% endfor %}
-          </div>
-      </div>
-  </div>
-</div>
-
-
-
-<script>
-  // Show Django message modal if there are messages
-  document.addEventListener("DOMContentLoaded", function() {
-      const messageModal = document.getElementById('messageModal');
-      if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
-          new bootstrap.Modal(messageModal).show();
-      }
-  });
-
-</script>
 
 {% endblock %}

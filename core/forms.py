@@ -1,7 +1,7 @@
 from django import forms
 from.models import Employee,Company,Location,Department,Position
 from.models import Notice,AttendanceModel
-
+from.models import CompanyPolicy,SalaryStructure
 
 
 class ManageDepartmentForm(forms.ModelForm):   
@@ -31,16 +31,7 @@ class ManageDepartmentForm(forms.ModelForm):
 
 
 
-class ManagePositionForm(forms.ModelForm):
-    description = forms.CharField(required=False,
-        widget=forms.Textarea(
-            attrs={
-                'class': 'form-control custom-textarea',
-                'rows': 4, 
-                'style': 'height: 20px;', 
-            }
-        )
-    )
+class ManagePositionForm(forms.ModelForm):  
     custom_position_name = forms.CharField(
         max_length=100,
         required=False,
@@ -50,41 +41,42 @@ class ManagePositionForm(forms.ModelForm):
 
     class Meta:
         model = Position
-        fields = ['department', 'name', 'description']
+        exclude = ['user']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['department'].queryset = Department.objects.all()
-        self.fields['name'].required = False  
+        widgets={
+            'requirement':forms.CheckboxSelectMultiple(),
+            'description':forms.CheckboxSelectMultiple()
+        }
+
+   
        
 
+from.models import JobRequirement,JobDescription
 
-
-class AddEmployeeForm(forms.ModelForm):
-    joining_date = forms.DateField(label='joining_date', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+class JobRequirementForm(forms.ModelForm):     
     class Meta:
-        model = Employee
-        exclude = ['resignation_date','employee_code','bonus','gross_monthly_salary','house_allowance','medical_allowance','transportation_allowance','updated_at','promotion_status','incremental_status'] 
- 
- 
+        model = JobRequirement
+        exclude = ['user']
 
-class AddCompanyForm(forms.ModelForm):      
+        widgets={
+            'requirement':forms.TextInput(attrs={
+                'class':'form-control',
+                'row':3
+            })
+        }
+
+   
+class JobDescriptionForm(forms.ModelForm):     
     class Meta:
-        model = Company
-        exclude = ['created_at','updated_at','history','user']
+        model = JobDescription
+        exclude = ['user']
 
-
-
-   # address = forms.CharField(
-    #     widget=forms.Textarea(
-    #         attrs={
-    #             'class': 'form-control custom-textarea',
-    #             'rows': 4, 
-    #             'style': 'height: 20px;', 
-    #         }
-    #     )
-    # )
-
+        widgets={
+            'description':forms.TextInput(attrs={
+                'class':'form-control',
+                'row':3
+            })
+        }
 
 
 class ManageLocationForm(forms.ModelForm):
@@ -106,14 +98,20 @@ class ManageLocationForm(forms.ModelForm):
 
     class Meta:
         model = Location
-        fields = ['company', 'name', 'description']
+        fields = ['company', 'name', 'address']
+        widgets={
+            'address':forms.Textarea(attrs={
+                'class': 'form-control custom-textarea',
+                'rows': 4, 
+                'style': 'height: 20px;', 
+            })
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['company'].queryset = Company.objects.all()
         self.fields['name'].required = False  
        
-
 
 
 
@@ -131,6 +129,57 @@ class UpdateLocationForm(forms.ModelForm):
         model=Location
         exclude = ['location_id','history','created_at','updated_at','user']
 
+ 
+
+class AddCompanyForm(forms.ModelForm):      
+    class Meta:
+        model = Company
+        exclude = ['created_at','updated_at','history','user']
+
+
+
+
+#############################Policy and salary structure#################################################
+from.models import Festival,PerformanceBonus
+
+class CompanyPolicyForm(forms.ModelForm):      
+    class Meta:
+        model = CompanyPolicy
+        exclude = ['user','policy_code']
+
+class SalaryStructureForm(forms.ModelForm):      
+    class Meta:
+        model = SalaryStructure
+        exclude = ['user','salary_structure_code']
+
+
+class FestivalForm(forms.ModelForm):      
+    class Meta:
+        model = Festival
+        exclude = ['user','policy_code']
+
+class PeformanceBonusForm(forms.ModelForm):      
+    class Meta:
+        model = PerformanceBonus
+        exclude = ['user','salary_structure_code']
+
+ 
+################################################################################################
+
+
+class AddEmployeeForm(forms.ModelForm):
+    joining_date = forms.DateField(label='joining_date', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    class Meta:
+        model = Employee
+        exclude = ['resignation_date','employee_code',] 
+        widgets={
+            'address':forms.TextInput(attrs={
+                'class':'form-control',
+                'row':3,
+                
+            })
+        }
+ 
 
 
 
@@ -304,8 +353,8 @@ class CommonFilterForm(forms.Form):
 
 #####################################################################
 
-    year = forms.IntegerField(required=False, label="Year")
-    year = forms.IntegerField(required=False, label="Month")
+    year = forms.IntegerField(required=True, label="Year")
+    month = forms.IntegerField(required=False, label="Month")
     start_year = forms.IntegerField(label='Start Year',required=False)
     end_year = forms.IntegerField(label='End Year',required=False)
     

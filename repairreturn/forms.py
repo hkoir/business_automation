@@ -6,7 +6,7 @@ from .models import FaultyProduct
 from .models import Replacement
 from product.models import Product
 from inventory.models import Warehouse,Location
-from.models import ScrappedItem
+from.models import ScrappedItem,RepairReturnCustomerFeedback
 
 
 
@@ -52,6 +52,22 @@ class ReturnOrRefundForm(forms.ModelForm):
             self.fields['sale'].queryset = SaleOrderItem.objects.none()
 
 
+
+class RepairReturnCustomerFeedbackForm(forms.ModelForm):
+    class Meta:
+        model = RepairReturnCustomerFeedback
+        exclude=['feedback_id','progress_by_customer','progress_by_user']
+        widgets={
+            'comments':forms.Textarea(attrs={
+                'class':'form-control',
+                'row':2,
+                'style':'height:100px',
+                'placeholder':'Please enter your comment'
+            }),
+           
+        }
+      
+             
 
 class ReturnOrRefundFormInternal(forms.ModelForm):
     remarks = forms.CharField( required=False,

@@ -4,53 +4,6 @@
 
 {% block content %}
 <title>Challan - {{ delivery_order.order_number }}</title>
-<style>
-
-
-    html, body {
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-        }
-    
-    .table th,td {
-              text-align: center;
-            
-            }
-            
-         
-    
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-
-
-         body { font-family: Arial, sans-serif; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .content { margin: 20px; }
-       
-    </style>
-
 
    
 <h4>Challan/Invoice Details for Order: {{ sale_order.order_id }}</h4>

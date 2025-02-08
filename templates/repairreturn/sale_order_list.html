@@ -3,84 +3,7 @@
 {% load custom_filters %}
 {% block content %}
 
-<style>
 
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    }
-
-table {
-        border-collapse: collapse;
-        width: 100%;
-    
-    }
-    
-    th, td {
-       
-        vertical-align: middle;
-        padding: 0px;
-    }
-    
-    th {
-        background-color: rgb(118, 242, 10);
-        
-    }
-    
-    table thead th {
-    white-space: normal;
-    }
-
-
-    .table td{
-        white-space: nowrap;
-    }
- .table td,th{
-        text-align: center;
-    }
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-
-    .modal-header.bg-primary {
-        display: flex;
-        align-items: center;
-    }
-    .modal-header i {
-        margin-right: 8px;
-    }
-    .alert i {
-        margin-right: 10px;
-    }
-    .modal-body {
-        font-size: 1rem;
-        line-height: 1.5;
-    }
-
-
-    </style>
 
 
 
@@ -114,8 +37,8 @@ table {
         <div class="col">       
 
             <h4> Repair Return</h4>
-            <table class="table table-striped">
-                <thead class="bg-primary text-white">
+            <table class="table table-hover">
+                <thead class="table-dark">
                     <tr>                   
                         <th class="text-center p-2">Sale Order Number</th>    
                         <th class="text-center p-2">Customer</th>                  

@@ -94,6 +94,7 @@ def product_report(request, product_id):
 
       
         warehouse_entry = {
+            'reorder_level':product.reorder_level,
             'warehouse_name': warehouse.name,
             'warehouse_id': warehouse.id,
             'total_available': stock_data['total_available'],

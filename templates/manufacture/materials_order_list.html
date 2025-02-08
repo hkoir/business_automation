@@ -2,84 +2,6 @@
 
 {% block content %}
 
-<style>
-
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    }
-
-table {
-        border-collapse: collapse;
-        width: 100%;
-    
-    }
-    
-    th, td {
-        border: 1px solid black; /* Set border color for individual cells */
-        vertical-align: middle;
-        padding: 0px;
-    }
-    
-    th {
-        background-color: rgb(118, 242, 10);
-        
-    }
-    
-    table thead th {
-    white-space: normal;
-    }
-
-
-    .table td{
-        white-space: nowrap;
-    }
- .table td,th{
-        text-align: center;
-    }
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-
-    .modal-header.bg-primary {
-        display: flex;
-        align-items: center;
-    }
-    .modal-header i {
-        margin-right: 8px;
-    }
-    .alert i {
-        margin-right: 10px;
-    }
-    .modal-body {
-        font-size: 1rem;
-        line-height: 1.5;
-    }
-
-
-    </style>
 
 
 
@@ -88,8 +10,8 @@ table {
         <div class="col">       
 
             <h4> Placed Purchase orders</h4>
-            <table class="table table-striped">
-                <thead>
+            <table class="table table-hover">
+                <thead class="table-dark">
                     <tr>
                    
                         <th class="text-center p-2">Purchase Order Number</th>                      
@@ -415,60 +337,6 @@ table {
 
 
 <div style="height:2000px"></div>
-
-
-
-<!-- Bootstrap Modal -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="messageModalLabel">
-                    {% if messages %}
-                        {% for message in messages %}
-                            {% if forloop.first %}
-                                {% if "error" in message.tags %}
-                                    <i class="bi bi-exclamation-triangle-fill"></i> Error
-                                {% elif "success" in message.tags %}
-                                    <i class="bi bi-check-circle-fill"></i> Success
-                                {% elif "info" in message.tags %}
-                                    <i class="bi bi-info-circle-fill"></i> Info
-                                {% elif "warning" in message.tags %}
-                                    <i class="bi bi-exclamation-circle-fill"></i> Warning
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-
-
-<!-- JavaScript to trigger modal -->
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        const messagesContainer = document.getElementById('messagesContainer');
-        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
-            const modalInstance = new bootstrap.Modal(messageModal);
-            modalInstance.show();
-            setTimeout(() => {
-                    modalInstance.hide();
-                }, 5000)
-        }
-    });
-</script>
 
 
 

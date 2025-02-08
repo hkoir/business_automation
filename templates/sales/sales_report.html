@@ -1,0 +1,161 @@
+{% extends 'base.html' %}  
+
+{% load custom_filters %}
+
+{% block content %}
+
+    
+       <div class="container-fluid main-content">
+        <div class="row">
+            <div class="col-12 col-md-4">
+                <div class="card shadow-lg" style="background-color: aliceblue;">
+                    <!-- Card Header -->
+                    <div class="card-header bg-primary text-white text-center">
+                        <h5 class="mb-0"> Filter data</h5>
+                    </div> 
+                    <div class="card-body">
+                        
+                        <form method="get" enctype="multipart/form-data" action="" id="add_category">
+                            {% csrf_token %}
+                            {{ form.as_p }}
+                            <div class="d-grid">
+                            <button type="submit" name="add_to_basket" class="btn btn-primary">Submit</button>
+                            </div>
+                        </form>
+                     </div>
+                </div>   
+            </div>
+            
+            <div class="col-12 col-md-8 bg-light">
+                {% if dates %}
+                <h1>Product Sales Report</h1>
+                <canvas id="salesChart" width="800" height="400"></canvas>    
+                {% endif %}        
+            </div>
+           
+
+            <div class="col-12">
+                {% if dates %}
+                <h2>Sales Data</h2>
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Product</th>
+                            {% for date in dates %}
+                                <th>{{ date }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in page_obj %}
+                            <tr>
+                                <td>{{ row.product }}</td>
+                                {% for sale in row.sales %}
+                                    <td>{{ sale }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>  
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1">&laquo; first</a>
+                            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                        {% endif %}
+    
+                        <span class="current">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                        </span>
+    
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}">next</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>   
+                {% endif %}       
+            </div>     
+
+        </div>
+       </div>
+
+
+
+   <div style="height:800px"></div>
+
+
+
+
+    <script>
+        const ctx = document.getElementById('salesChart').getContext('2d');     
+        const chartData = JSON.parse('{{ chart_data|escapejs }}');
+
+        const staticDataPoint1 = 2000;
+        const staticDataPoint2 = 2500;
+        const staticLabel1 = '2025-05';
+        const staticLabel2 = '2026-06';
+
+    // Adding static data points to labels and data
+    chartData.labels.push(staticLabel1, staticLabel2);  // Push static labels to the dynamic labels
+    chartData.datasets[0].data.push(staticDataPoint1, staticDataPoint2);  // Push static data points to the first dataset
+ 
+    const maxDataValue = Math.max(...chartData.datasets.map(dataset => Math.max(...dataset.data)));
+    new Chart(ctx, {
+        type: 'line',  // Line chart for sales over time
+        data: chartData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Product Sales Over Time'
+                },
+                tooltip: {  // Tooltip configuration
+                    enabled: true,  // Enable tooltips
+                    mode: 'index',  // Show tooltip when hovering over any point on the line
+                    intersect: false,  // Tooltip will show for all datasets at a specific x-axis value
+                    callbacks: {
+                        // Custom tooltip format
+                        label: function(tooltipItem) {
+                            const date = tooltipItem.label;  // The date (x-axis value)
+                            const product = tooltipItem.dataset.label;  // The product (dataset label)
+                            const quantity = tooltipItem.raw;  // The quantity sold (y-axis value)
+     
+                            return `${product}: ${quantity} units on ${date}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Quantity Sold'
+                    },
+                    beginAtZero: true,
+                    max:maxDataValue * 1.2
+                }
+            },
+            elements: {
+                line: {
+                    tension: 0.4,  
+                    borderColor: 'rgba(0, 1, 255, 1)',  
+                    backgroundColor: 'rgba(0, 255, 1, 0.2)',  
+                    borderWidth: 2,  
+                }
+            }
+        }
+    });
+
+    </script>
+{% endblock %}

@@ -8,7 +8,7 @@ SECRET_KEY = 'django-insecure-wzlf*t+-g32z73ia4=qdcbq*-2wkw_elwd_^%m3iodhllt9t!1
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*','192.168.0.150','localhost','demo1.192.168.0.150']
+ALLOWED_HOSTS = ['*']
 
 
 
@@ -24,13 +24,16 @@ SHARED_APPS = [
     'django_extensions', 
     'clients',   
     'django.contrib.humanize',
+    'commonapp',
+    'django.contrib.sites',
+  
 
 ]
 
 TENANT_APPS = [ 
     'django.contrib.admin',    
     'django.contrib.auth',   
-    'accounts',   
+    'accounts', 
     'logistics',
     'manufacture',
     'product',
@@ -46,12 +49,18 @@ TENANT_APPS = [
     'core',
     'repairreturn',
     'operations',
+    'customerportal',
+    'transport',
+    'recruitment'
+ 
+  
     
 ]
 
 
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
+SITE_ID = 1
 
 TENANT_MODEL = "clients.Client"  
 TENANT_DOMAIN_MODEL = "clients.Domain"  
@@ -66,13 +75,13 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware', 
     'django.contrib.auth.middleware.AuthenticationMiddleware', 
-    'django_tenants.middleware.TenantMiddleware',   
-  
+    'django_tenants.middleware.TenantMiddleware',  
     'django.contrib.messages.middleware.MessageMiddleware',  
+      'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'clients.middleware.TenantValidationMiddleware',      
     'clients.middleware.CustomGeneralPurposeMiddleWare',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+  
      
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -188,7 +197,7 @@ LOGGING = {
     },
 }
 
-
+MAX_PENALTY_CAP = 500.00
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the broker
 CELERY_ACCEPT_CONTENT = ['json']
@@ -219,19 +228,20 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.your-email-provider.com' 
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'your-email@example.com'
+# EMAIL_HOST_PASSWORD = 'your-email-password'
+# DEFAULT_FROM_EMAIL = 'your-email@example.com'
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     # Add other backends if you have any
 ]
 
-
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'your_email@gmail.com'  
-# EMAIL_HOST_PASSWORD = 'your_password'      
+    
 
 DEFAULT_FROM_EMAIL = 'noreply@ddealshop.com'  # Default sender email

@@ -1,0 +1,182 @@
+
+{% extends "recruitment_portal.html" %}
+{% load static %}
+
+{% block content %}
+
+
+<style>
+    /* Radio button container styling */
+    .radio-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 16px;
+    }
+    
+    /* Custom radio button styling */
+    .radio-container input[type="radio"] {
+        appearance: none; /* Remove default styles */
+        width: 20px;
+        height: 20px;
+        border: 2px solid #007bff;
+        border-radius: 50%;
+        margin-right: 10px;
+        outline: none;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+    
+    /* Checked radio button */
+    .radio-container input[type="radio"]:checked {
+        background-color: #007bff;
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+    
+    /* Hover effect */
+    .radio-container input[type="radio"]:hover {
+        border-color: #0056b3;
+    }
+    
+    /* Label styling */
+    .radio-container label {
+        cursor: pointer;
+        color: #333;
+    }
+/*  */
+#countdown-container{
+    border-radius: 60%;
+    background-color: aqua;
+    width:350px;
+    height:50px
+}
+
+    </style>
+
+
+<div class="container-fluid main-content">
+    <div class="col">
+        <div class="row">
+            <div class="col-12 mt-3 mb-3 d-flex justify-content-center">
+                <div id="countdown-container">
+                    <p id="exam-start-countdown" class="text-center mt-2" ></p>
+                    <p id="exam-end-countdown" class="text-center mt-2" ></p>
+                   
+                </div>
+            </div>
+          
+        </div>
+    </div>
+    
+    
+    <div class="col-6 mt-3 mb-3">
+        <div class="card shadow-lg" style="background-color:whitesmoke">
+            <div class="card-body m-4">
+            <p class="text-center"> Candidate name: {{ candidate.full_name }}, email: {{ candidate.email }}<br>
+             Exam Title: {{ exam.title }},Exam name: {{ exam.name }}<br>
+             Job Title: {{ exam.job}}, Duration: {{ exam.duration }}<br>
+             Total marks: {{ exam.total_marks}}, Pass marks: {{ exam.pass_marks }}
+            </p>
+            </div>
+        </div>
+    </div>
+    <div class="row row-cols-2 row-cols-md-4">
+       
+        {% for field in form %}
+        <div class="col">       
+            <form method="post">
+                {% csrf_token %}       
+           
+                <div class="card shadow-lg" style="background-color: aliceblue;">
+                    <div class="card-body m-4">
+                        <div class="form-group">
+                            <h5 class="card-title">{{ field.label }}</h5>
+                            {% for option in field.field.choices %}
+                            <div class="radio-container">
+                                <input 
+                                    type="radio" 
+                                    id="{{ field.id_for_label }}_{{ forloop.counter }}" 
+                                    name="{{ field.html_name }}" 
+                                    value="{{ option.0 }}" 
+                                    {% if option.0 == field.value %}checked{% endif %}
+                                >
+                                <label for="{{ field.id_for_label }}_{{ forloop.counter }}">
+                                    {{ option.1 }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                            {% if field.errors %}
+                            <div class="text-danger mt-2">
+                                {{ field.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>          
+                 
+            </div>
+        {% endfor %}         
+    </div>
+        <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg mb-2 mt-4">Submit</button>
+        </div>
+    </form>
+    <h4 style="height:20px"></h4>
+</div>
+
+
+
+
+
+<div style="height:2000px" ></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Adjust the exam start time and end time for the browser's local time zone
+        const startTime = new Date("{{ exam_start_time }}").getTime(); 
+        const endTime = new Date("{{ exam_end_time }}").getTime(); 
+
+        const startCountdownElement = document.getElementById("exam-start-countdown");
+        const endCountdownElement = document.getElementById("exam-end-countdown");
+
+        console.log("Start Time:", startTime); // Debug log
+        console.log("End Time:", endTime); // Debug log
+    
+        function updateCountdown() {
+            const now = new Date().getTime(); // Get the current time in milliseconds
+            const timeUntilStart = startTime - now; // Time remaining until exam starts
+            const timeUntilEnd = endTime - now; // Time remaining until exam ends
+
+            // Debug log
+            console.log("Current Time:", now);
+            console.log("Time Until Start:", timeUntilStart);
+            console.log("Time Until End:", timeUntilEnd);
+
+            if (timeUntilStart > 0) {           
+                const hours = Math.floor((timeUntilStart % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeUntilStart % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeUntilStart % (1000 * 60)) / 1000);
+                startCountdownElement.textContent = `Exam starts in: ${hours}h ${minutes}m ${seconds}s`;
+                endCountdownElement.textContent = ""; // Hide end countdown until exam starts
+
+            } else if (timeUntilEnd > 0) {         
+                const hours = Math.floor((timeUntilEnd % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeUntilEnd % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeUntilEnd % (1000 * 60)) / 1000);
+                startCountdownElement.textContent = "Exam started!";
+                endCountdownElement.textContent = `Exam ends in: ${hours}h ${minutes}m ${seconds}s`;
+            } else {        
+                startCountdownElement.textContent = "Exam started!";
+                endCountdownElement.textContent = "Exam ended!";
+            }
+        }
+    
+        // Update the countdown every second
+        setInterval(updateCountdown, 1000);
+    });
+</script>
+
+    
+
+{% endblock %}

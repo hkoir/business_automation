@@ -24,8 +24,8 @@ from reporting.models import Notification
 
 
 
-def create_notification(user, message):   
-    Notification.objects.create(user=user, message=message)
+def create_notification(user,notification_type, message):   
+    Notification.objects.create(user=user, message=message,notification_type=notification_type)
     
 
 def mark_notification_as_read(notification_id):

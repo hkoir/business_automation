@@ -3,61 +3,6 @@
 {% block content %}
 
 
-<style>
-
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    }
-
-table {
-        border-collapse: collapse;
-        width: 100%;
-    
-    }
-    
-    th, td {
-        border: 1px solid black; /* Set border color for individual cells */
-        vertical-align: middle;
-        padding: 0px;
-    }
-    
-    th {
-        background-color: rgb(118, 242, 10);
-        
-    }
-    
-    table thead th {
-    white-space: normal;
-    }
-    
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
-
 
 
 <div class="container-fluid main-content">
@@ -82,25 +27,6 @@ table {
 <div style="height:2000px"></div>
 
 
-
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Update Modal -->
 <div class="modal fade" id="updateSupplierModal" tabindex="-1" aria-labelledby="updateSupplierModalLabel" aria-hidden="true">
@@ -170,19 +96,7 @@ table {
 
 
 <script>
-    // Show Django message modal if there are messages
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal) {
-            const messagesContainer = document.getElementById('messagesContainer');
-            if (messagesContainer && messagesContainer.children.length > 0) {
-                const modalInstance = new bootstrap.Modal(messageModal);
-                modalInstance.show();
-            }
-        }
-    });
-
-
+  
 // update modal
     document.addEventListener('DOMContentLoaded', function() {
     var updateModal = document.getElementById('updateSupplierModal');

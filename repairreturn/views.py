@@ -86,7 +86,7 @@ def create_return_request(request, sale_order_id):
 
             create_notification(
                 request.user,
-                f"Customer {sale_order.customer} has placed a repair/return request for: {sale.product}"
+                f"Customer {sale_order.customer} has placed a repair/return request for: {sale.product}",notification_type='RETURN-NOTIFICATION'
             )
             messages.success(request, "Return/Refund request submitted successfully!")
             return redirect('repairreturn:return_dashboard')
@@ -113,7 +113,7 @@ def create_return_request(request, sale_order_id):
 def return_request_progress(request, sale_order_id):
     sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
     sales = sale_order.sale_order.all()  
-    return_requests = ReturnOrRefund.objects.prefetch_related('faulty_products__faulty_replacement').all()
+    return_requests = ReturnOrRefund.objects.prefetch_related('faulty_products__faulty_replacement').all().order_by('-created_at')
       
     paginator =Paginator(return_requests,10)
     page_number = request.GET.get('page')
@@ -231,7 +231,7 @@ def repair_faulty_product(request, faulty_product_id):
             faulty_product = form.save(commit=False)                               
             faulty_product.save()
             if status == 'REPAIRED_AND_READY':
-                create_notification(request.user, f'Product {product} has been repaired and ready to return')
+                create_notification(request.user, f'Product {product} has been repaired and ready to return','RETURN-NOTIFICATION')
 
             if status in ['UNREPAIRABLE','SCRAPPED']:                
                 create_notification(request.user, f'Product {product} can not be repaired.')
@@ -360,6 +360,9 @@ def replacement_product_list(request):
     'replacement_ID':replacement_ID
     
     })
+
+
+
 
 ################### Sarapping product #########################################################
 @login_required

@@ -4,36 +4,6 @@
 
 {% block content %}
 
-<style>
-    
-.select2-container {
-        width: 40% !important; /* Ensure the container is 100% wide */
-    }
- 
-  
-    
-    .select2-search__field {
-            width: 100% !important; 
-        }
-
-  
-.select2-container--default .select2-selection--single {
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-    }
-
- .main-content {   
-    overflow-y: auto;
-    margin-left:0px;
-    position: absolute;
-    width: 100%;
-    left: 0;
-        }
-
-</style>
 
 
 <div class="container-fluid main-content">
@@ -78,35 +48,35 @@
         <div class="col mt-4">       
                          
             <h4>Evaluation Data</h4>
-            <table class="table table-striped">
-                <thead>
+            <table class="table bg-dark">
+                <thead class="table-dark">
                     <tr>
-                        <th style="background-color: aliceblue;">EV ID</th>
-                        <th style="background-color: aliceblue;">Employee</th>
-                        <th style="background-color: aliceblue;">Department</th>
-                        <th style="background-color: aliceblue;">Position</th>
-                        <th style="background-color: aliceblue;">Task</th>
+                        <th>EV ID</th>
+                        <th >Employee</th>
+                        <th >Department</th>
+                        <th >Position</th>
+                        <th >Task</th>
 
-                        <th style="background-color:antiquewhite;">Assigned Quantitative number</th>
-                        <th style="background-color: rgb(11, 241, 241);">Obtained Quantitative number</th>
-                        <th style="background-color: rgb(11, 241, 241);">Given Quantitative number</th>
-                        <th style="background-color: rgb(128, 243, 218);">Obtained Quantitative score</th>
-                        <th style="background-color: rgb(128, 243, 218);">Given Quantitative score</th>
+                        <th >Assigned Quantitative number</th>
+                        <th >Obtained Quantitative number</th>
+                        <th >Given Quantitative number</th>
+                        <th >Obtained Quantitative score</th>
+                        <th>Given Quantitative score</th>
 
-                        <th style="background-color:antiquewhite;">Assigned Qualitative number</th>
-                        <th style="background-color: rgb(11, 241, 241);">Obtained Qualitative number</th>
-                        <th style="background-color: rgb(138, 234, 216);">Obtained Qualitative Score</th> 
+                        <th>Assigned Qualitative number</th>
+                        <th>Obtained Qualitative number</th>
+                        <th>Obtained Qualitative Score</th> 
 
-                        <th style="background-color:antiquewhite;">Total Assigned number</th>                                 
-                        <th style="background-color: rgb(11, 241, 241);">Total obtained number</th>
-                        <th style="background-color: rgb(11, 241, 241);">Total given number</th>
-                        <th style="background-color:antiquewhite;">Final obtained scorer</th>                                 
-                        <th style="background-color: rgb(11, 241, 241);">Final given score</th>  
+                        <th>Total Assigned number</th>                                 
+                        <th>Total obtained number</th>
+                        <th>Total given number</th>
+                        <th>Final obtained scorer</th>                                 
+                        <th>Final given score</th>  
                         
-                        <th style="background-color: aliceblue;">Evaluator</th>
-                        <th style="background-color: aliceblue;">Evaluation date</th>                        
-                        <th style="background-color: aliceblue;">Created </th>
-                        <th style="background-color: aliceblue;">Updated</th>
+                        <th>Evaluator</th>
+                        <th>Evaluation date</th>                        
+                        <th>Created </th>
+                        <th>Updated</th>
                       
                     </tr>
                 </thead>
@@ -179,62 +149,10 @@
 </div>
 
 
-
 <div style="height:800px"></div>
 
 
-<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="successModalLabel">Success</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                {{ messages }}
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 
-
-
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-
-
-
-<script>
-    // Show Django message modal if there are messages
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
-            new bootstrap.Modal(messageModal).show();
-        }
-    });
-
-</script>
 <script>
     $(document).ready(function() {
         $('#id_employee_name').select2({

@@ -48,13 +48,7 @@ def inventory_dashboard(request):
     return render(request,'inventory/inventory_dashboard.html')
 
 @login_required
-def manage_warehouse(request, id=None):
-    if request.method == 'POST' and 'delete_id' in request.POST:
-        instance = get_object_or_404(Warehouse, id=request.POST.get('delete_id'))
-        instance.delete()
-        messages.success(request, "Deleted successfully")
-        return redirect('inventory:create_warehouse')
-
+def manage_warehouse(request, id=None):  
     instance = get_object_or_404(Warehouse, id=id) if id else None
     message_text = "updated successfully!" if id else "added successfully!"
     form = AddWarehouseForm(request.POST or None, instance=instance)
@@ -78,14 +72,21 @@ def manage_warehouse(request, id=None):
         'page_obj': page_obj
     })
 
+@login_required
+def delete_warehouse(request, id):
+    instance = get_object_or_404(Warehouse, id=id)
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, "Deleted successfully!")
+        return redirect('inventory:create_warehouse')
+
+    messages.warning(request, "Invalid delete request!")
+    return redirect('inventory:create_warehouse')
+
+
 
 @login_required
-def manage_location(request, id=None):
-    if request.method == 'POST' and 'delete_id' in request.POST:
-        instance = get_object_or_404(Location, id=request.POST.get('delete_id'))
-        instance.delete()
-        messages.success(request, "Deleted successfully")
-        return redirect('inventory:create_location')
+def manage_location(request, id=None):   
 
     instance = get_object_or_404(Location, id=id) if id else None
     message_text = "updated successfully!" if id else "added successfully!"
@@ -109,6 +110,16 @@ def manage_location(request, id=None):
         'datas': datas,
         'page_obj': page_obj
     })
+@login_required
+def delete_location(request, id):
+    instance = get_object_or_404(Location, id=id)
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, "Deleted successfully!")
+        return redirect('inventory:create_location')
+
+    messages.warning(request, "Invalid delete request!")
+    return redirect('inventory:create_location')
 
 
 @login_required
@@ -590,6 +601,7 @@ def inventory_list(request):
                 if product_name:
                     data.append({
                         'product': product.name,
+                        'reorder_level':product.reorder_level,
                         'warehouse': inventory.warehouse,
 
                         'total_stock': stock_data['total_stock'],
@@ -618,6 +630,7 @@ def inventory_list(request):
                 chart_data = {
                     'labels': [f"{item['product']} ({item['warehouse'].name})" for item in data],
                     'total_stock': [item['total_stock'] for item in data],
+                    'reorder_level': [item['reorder_level'] for item in data],
                     'total_purchase': [item['total_purchase'] for item in data],
                     'total_sold': [item['total_sold'] for item in data],
                     'total_manufacture_in': [item['total_manufacture_in'] for item in data],
@@ -718,6 +731,7 @@ def inventory_aggregate_list(request):
 
             aggregated_data.append({
                 'product': product.name,
+                'reorder_level':product.reorder_level,
                 'total_stock': stock_data['total_stock'],
                 'total_purchase': stock_data['total_purchase'],
                 'total_sold': stock_data['total_sold'],
@@ -740,6 +754,7 @@ def inventory_aggregate_list(request):
         chart_data = {
             'labels': [item['product'] for item in aggregated_data],
             'total_stock': [item['total_stock'] for item in aggregated_data],
+            'reorder_level': [item['reorder_level'] for item in aggregated_data],
             'total_purchase': [item['total_purchase'] for item in aggregated_data],
             'total_sold': [item['total_sold'] for item in aggregated_data],
             'total_available': [item['total_available'] for item in aggregated_data],
@@ -812,3 +827,93 @@ def inventory_executive_sum(request):
     return render(request, 'inventory/inventory_executive_sum.html', context)
 
 
+ 
+from.forms import TransactionFilterForm
+from django.db.models.functions import TruncDate
+
+
+
+def inventory_transaction_report(request):
+    form = TransactionFilterForm(request.GET or None)
+    transactions=[]
+    transaction_type_form=None
+    selected_product=None
+    transaction_type_display=None
+    chart_data={}
+  
+    if request.method == 'GET':
+        form = TransactionFilterForm(request.GET)     
+
+        if form.is_valid():      
+            transaction_type_form = form.cleaned_data["transaction_type"]
+            selected_product = form.cleaned_data["product"]    
+            start_date = form.cleaned_data["start_date"]     
+            end_date = form.cleaned_data["end_date"]     
+            days = form.cleaned_data["days"]    
+
+          
+            if start_date and end_date and days:
+                messages.info(request,'Please choose start date and end date or days but not both')          
+
+            transaction_type_data =InventoryTransaction.objects.all()
+            if start_date and end_date:
+                transaction_type_data =transaction_type_data.filter(transaction_date__range=(start_date,end_date))  
+
+            if days:
+                end_date = timezone.now() 
+                start_date = end_date - timedelta(days=days)  
+                transaction_type_data = transaction_type_data.filter(transaction_date__range=(start_date, end_date))
+                         
+            transaction_type_display = transaction_type_data.filter(transaction_type=transaction_type_form).first()
+            transaction_type_display =  transaction_type_display.get_transaction_type_display() if   transaction_type_data else transaction_type_form            
+                            
+            transactions = (
+                transaction_type_data.filter(
+                    transaction_type=transaction_type_form ,
+                    product__name=selected_product
+                )
+                .annotate(transaction_date_only=TruncDate("transaction_date"))  
+                .values("product__name", "transaction_date_only")
+                .annotate(total_quantity=Sum("quantity"))
+                .order_by("transaction_date_only")
+            )              
+
+                    
+            labels = sorted(set(transaction["transaction_date_only"].strftime("%Y-%m-%d") for transaction in transactions))  # Convert date to string
+            datasets = []
+
+            products = {}
+            for transaction in transactions:
+                product_name = transaction["product__name"]
+                transaction_date = transaction["transaction_date_only"].strftime("%Y-%m-%d")  
+                
+                if product_name not in products:
+                    products[product_name] = {date: 0 for date in labels}  
+                products[product_name][transaction_date] = transaction["total_quantity"]
+
+            for product, quantities in products.items():
+                datasets.append({
+                    "label": product,
+                    "data": [quantities[date] for date in labels],  
+                    "backgroundColor": "rgba(75, 192, 192, 0.6)",
+                    "borderColor": "rgba(75, 192, 192, 1)",
+                    "borderWidth": 2,
+                })
+
+            chart_data = {
+                "labels": labels,
+                "datasets": datasets,
+            }
+           
+        else:
+            print(form.errors)
+            print('form is not valid')
+
+    context = {
+        "form": form,
+        "transaction_type": transaction_type_display,
+        "selected_product": selected_product,
+        "chart_data": json.dumps(chart_data),  
+        "transactions": transactions,  
+    }
+    return render(request, "inventory/inventory_transaction_report.html", context)

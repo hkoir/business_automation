@@ -11,11 +11,11 @@ urlpatterns = [
     path('inventory_dashboard/', views.inventory_dashboard, name='inventory_dashboard'),
     path('create_warehouse/', views.manage_warehouse, name='create_warehouse'),
     path('update_warehouse/<int:id>/', views.manage_warehouse, name='update_warehouse'),
-    path('delete_warehouse/<int:id>/', views.manage_warehouse, name='delete_warehouse'),
+    path('delete_warehouse/<int:id>/', views.delete_warehouse, name='delete_warehouse'),
 
     path('create_location/', views.manage_location, name='create_location'),
     path('update_location/<int:id>/', views.manage_location, name='update_location'),
-    path('delete_location/<int:id>/', views.manage_location, name='delete_location'),
+    path('delete_location/<int:id>/', views.delete_location, name='delete_location'),
 
     path('get_locations/', views.get_locations, name='get_locations'), 
     path('complete_quality_control/<int:qc_id>/', views.complete_quality_control, name='complete_quality_control'),    
@@ -33,6 +33,9 @@ urlpatterns = [
   path('confirm_transfer/', views.confirm_transfer, name='confirm_transfer'),
   path('transfer_order_list/', views.transfer_order_list, name='transfer_order_list'),
   path('transfer_order_detail/<int:transfer_order_id>/', views.transfer_order_detail, name='transfer_order_detail'),
+
+
+ path('inventory_transaction_report/', views.inventory_transaction_report, name='inventory_transaction_report'),
 
   
   

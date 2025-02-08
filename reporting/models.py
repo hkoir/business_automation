@@ -12,6 +12,19 @@ from inventory.models import Location,Inventory
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
+    notification_type=models.CharField(max_length=150,null=True,blank=True,choices=[
+        ('PURCHASE-NOTIFICATION','Purchase notification'),
+        ('SALES-NOTIFICATION','Sales Notification'),
+        ('PRODUCTION-NOTIFICATION','Production notification'),
+        ('GENERAL-NOTIFICATION','General Notification'),
+        ('SHIPMENT-NOTIFICATION','Shipment Notification'),
+        ('RETURN-NOTIFICATION','Return Notification'),
+        ('APPRAISAL-NOTIFICATION','Appraisal Notification'),
+        ('OPERATIONS-NOTIFICATION','Appraisal Notification'),
+        ('TICKET-NOTIFICATION','Ticket Notification'),
+        ('TASK-NOTIFICATION','Task Notification'),
+        ('TRANSPORT-NOTIFICATION','Transport Notification'),
+    ])
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)  
 

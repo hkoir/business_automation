@@ -3,50 +3,6 @@
 {% load custom_filters %}
 {% block content %}
 
-<style>
-
-
-    html, body {
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-        }
-    
-    .table td {
-                text-align: center;
-                white-space: nowrap;
-            
-            }
-            
-    .table th{
-        text-align: center;
-    }
-    
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
-
 
 
 <div class="container-fluid main-content">
@@ -77,8 +33,8 @@
         <div class="col">
 
             <H4> Requested refund Faulty product list</H4>
-            <table class="table table-striped">
-                <thead>
+            <table class="table table-hover">
+                <thead class="table-dark">
                     <tr class="bg-primary text-white">
                         <th>Sale Order</th>
                         <th>Product Name</th>
@@ -148,25 +104,6 @@
 
 
 
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
 <div style="height:1000px"></div>
 
 <script>
@@ -203,17 +140,7 @@
     });
 
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        const messagesContainer = document.getElementById('messagesContainer');
-        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
-            const modalInstance = new bootstrap.Modal(messageModal);
-            modalInstance.show();
-            setTimeout(() => {
-                    modalInstance.hide();
-                }, 5000)
-        }
-    });
+  
     </script>
     
 {% endblock %}

@@ -3,51 +3,6 @@
 {% block content %}
 
 
-<style>
-
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    background-color: aliceblue;
-    }
-.table td,th{
-    white-space: nowrap;
-    text-align: center;
-}
-    
-.select2-container {
-        width: 40% !important; /* Ensure the container is 100% wide */
-    }
- 
-  
-    
-.select2-search__field {
-        width: 100% !important; 
-    }
-
-  
-.select2-container--default .select2-selection--single {
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-    }
-
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
-
-
-
 
 <div class="container-fluid main-content">
     <div class="row">
@@ -68,8 +23,8 @@
         </div>
         <div class="col-12">
             <h4>Product List</h4>
-            <table class="table table-striped">
-                <thead>
+            <table class="table table-hover">
+                <thead class="table-dark">
                     <tr>
                         <th>#</th>
                         <th>Catelogue</th>

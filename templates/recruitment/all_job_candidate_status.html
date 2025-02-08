@@ -1,0 +1,66 @@
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="container">
+    <h2 class="text-center my-2">Candidate Status for Each Job</h2>
+    <form method="GET" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="container">
+            <div class="row">
+                <div class="col-6">
+                    {{ form.as_p }}  
+                </div>
+                <div class="col-6 mt-4">
+                    <button type="submit" class="btn btn-primary"> Search by project</button>
+                </div>
+            </div>
+        </div>     
+                          
+    </form>
+
+    
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0 p-2 text-center">Total Project candidates: {{ total_candidates }}</h4>
+    </div>
+
+    {% for job, status in job_candidate_status.items %}
+        <div class="card my-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Job Title: {{ job.title }}</h4>
+            </div>
+            <div class="card-body">
+                <h5>Candidate Status:
+                    <strong>Total Candidates Shortlisted:</strong> {{ status.pass_count }}
+                    <strong>Total Candidates Rejected:</strong> {{ status.fail_count }}
+                    
+                </h5>
+                <table class="table table-hover">                  
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Candidate Name</th>
+                            <th>CV score</th>
+                            <th>CV Screening Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for candidate in status.candidates %}
+                            <tr>
+                                <td>{{ candidate.full_name }}</td>
+                                <td>{{ candidate.cv_screening_score }}</td>
+                                <td>{{ candidate.cv_screening_status }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+               
+                
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<div style="height:1000px" ></div>
+{% endblock %}

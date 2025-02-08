@@ -19,7 +19,7 @@ from reportlab.pdfgen import canvas
 
 from .models import PerformanceEvaluation, Employee,QualitativeEvaluation,Task,TeamMember,Team,TaskMessage
 
-from.forms import IncrementPromotionCheckForm,IncrementPromotionForm
+from.forms import IncrementPromotionCheckForm,IncrementPromotionForm,IncrementPromotionFinalDataForm
 from.forms import GenerateIncrementPromotionPdfForm,DownloadIncrementPromotionForm
 from.forms import MonthlyQuarterlyTrendForm,YearlyTrendForm,ChatForm
 from .forms import QualitativeEvaluationForm,TaskForm,TeamForm,AddMemberForm
@@ -29,6 +29,22 @@ from django.db.models import Sum, ExpressionWrapper, F, FloatField,Count,Q,Avg
 from django.urls import reverse
 from statistics import mean
 from decimal import Decimal, ROUND_HALF_UP
+from django.utils.timezone import now
+from.models import TaskMessageReadStatus
+from django.contrib.auth.models import User
+
+from django.http import JsonResponse
+from django.db.models import Max, Avg
+import calendar
+from collections import defaultdict
+
+from django.template.loader import render_to_string
+from django.core.mail import EmailMessage,send_mail
+
+import base64
+from io import BytesIO
+
+
 
 
 def tasks_dashboard(request):
@@ -36,24 +52,37 @@ def tasks_dashboard(request):
 
 
 
-@login_required
 def chat(request, task_id):
-    task = get_object_or_404(Task, pk=task_id)
-    TaskMessage.objects.filter(task=task, read=False).update(read=True)    
+    task = get_object_or_404(Task, id=task_id)
+    taskmessages = TaskMessage.objects.filter(task=task).order_by('timestamp')
+
+    for message in taskmessages:
+        TaskMessageReadStatus.objects.update_or_create(
+            task_message=message,
+            user=request.user,
+            defaults={'read': True, 'read_at': now()}
+        )
+
     if request.method == 'POST':
         form = ChatForm(request.POST)
         if form.is_valid():
             message = form.save(commit=False)
             message.task = task
             message.sender = request.user
-            message.timestamp = timezone.now()
+            message.timestamp = now()
             message.save()
+
+            for user in User.objects.all():  
+                TaskMessageReadStatus.objects.create(
+                    task_message=message,
+                    user=user,
+                    read=False
+                )
             return redirect('tasks:chat', task_id=task_id)
     else:
         form = ChatForm()
+    return render(request, 'tasks/tchat.html', {'task': task, 'taskmessages': taskmessages, 'form': form})
 
-    messages = TaskMessage.objects.filter(task=task).order_by('timestamp')
-    return render(request, 'tasks/tchat.html', {'task': task, 'messages': messages, 'form': form})
 
 
 def create_team(request):
@@ -208,7 +237,9 @@ def create_task(request):
                 f'Task: {task.title} has been created and assigned to '
                 f'{task.assigned_to_team or task.assigned_to_employee}, '
                 f'manager: {task.task_manager} created by {request.user} '
-                f'dated {timezone.now()}'
+                f'dated {timezone.now()}',
+                'TASK-NOTIFICATION'
+
             )
             messages.success(request, 'Task created successfully!')
             return redirect('tasks:create_task')
@@ -225,6 +256,56 @@ def create_task(request):
     return render(request, 'tasks/create_tasks.html', {'form': form, 'tasks': tasks, 'page_obj': page_obj})
 
 
+
+
+@login_required
+def assigned_task(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+
+    if not request.user.groups.filter(name='managers').exists():
+        messages.error(request, 'You are not authorized to assign a task.')
+        return redirect('tasks:tasks_dashboard')
+
+    if request.method == 'POST':
+        form = TaskForm(request.POST, instance=task)
+        if form.is_valid():
+            assigned_to = form.cleaned_data['assigned_to']
+
+            task = form.save(commit=False)
+
+            if not task.ticket:
+                task.ticket = task.ticket  
+            if not task.task_type:
+                task.task_type = 'TICKET'  
+
+            if assigned_to == 'team':
+                task.assigned_to_team = form.cleaned_data['assigned_to_team']
+                task.assigned_to_employee = None
+            elif assigned_to == 'member':
+                task.assigned_to_employee = form.cleaned_data['assigned_to_employee']
+                task.assigned_to_team = None
+
+            task.save()
+            create_notification(
+                request.user,
+                f'Task: {task.title} has been assigned to '
+                f'{task.assigned_to_team or task.assigned_to_employee}, '
+                f'manager: {task.task_manager} created by {request.user} '
+                f'dated {timezone.now()}',
+                'TASK-NOTIFICATION'
+            )
+            messages.success(request, 'Task assigned successfully!')
+            return redirect('tasks:tasks_list')
+        else:  
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"Error in {field}: {error}")
+
+    form = TaskForm(instance=task)
+    return render(request, 'tasks/create_tasks.html', {'form': form})
+
+
+
 def delete_task(request, task_id):  
     task = get_object_or_404(Task, id=task_id)
     if request.method == 'POST':
@@ -235,17 +316,14 @@ def delete_task(request, task_id):
 
 
 
-
 def tasks_list(request):
     form = CommonFilterForm(request.GET)
     tasks = Task.objects.all().order_by('-created_at')  
-
-    unread_messages = {}
-    
-    for task in tasks:
-        unread_msgs = TaskMessage.objects.filter(task=task, read=False)
-        if unread_msgs.exists():
-            unread_messages[task.id] = unread_msgs      
+ 
+    unread_messages = defaultdict(list) 
+    unread_statuses = TaskMessageReadStatus.objects.filter(user=request.user, read=False)
+    for status in unread_statuses:
+        unread_messages[status.task_message.task.id].append(status.task_message)
       
     if form.is_valid():
         start_date = form.cleaned_data['start_date']
@@ -255,10 +333,10 @@ def tasks_list(request):
         if start_date and end_date:
            tasks = tasks.filter(created_at__range=(start_date, end_date))  
         else:            
-            seven_days_ago = timezone.now() - timedelta(days=7)
+            seven_days_ago = timezone.now() - timedelta(days=15)
             tasks = tasks.filter(created_at__gte=seven_days_ago)   
         if department:
-            tasks = tasks.filter(department=department)
+            tasks = tasks.filter(department__name=department)
 
     
     paginator = Paginator(tasks, 8)  
@@ -270,9 +348,44 @@ def tasks_list(request):
 
 
 
+# for ajax
+
+def task_details(request, task_id):
+    try:
+        task = Task.objects.get(id=task_id)       
+        data = {
+            "task_id": task.task_id,           
+            "description": task.description,
+            "status": task.status,
+            "assigned_to": task.assigned_to,
+            "due_datetime": task.due_datetime.strftime("%Y-%m-%d") if task.due_datetime else None,
+            'ticket_subject':task.ticket.subject,
+            'ticket_description':task.ticket.description,
+            'ticket_raised_by':task.ticket.user.username,
+            'ticket_origin_date':task.ticket.ticket_origin_date,
+            'ticket_resolution_date':task.ticket.ticket_resolution_date
+        }
+ 
+        return JsonResponse(data)
+    except Task.DoesNotExist:
+        return JsonResponse({"error": "Task not found"}, status=404)
+
+   
+
+def view_team_members(request, task_id):
+    task=get_object_or_404(Task,id=task_id)
+    team_members = task.assigned_to_team.members.all()
+    return render(request,'tasks/view_team_members.html',{'team_members':team_members,'task':task})
+    
+from repairreturn.models import RepairReturnCustomerFeedback
 
 def update_task_progress(request, task_id):
     task = get_object_or_404(Task, id=task_id)
+
+    if not task.assigned_to:
+        messages.info(request, "Task can not update as nobody has assigned yet")
+        return redirect('tasks:tasks_list')
+
 
     latest_extension_request = task.time_extension_requests.filter(is_approved=True).order_by('-updated_at').first()
 
@@ -288,19 +401,38 @@ def update_task_progress(request, task_id):
         form = TaskProgressForm(request.POST, instance=task)
         if form.is_valid():
             given_progress = form.cleaned_data['progress']
+            form.save()            
+     
+    # Update ticket progress#########################################
 
-            if given_progress > 100:
-                messages.error(request, "Progress cannot be more than 100%.")
-                return redirect('tasks:tasks_list')
+            task.ticket.progress_by_user = given_progress
+            task.ticket.save()
 
-            task = form.save(commit=False)
-            new_obtained_number = task.calculate_obtained_number()
+    # Update repair return progress####################################
+            try:           
+                sale_order = task.ticket.sales           
+                if not sale_order:
+                    raise AttributeError("No Sale Order found for the task ticket.")
 
+                sale_order_item = sale_order.sale_order.first()            
+                if not sale_order_item :
+                    raise AttributeError("No Sale Returns found for the Sale Order.") 
+                sale_return = sale_order_item.sale_returns.first()              
+               
+                sale_return.progress_by_user = given_progress
+                sale_return.save()              
+
+            except AttributeError as e:
+                print(f"Error: {str(e)}") 
+
+    # Calculate performance ####################################    
+           
+            new_obtained_number = task.calculate_obtained_number()    
             if new_obtained_number > 100:
                 messages.error(request, "Cumulative progress cannot exceed 100%.")
                 return redirect('tasks:tasks_list')
-            else:
-                task.obtained_number = new_obtained_number
+
+            task.obtained_number = new_obtained_number
             if task.assigned_number > 0:
                 task.obtained_score = (new_obtained_number / task.assigned_number) * 100 
 
@@ -329,8 +461,12 @@ def update_task_progress(request, task_id):
                     evaluation.obtained_quantitative_number = task.obtained_number
                     evaluation.assigned_quantitative_number = task.assigned_number
                     evaluation.remarks = f"Progress: {task.progress}%. Updated incremental score."
-                    create_notification(request.user, f'Task:{task.title}, progress {task.progress}% updated by {request.user} dated {timezone.now()}')
                     evaluation.save()
+                    create_notification(
+                        request.user,
+                        message=f'Task:{task.title}, progress {task.progress}% updated by {request.user} dated {timezone.now()}',
+                        notification_type='TASK-NOTIFICATION'
+                    )
 
             elif task.assigned_to_employee:
                 evaluation, created = PerformanceEvaluation.objects.get_or_create(
@@ -347,11 +483,20 @@ def update_task_progress(request, task_id):
                 evaluation.remarks = f"Progress: {task.progress}%. Updated incremental score."
                 evaluation.save()
 
+            # Success message and redirect
             messages.success(request, "Task progress updated successfully.")
-            create_notification(request.user, f'Task:{task.title}, progress {task.progress}% updated by {request.user} dated {timezone.now()}')
+            create_notification(
+                request.user,
+                message=f'Task:{task.title}, progress {task.progress}% updated by {request.user} dated {timezone.now()}',
+                notification_type='TASK-NOTIFICATION'
+            )
             return redirect('tasks:tasks_list')
         else:
-            messages.error(request, "Error updating task progress.")
+            # Display specific form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"Error in {field}: {error}")
+
     else:
         form = TaskProgressForm(instance=task)
     return render(request, 'tasks/update_progress.html', {'form': form, 'task': task})
@@ -528,7 +673,7 @@ def create_qualitative_evaluation(request, task_id):
             if task.assigned_to_team:
                 team_members = TeamMember.objects.filter(team=task.assigned_to_team)
                 if team_members.exists():
-                    total_team_members = team_members.count() # all members will get equal number so this count does not need anymore
+                    total_team_members = team_members.count() # all members will get equal number/total given by manager will get everyone  so this count does not need anymore
                     manager_given_number = qualitative_evaluation.manager_given_quantitative_number
                     manager_given_score =(manager_given_number / task.assigned_number) * 100  
                     task.manager_given_number=manager_given_number
@@ -541,7 +686,7 @@ def create_qualitative_evaluation(request, task_id):
                             task=task,
                             employee=member.member,
                             team=task.assigned_to_team,
-                            defaults={'quantitative_score': 0.0, 'qualitative_score': 0.0},
+                            defaults={'obtained_quantitative_score': 0.0, 'obtained_qualitative_score': 0.0},
                         )                        
                         
                         QualitativeEvaluation.objects.create(
@@ -583,7 +728,7 @@ def create_qualitative_evaluation(request, task_id):
                 performance_evaluation, _ = PerformanceEvaluation.objects.get_or_create(
                     task=task,
                     employee=task.assigned_to_employee,
-                    defaults={'quantitative_score': 0.0, 'qualitative_score': 0.0},
+                    defaults={'obtained_quantitative_score': 0.0, 'obtained_qualitative_score': 0.0},
                 )                
 
                 qualitative_evaluation.employee = task.assigned_to_employee
@@ -608,7 +753,7 @@ def create_qualitative_evaluation(request, task_id):
 
                 performance_evaluation.save()                
 
-                create_notification(request.user,f'Task:{task.title}, manager evaluation completed by Mr {request.user} dated {timezone.now()}')             
+                create_notification(request.user,message = f'Task:{task.title}, manager evaluation completed by Mr {request.user} dated {timezone.now()}',notification_type = 'TICKET-NOTIFICATION')             
                 messages.success(request, f"Qualitative evaluation for {task.assigned_to_employee.name} was successfully saved.")
             else:
                 messages.error(request, "No employee or team assigned to this task.")            
@@ -771,6 +916,7 @@ def aggregated_report_sheet(request):
             over_all_obtained_score=ExpressionWrapper(
                 (Sum('obtained_quantitative_number') + Sum('obtained_qualitative_number')) /
                 (Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number')) * 100,
+                
                 output_field=FloatField()
             ),
             over_all_given_score=ExpressionWrapper(
@@ -1347,57 +1493,18 @@ def group_performance_chart(request):
 
 
 
-import calendar
 
-def get_employees(appraisal_category, employee_name=None, department_name=None, position_name=None):
-    if appraisal_category == 'BY_EMPLOYEE':
-        return Employee.objects.filter(employee__name=employee_name)
-    elif appraisal_category == 'BY_DEPARTMENT':
+def get_employees(appraisal_category, employee_id=None, department_name=None, position_name=None):
+    if appraisal_category == 'BY_EMPLOYEE' and employee_id:
+        return Employee.objects.filter(id=employee_id)
+    elif appraisal_category == 'BY_DEPARTMENT' and department_name:
         return Employee.objects.filter(department__name=department_name)
-    elif appraisal_category == 'BY_POSITION':
+    elif appraisal_category == 'BY_POSITION' and position_name:
         return Employee.objects.filter(position__name=position_name)
     elif appraisal_category == 'BY_COMPANY':
         return Employee.objects.all()
     return Employee.objects.none()
 
-
-
-
-def calculate_performance(employee, appraisal_type, appraisal_year, month=None, quarter=None, half_year=None):
-    performance_evaluations = PerformanceEvaluation.objects.filter(
-        employee=employee,
-        year=appraisal_year,
-    )
-    month_name_to_num = {month.upper(): num for num, month in enumerate(calendar.month_name[1:], 1)}
-
-    if month:
-        month_num = month_name_to_num.get(month.upper())
-        performance_evaluations = performance_evaluations.filter(evaluation_date__month=month_num)
-  
-    if quarter:
-        performance_evaluations = performance_evaluations.filter(quarter=quarter)
-
-    if half_year:
-        performance_evaluations = performance_evaluations.filter(half_year=half_year)
-
-    if appraisal_type == 'MONTHLY':
-        group_by_field = 'month'
-    elif appraisal_type == 'QUARTERLY':
-        group_by_field = 'quarter'
-    elif appraisal_type == 'HALF_YEARLY':
-        group_by_field = 'half_year'
-    elif appraisal_type == 'YEARLY':
-        group_by_field = 'year'
-    else:
-        raise ValueError("Invalid appraisal type")
-
-   
-    performance_evaluations = performance_evaluations.annotate(
-        total_obtained=Sum('obtained_quantitative_number') + Sum('obtained_qualitative_number'),
-        total_assigned=Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number'),
-    ).filter(total_obtained__isnull=False, total_assigned__isnull=False)
-
-    return performance_evaluations
 
 
 
@@ -1452,6 +1559,7 @@ def increment_promotion_check(request):
         quarter_name = form.cleaned_data['quarter']
         half_year = form.cleaned_data['half_year']
         month_name = form.cleaned_data['month']
+        year = form.cleaned_data['year']
         salary_increment_percentage = form.cleaned_data['salary_increment_percentage']
         eligible_score_for_promotion = form.cleaned_data['eligible_score_for_promotion']
         max_promotion_limit = form.cleaned_data['max_promotion_limit']
@@ -1466,7 +1574,7 @@ def increment_promotion_check(request):
 
             employes=Employee.objects.all()
             for employee in employes:
-                salary_increment_for_all= float(employee.basic_salary)* (salary_increment_percentage / 100)
+                salary_increment_for_all= float(employee.salary_structure.basic_salary)* (salary_increment_percentage / 100)
                 salary_increment_for_all_total += salary_increment_for_all
         else:
             messages.info(request,'Please select appraisal year')
@@ -1477,7 +1585,11 @@ def increment_promotion_check(request):
 
         elif appraisal_type == 'HALF-YEARLY':         
             if half_year:
-                performance_evaluations = base_evaluations.filter(half_year=half_year)              
+                performance_evaluations = base_evaluations.filter(half_year=half_year) 
+
+        elif appraisal_type == 'YEARLY':         
+            if year:
+                performance_evaluations = base_evaluations.filter(year=year)               
 
         elif appraisal_type == 'MONTHLY':    
             if month_name:
@@ -1496,7 +1608,7 @@ def increment_promotion_check(request):
                 employee_id = employee['employee'] 
                 employee=get_object_or_404(Employee,id=employee_id)                            
                                                        
-                employee_evaluations = performance_evaluations.filter(employee=employee_id)                 
+                employee_evaluations = performance_evaluations.filter(employee=employee)                 
 
                 task_count_for_employee = employee_evaluations.count()
                 task_counts.append(task_count_for_employee)          
@@ -1543,11 +1655,11 @@ def increment_promotion_check(request):
 
             eligible_employee_list = Employee.objects.filter(
                 id__in=[e['employee'].id for e in top_20_percent_employees]
-            ).values('id', 'name', 'basic_salary', 'department__name', 'position__name').order_by('name')
+            ).values('id', 'name', 'salary_structure__basic_salary', 'department__name', 'position__name').order_by('name')
 
             for employee in eligible_employee_list:
                 if any(employee['id'] == e['employee'].id for e in top_20_percent_employees):
-                    promotional_increment = promotional_increment_percentage / 100.0 * float(employee['basic_salary'])
+                    promotional_increment = promotional_increment_percentage / 100.0 * float(employee['salary_structure__basic_salary'])
                 else:
                     promotional_increment = 0
                 promotional_increment_total += promotional_increment
@@ -1588,7 +1700,7 @@ def increment_promotion_check(request):
 
             total_eligible_employee_list = Employee.objects.filter(
                 id__in=[e['employee'].id for e in eligible_employees]
-            ).values('id', 'name', 'basic_salary', 'department__name', 'position__name').order_by('name')
+            ).values('id', 'name', 'salary_structure__basic_salary', 'department__name', 'position__name').order_by('name')
 
             chart_data = {
                 'labels': ['Promotional Increment', 'Salary Increment', 'Total Increment'],
@@ -1598,19 +1710,18 @@ def increment_promotion_check(request):
             chart_data2 = {
                 'labels': ['Total Employee', 'Eligible Employee', 'Top Eligible'],
                 'values': [total_employee, total_eligible_count, total_eligible],
-            }
-                       
+            }                       
 
-    else:        
-        messages.info(request, "The form submission is invalid. Please correct the errors.")
+    else:
+       print(form.errors)        
+       print("The form submission is invalid. Please correct the errors.")
 
-    form = IncrementPromotionCheckForm()
-    form = IncrementPromotionCheckForm()
+    form = IncrementPromotionCheckForm()   
     paginator = Paginator( eligible_employee_list, 10)  
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    paginator = Paginator(eligible_employee_list, 10)  
+    paginator = Paginator(total_eligible_employee_list, 10)  
     page_number = request.GET.get('page')
     page_obj2 = paginator.get_page(page_number)
    
@@ -1643,9 +1754,36 @@ def increment_promotion_check(request):
 
 
 
+def calculate_task_count(year=None, quarter=None, half_year=None, month=None):
+    task_queryset = PerformanceEvaluation.objects.filter(year=year)
+    if month:
+        task_queryset = task_queryset.filter(month=month)
+    elif quarter:
+        task_queryset = task_queryset.filter(quarter=quarter)
+    elif half_year:
+        task_queryset = task_queryset.filter(half_year=half_year)
+   
+    max_task_count = (
+        task_queryset.values('employee')
+        .annotate(task_count=Count('id'))
+        .aggregate(max_task_count=Max('task_count'))['max_task_count']
+    )
+    
+    avg_task_count = (
+        task_queryset.values('employee')
+        .annotate(task_count=Count('id'))
+        .aggregate(avg_task_count=Avg('task_count'))['avg_task_count']    )
 
+    return max_task_count or 0, avg_task_count or 0 
+
+
+# below view is for final appraisal submission
 def increment_promotion(request):
     data=SalaryIncrementAndPromotion.objects.all().order_by('-created_at')
+    paginator = Paginator(data, 10)  
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     employee_totals = {}
     task_count =0
     max_task_count = 0 
@@ -1657,6 +1795,7 @@ def increment_promotion(request):
     quarter=None
     half_year=None
     month=None
+    year=None
     department_name=None
     position_name=None
     eligible_score_for_promotion=None
@@ -1664,7 +1803,7 @@ def increment_promotion(request):
     promotional_increment_percentage=None
     salary_increment_percentage=None
     effective_date=None
-
+    obtained_promotion_recommendation=None
  
     form = IncrementPromotionForm(request.POST or None)
     month_name_to_num = {month.upper(): num for num, month in enumerate(calendar.month_name[1:], 1)}
@@ -1676,6 +1815,7 @@ def increment_promotion(request):
         quarter = form.cleaned_data.get('quarter')
         half_year = form.cleaned_data.get('half_year')
         month = form.cleaned_data.get('month')
+        year = form.cleaned_data.get('year')
         appraisal_category = form.cleaned_data.get('appraisal_category')
         department_name = form.cleaned_data.get('department')
         position_name = form.cleaned_data.get('position')
@@ -1685,55 +1825,92 @@ def increment_promotion(request):
         max_promotion_limit = form.cleaned_data.get('max_promotion_limit')
         promotional_increment_percentage =form.cleaned_data.get('promotional_increment_percentage')
         salary_increment_percentage =form.cleaned_data.get('salary_increment_percentage')
-
         effective_date =form.cleaned_data.get('effective_date')
+
+        max_task_count, avg_task_count = calculate_task_count(        
+        quarter=quarter,
+        half_year=half_year,
+        month=month,
+        year=year
+    )     
 
         if appraisal_year is None:
             messages.info(request,'Please select appraisal year and other parameters')
         else:
             pass
-
        
         performance_evaluations = PerformanceEvaluation.objects.all()
 
-        employees = get_employees(appraisal_category, employee_name=employee_name, department_name=department_name, position_name=position_name)
+        if appraisal_category == 'BY_EMPLOYEE' and employee_name:
+            employees = get_employees(appraisal_category, employee_id=employee_name.id)
+        else:
+            employees = get_employees(appraisal_category, department_name=department_name, position_name=position_name)
 
+       
         employee_performance = []
+        precision = Decimal('0.01')
 
         if employees.exists():
             for employee in employees:
-
                 employee_evaluations = performance_evaluations.filter(employee=employee)
+                if not employee_evaluations.exists():    
+                    salary_increment_amount_for_non_evaluated_employee = (
+                        employee.salary_structure.basic_salary * Decimal(salary_increment_percentage) / Decimal(100.0) * Decimal(0.5)
+                    )                                   
+                    new_basic_salary = employee.salary_structure.basic_salary + salary_increment_amount_for_non_evaluated_employee                
+                    with transaction.atomic():
+                        SalaryIncrementAndPromotion.objects.update_or_create(
+                            employee=employee,
+                            appraisal_type=appraisal_type,
+                            appraisal_year=appraisal_year,
+                            defaults={
+                                "month": month,
+                                "quarter": quarter,
+                                "half_year": half_year,    
+                                "year": year,  
+                                'salary_increment_amount': Decimal(salary_increment_amount_for_non_evaluated_employee).quantize(precision, rounding=ROUND_HALF_UP),  
+                                "new_basic_salary": Decimal(new_basic_salary).quantize(precision, rounding=ROUND_HALF_UP),                     
+                            }
+                        )  
+                    employee.salary_structure.basic_salary = new_basic_salary
+                    employee.save()
+                    messages.info(request, f'Employee {employee.name} is not under performance evaluation; applying 50% salary increment.')
+                    return render(request, 'tasks/increment_promotion.html', {'form': IncrementPromotionForm(), 'page_obj': page_obj})
 
-                if appraisal_type == 'QUARTERLY' and quarter and appraisal_year:  
-                    employee_evaluations = employee_evaluations.filter(
-                        year=appraisal_year,
-                        quarter=quarter
-                    )
-              
-                elif appraisal_type == 'HALF-YEARLY' and half_year and appraisal_year:
-                    employee_evaluations = employee_evaluations.filter(
-                        year=appraisal_year,
-                        half_year=half_year
-                    )
- 
-                elif appraisal_type == 'MONTHLY' and month and appraisal_year:
-                    month_num = month_name_to_num.get(month.upper())
-                    if month_num:
+                else:
+
+                    if appraisal_type == 'QUARTERLY' and quarter and appraisal_year:  
+                        employee_evaluations = employee_evaluations.filter(
+                           year=appraisal_year,
+                            quarter=quarter
+                        )
+                
+                    elif appraisal_type == 'HALF-YEARLY' and half_year and appraisal_year:
                         employee_evaluations = employee_evaluations.filter(
                             year=appraisal_year,
-                            evaluation_date__month=month_num
+                            half_year=half_year
                         )
+                    
+                    elif appraisal_type == 'YEARLY' and appraisal_year:
+                        employee_evaluations = employee_evaluations.filter(
+                            year=year,
+                            
+                        )
+    
+                    elif appraisal_type == 'MONTHLY' and month and appraisal_year:
+                        month_num = month_name_to_num.get(month.upper())
+                        if month_num:
+                            employee_evaluations = employee_evaluations.filter(
+                                appraisal_year=appraisal_year,
+                                evaluation_date__month=month_num
+                            )
+                    else:
+                        print("No specific filter selected or missing required data for appraisal type.")
 
-                else:
-                    print("No specific filter selected or missing required data for appraisal type.")
-
-                if employee_evaluations.exists():
-                    employee_performance.append(employee_evaluations)
-                else:
-                    print(f"No matching performance evaluations found for {employee.name} based on selected criteria.")
-
-
+                    if employee_evaluations.exists():
+                        employee_performance.append(employee_evaluations)
+                    else:
+                        print(f"No matching performance evaluations found for {employee.name} based on selected criteria.")
       
 
             for evaluations in employee_performance:
@@ -1747,14 +1924,7 @@ def increment_promotion(request):
                         employee_totals[employee_name]['total_assigned'] += evaluation.total_assigned_number
                         employee_totals[employee_name]['total_obtained'] += evaluation.total_obtained_number
                         employee_totals[employee_name]['task_count'] += 1
-                        max_task_count = max(max_task_count, employee_totals[employee_name]['task_count'])
-        
-            if employee_totals:
-                task_counts = [totals['task_count'] for totals in employee_totals.values()]
-                avg_task_count = mean(task_counts)
-            else:
-                avg_task_count = 0  
-            
+                               
         
             if employee_totals:            
                 for employee_name, totals in employee_totals.items():
@@ -1778,7 +1948,6 @@ def increment_promotion(request):
                             "obtained_salary_increment_percentage_for_all": obtained_salary_increment_percentage_for_all,
                         }
                     )
-
     
             total_promotion_eligible_employees = [
                 score for score in weighted_scores if score["weighted_final_score"] >= eligible_score_for_promotion
@@ -1787,7 +1956,7 @@ def increment_promotion(request):
 
             total_promotion_eligible_employee_list = Employee.objects.filter(
                 name__in=[e['employee'] for e in total_promotion_eligible_employees]
-            ).values('id', 'name', 'basic_salary', 'department__name', 'position__name').order_by('name')
+            ).values('id', 'name', 'salary_structure__basic_salary', 'department__name', 'position__name').order_by('name')
     
             for employee in total_promotion_eligible_employee_list:
                 obtained_promotion_recommendation = "Yes"
@@ -1801,7 +1970,7 @@ def increment_promotion(request):
 
             top_20_eligible_employee_list = Employee.objects.filter(
                 name__in=[e['employee'] for e in top_20_percent_employees]
-            ).values('id', 'name', 'basic_salary', 'department__name', 'position__name').order_by('name')
+            ).values('id', 'name', 'salary_structure__basic_salary', 'department__name', 'position__name').order_by('name')
 
             for employee in top_20_eligible_employee_list:  
                 employee_score = next(
@@ -1822,7 +1991,6 @@ def increment_promotion(request):
                         obtained_promotional_increment_percentage = 0
                         promotion_recommendation = "No"
 
-                    # Update the score with promotion details
                     employee_score['promotion_recommendation'] = promotion_recommendation
                     employee_score['obtained_promotional_increment_percentage'] = obtained_promotional_increment_percentage
 
@@ -1838,9 +2006,9 @@ def increment_promotion(request):
 
                 employee = Employee.objects.get(name=employee_name)
 
-                salary_increment_amount = Decimal(obtained_salary_increment_percentage_for_all / 100) * employee.basic_salary 
-                promotional_increment_amount = Decimal(obtained_promotional_increment_percentage / 100) * employee.basic_salary
-                new_basic_salary = employee.basic_salary + salary_increment_amount + promotional_increment_amount
+                salary_increment_amount = Decimal(obtained_salary_increment_percentage_for_all / 100) * employee.salary_structure.basic_salary 
+                promotional_increment_amount = Decimal(obtained_promotional_increment_percentage / 100) * employee.salary_structure.basic_salary
+                new_basic_salary = employee.salary_structure.basic_salary + salary_increment_amount + promotional_increment_amount
 
                 with transaction.atomic():
                     SalaryIncrementAndPromotion.objects.update_or_create(
@@ -1851,6 +2019,7 @@ def increment_promotion(request):
                             "month": month,
                             "quarter": quarter,
                             "half_year": half_year,
+                            "year":year,
                             'department':department_name,
                             'position':position_name,
                             "appraisal_year": appraisal_year,                
@@ -1878,19 +2047,12 @@ def increment_promotion(request):
                         }
                     )   
 
-                    employee.basic_salary = new_basic_salary
-                    employee.save()                  
-               
-      
+                    employee.salary_structure.basic_salary = new_basic_salary
+                    employee.save()                 
+                     
     else:
-        messages.info(request, "The form submission is invalid. Please correct the errors.")
-
-    paginator = Paginator(data, 10)  
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    form = IncrementPromotionForm()  # Reset the form
-
+        print('form is invalid')       
+    form = IncrementPromotionForm() 
     return render(request, 'tasks/increment_promotion.html', {
         'form': form,
         'page_obj':page_obj
@@ -1898,235 +2060,385 @@ def increment_promotion(request):
 
 
 
+# Below view is for data fetching after final appraisal submission
+def increment_promotion_final_data(request):    
+    form = IncrementPromotionFinalDataForm(request.GET) 
+    data = SalaryIncrementAndPromotion.objects.all().order_by('-created_at')  
+
+    appraisal_year=None
+    appraisal_type=None
+    month=None
+    quarter=None
+    half_year=None
 
 
-def download_increment_promotion(request): 
+    if form.is_valid():
+        appraisal_year = form.cleaned_data.get('appraisal_year')
+        appraisal_category = form.cleaned_data.get('appraisal_category')
+        appraisal_type = form.cleaned_data.get('appraisal_type')
+        quarter = form.cleaned_data.get('quarter')
+        half_year = form.cleaned_data.get('half_year')
+        month = form.cleaned_data.get('month')
+        year=form.cleaned_data.get('year')
+
+        if appraisal_category:
+            data = data.filter(appraisal_category=appraisal_category)
+
+        if appraisal_year:
+            data = data.filter(appraisal_year=appraisal_year)
+        if year:
+            data = data.filter(year=year)
+
+        if quarter:
+            data = data.filter(quarter=quarter)
+
+        if half_year:
+            data = data.filter(half_year=half_year)
+
+        if month:
+            data = data.filter(month=month)
+
+    
+        total_employee = Employee.objects.all().count()
+        total_employee_evaluated = data.count()
+        total_promoted_employee = data.filter(promotion_recommendation='Yes').count()
+     
+        total_salary_increment = data.aggregate(total_salary_increment=Sum('salary_increment_amount'))
+        total_promotional_increment = data.aggregate(total_promotional_increment=Sum('promotional_increment_amount'))
+   
+        total_salary_increment_value = total_salary_increment['total_salary_increment'] or 0
+        total_promotional_increment_value = total_promotional_increment['total_promotional_increment'] or 0
+        total_increment_value = total_salary_increment_value + total_promotional_increment_value
+  
+        chart_data = {
+            'labels': [ 'Total Increment','Promotional Increment', 'Salary Increment'],
+            'values': [total_increment_value,total_promotional_increment_value, total_salary_increment_value]
+        }
+
+        chart_data2 = {
+            'labels': ['Total employee', 'Total evaluated employee', 'Total promoted employee'],
+            'values': [ total_employee,total_employee_evaluated,total_promoted_employee]
+        }
+    
+    else:
+        print("Form is not valid")
+    
+    paginator = Paginator(data, 10)  
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    form = IncrementPromotionFinalDataForm() 
+    return render(request, 'tasks/increment_promotion_final_data.html', {
+        'page_obj': page_obj,       
+        'form': form  ,
+        'chart_data': json.dumps(chart_data),
+        'chart_data2': json.dumps(chart_data2),
+        'appraisal_year':appraisal_year,
+        'appraisal_type':appraisal_type,
+        'month':month,
+        'quarter':quarter,
+        'half_year':half_year,
+        'total_employee': total_employee,
+        'total_employee_evaluated': total_employee_evaluated,
+        'total_promoted_employee':total_promoted_employee,
+        'total_salary_increment_value':total_salary_increment_value,
+        'total_promotional_increment_value': total_promotional_increment_value,
+        'total_increment_value': total_increment_value
+    })
+
+
+
+
+
+def draw_text(pdf_canvas, x, y, text, font='Helvetica', size=10, color='black', line_spacing=15):
+    pdf_canvas.setFont(font, size)
+    pdf_canvas.setFillColor(color)
+    pdf_canvas.drawString(x, y, text)
+    return y - line_spacing 
+
+def generate_increment_promotion_letter_pdf(employee):
+    buffer = BytesIO()
+    a4_size = A4
+    pdf_canvas = canvas.Canvas(buffer, pagesize=a4_size)
+    
+    # Define gender-specific prefixes
+    prefix = '' 
+    prefix2 = ''
+    if employee.gender == 'Male':
+        prefix = 'Mr.'
+        prefix2 = 'his'
+    elif employee.gender == 'Female':
+        prefix = 'Mrs.'
+        prefix2 = 'her'
+    
+    # Logo and company information
+    logo_path = 'D:/SCM/dscm/media/logo.png'
+    pdf_canvas.drawImage(logo_path, 50, 750, width=60, height=60)  
+    
+    # Spacing and positioning
+    y_space = 720
+    spacing1 = 15
+    
+    # Draw company info
+    company_info = [
+        "mymeplus Technology Limited", 
+        "House#39, Road#15, Block#F, Bashundhara R/A, Dhaka-1229", 
+        "Phone:01842800705", 
+        "email: hkobir@mymeplus.com", 
+        "website: www.mymeplus.com"
+    ]
+    
+    for info in company_info:
+        y_space = draw_text(pdf_canvas, 50, y_space, info)
+    
+    # Current Date
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    y_space = draw_text(pdf_canvas, 50, y_space-20, f"Date: {current_date}")
+    
+    # Appraisal letter
+    y_space = draw_text(pdf_canvas, 50, y_space-20, f"Appraisal letter for {prefix} {employee.first_name} {employee.last_name}", size=12)
+    y_space = draw_text(pdf_canvas, 50, y_space-20, f"Dear {prefix} {employee.last_name}", font="Helvetica-Bold", size=12)
+    
+    # Check promotion recommendation
+    increment_data = employee.increment_employee.first()
+    if increment_data and increment_data.promotion_recommendation == 'Yes':
+        y_space = draw_text(pdf_canvas, 50, y_space-20, "Congratulations. You have been promoted", font="Helvetica-Bold", size=12, color='blue')
+    
+    y_space = draw_text(pdf_canvas, 50, y_space-10, f"", font="Helvetica-Bold", size=12)
+    # Appraisal message
+    appraisal_message = [
+        "Management is pleased to inform you of your appraisal as a token of recognition for your outstanding performance,",
+        "dedication, and the significant contributions you have made to the company.",
+        "Your commitment to excellence, ability to overcome challenges, and consistent display of teamwork and innovation",
+        "have made a lasting impact on our organization. We deeply value the energy and expertise you bring to your role,",
+        "and we are excited to acknowledge your hard work through this appraisal."
+    ]
+    
+    for msg in appraisal_message:
+        y_space = draw_text(pdf_canvas, 50, y_space, msg)
+
+    y_space = draw_text(pdf_canvas, 50, y_space-10, f"",  size=12)
+    # Remuneration details
+    y_space = draw_text(pdf_canvas, 50, y_space, "Your enhanced remuneration is as follows:", size=12)
+    y_space = draw_text(pdf_canvas, 150, y_space, f"Basic Salary: {employee.salary_structure.basic_salary:,.2f}")
+    y_space = draw_text(pdf_canvas, 150, y_space, f"House Allowance: {employee.salary_structure.hra:,.2f}")
+    y_space = draw_text(pdf_canvas, 150, y_space, f"Medical Allowance: {employee.salary_structure.medical_allowance:,.2f}")
+    y_space = draw_text(pdf_canvas, 150, y_space, f"Transportation Allowance: {employee.salary_structure.conveyance_allowance:,.2f}")
+    y_space = draw_text(pdf_canvas, 150, y_space, f"Festival Bonus: {employee.salary_structure.performance_bonus:,.2f}")
+    
+    if increment_data:
+        y_space = draw_text(pdf_canvas, 50, y_space-10, f"Your gross monthly remuneration amounts to {employee.salary_structure.gross_salary():,.2f} effective from {increment_data.effective_date}")
+    
+    y_space = draw_text(pdf_canvas, 50, y_space-10, "Wish you the best of luck.")
+    
+    # CFO signature details
+    cfo_employee = Employee.objects.filter(position__name='CFO').first()
+    if cfo_employee:
+        pdf_canvas.drawString(50, 150, f"Authorized Signature________________")
+        pdf_canvas.drawString(50, 135, f"Name:{cfo_employee.name}")
+        pdf_canvas.drawString(50, 120, f"Designation:{cfo_employee.position}")
+    else:
+        pdf_canvas.drawString(50, 150, f"Authorized Signature________________")
+        pdf_canvas.drawString(50, 135, f"Name:........")
+        pdf_canvas.drawString(50, 120, f"Designation:.....")
+    
+    # Signature note
+    pdf_canvas.setFont("Helvetica-Bold", 10)
+    pdf_canvas.setFillColor('green')
+    pdf_canvas.drawString(50, 80, "Signature is not mandatory due to computerized authorization")
+    
+    pdf_canvas.showPage()
+    pdf_canvas.save()
+
+    buffer.seek(0)
+    return buffer
+
+
+       
+
+@login_required
+def preview_increment_promotion(request, employee_id): 
+    employee_instance = Employee.objects.filter(id=employee_id).first()
+    if not employee_instance:
+        messages.info(request, "No employee found. Please try again.")
+        return HttpResponseRedirect(reverse('tasks:generate_increment_promotion_letter'))  # Redirect to form  
+
+    form = GenerateIncrementPromotionPdfForm(request.POST or None)
+    pdf_base64 = None  # Ensure no PDF is loaded on initial page load
+
     if request.method == "POST":
-        form = DownloadIncrementPromotionForm(request.POST)
         if form.is_valid():
+            appraisal_category = form.cleaned_data.get('appraisal_category')
+            appraisal_type = form.cleaned_data.get('appraisal_type')
+            appraisal_year = form.cleaned_data.get('appraisal_year')
             employee_name = form.cleaned_data.get('employee_name')
-            increment_category = form.cleaned_data.get('increment_category')
-            increment_type = form.cleaned_data.get('increment_type')
-            increment_year = form.cleaned_data.get('increment_year')
             month = form.cleaned_data.get('month')
             quarter = form.cleaned_data.get('quarter')
             half_year = form.cleaned_data.get('half_year')
 
             filter_criteria = {
-                'increment_category': increment_category,
-                'increment_type': increment_type,
-                'increment_year': increment_year,
+                'appraisal_category': appraisal_category,
+                'appraisal_type': appraisal_type,
+                'appraisal_year': appraisal_year,
+                'appraisal_year': appraisal_year,
             }
 
-            if increment_type == 'MONTHLY' and month:
+            if appraisal_type == 'MONTHLY' and month:
                 filter_criteria['month'] = month
-            elif increment_type == 'QUARTERLY' and quarter:
+            elif appraisal_type == 'QUARTERLY' and quarter:
                 filter_criteria['quarter'] = quarter
-            elif increment_type == 'HALF_YEARLY' and half_year:
+            elif appraisal_type == 'HALF-YEARLY' and half_year:
                 filter_criteria['half_year'] = half_year
-     
-            employee_data = SalaryIncrementAndPromotion.objects.filter(**filter_criteria)
-
-            if employee_data.exists():
-                response = HttpResponse(content_type='text/csv')
-                response['Content-Disposition'] = f'attachment; filename="increment_promotion_{increment_year}-{increment_type}.csv"'
-
-                writer = csv.writer(response)
-                writer.writerow([
-                    'Employee', 'Increment Category', 'Increment Type', 'Increment Year', 
-                    'Month', 'Quarter', 'Half Year', 'Promotion Amount', 'New Salary', 'Effective Date'
-                ])
-
-                for record in employee_data:
-                    writer.writerow([
-                        record.employee.name,
-                        record.increment_category,
-                        record.increment_type,
-                        record.increment_year,
-                        record.month if record.increment_type == 'MONTHLY' else '',
-                        record.quarter if record.increment_type == "QUARTERLY" else '',
-                        record.half_year if record.increment_type == "QHALF_YEARLY" else '',
-                        record.increment_amount,
-                        record.new_basic_salary,
-                        record.effective_date
-                    ])
-
-                return response
-            else:
-                messages.info(request, "No data found.Please choose eligible name and increment parameters")
-                return HttpResponseRedirect(reverse('tasks:download_increment_promotion'))    
-        else:
-            messages.info(request, "You form is not valid")
-            return HttpResponseRedirect(reverse('tasks:download_increment_promotion'))                     
-    form = DownloadIncrementPromotionForm()
-    return render(request, 'tasks/download_increment_promotion.html', {'form': form})
-
-
-
-def generate_increment_promotion_letter(request, emp_id=None):
-    employee_instance = None
-    if emp_id: 
-        try:
-            employee_instance = Employee.objects.get(id=emp_id)
-        except Employee.DoesNotExist:
-            messages.error(request, "Employee with the provided ID does not exist.")
-            return HttpResponseRedirect(reverse('tasks:generate_increment_promotion_letter'))
-   
-    form = GenerateIncrementPromotionPdfForm(request.GET or None)    
-    if request.method == "POST":
-        form = GenerateIncrementPromotionPdfForm(request.POST)
-        if form.is_valid():
-            if not employee_instance:
-                employee_name = form.cleaned_data.get('employee_name')
-                try:
-                    employee_instance = Employee.objects.get(name=employee_name)
-                except Employee.DoesNotExist:
-                    messages.info(request, "No data found.Please choose eligible name and increment parameters")
-                    return HttpResponseRedirect(reverse('tasks:generate_increment_promotion_letter'))  # Redirect to form         
-          
-            increment_category = form.cleaned_data.get('increment_category')
-            increment_type = form.cleaned_data.get('increment_type')
-            increment_year = form.cleaned_data.get('increment_year')
-            month = form.cleaned_data.get('month')
-            quarter = form.cleaned_data.get('quarter')
-            half_year = form.cleaned_data.get('half_year')
-
-            filter_criteria = {
-                'employee': employee_instance,
-                'increment_category': increment_category,
-                'increment_type': increment_type,
-                'increment_year': increment_year,
-            }
-
-            if increment_type == 'MONTHLY' and month:
-                filter_criteria['month'] = month
-            elif increment_type == 'QUARTERLY' and quarter:
-                filter_criteria['quarter'] = quarter
-            elif increment_type == 'HALF_YEARLY' and half_year:
-                filter_criteria['half_year'] = half_year
-     
-            filtered_data = SalaryIncrementAndPromotion.objects.filter(**filter_criteria)
-
-        if filtered_data.exists():
-            a4_size = A4   
-            employee=employee_instance 
-   
-            if employee.gender == 'Male':
-                    prefix = 'Mr.'
-                    prefix2 = 'his'
-            elif employee.gender == 'Female':
-                    prefix = 'Mrs.'
-                    prefix2 = 'her'
-            else:
-                    prefix = '' 
-                    prefix2 =''   
-
-            response = HttpResponse(content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="salary_certificate_{emp_id}.pdf"'
-            pdf_canvas = canvas.Canvas(response, pagesize=a4_size)
-            
-            logo_path = 'D:/SCM/dscm/media/logo.png'  
                 
-            logo_width = 60 
-            logo_height = 60  
-            pdf_canvas.drawImage(logo_path, 50, 750, width=logo_width, height=logo_height) 
-        
-            spacing1 = 15
-            y_space = 720
-        
-            pdf_canvas.setFont("Helvetica", 12) 
-            y_space -= spacing1
-            pdf_canvas.drawString(50,  y_space, "mymeplus Technology Limited")
-            y_space -= spacing1
-            pdf_canvas.drawString(50,  y_space, "House#39, Road#15, Block#F, Bashundhara R/A, Dhaka-1229")
-            y_space -= spacing1
-            pdf_canvas.drawString(50,  y_space, "Phone:01842800705")
-            y_space -= spacing1
-            pdf_canvas.drawString(50,  y_space, "email: hkobir@mymeplus.com")
-            y_space -= spacing1
-            pdf_canvas.drawString(50,  y_space, "website: www.mymeplus.com")
-            y_space -= spacing1
-            y_space -= spacing1
-            current_date = datetime.now().strftime("%Y-%m-%d")
-            pdf_canvas.drawString(50, y_space, f"Date: {current_date}") 
-            y_space -= spacing1
-            y_space -= spacing1
-            y_space -= spacing1
-            pdf_canvas.drawString(50, y_space, f"Appraisal letter for {prefix} {employee.first_name} {employee.last_name}")
-           
-            pdf_canvas.setFont("Helvetica-Bold", 12)
-            y_space -= spacing1
-            y_space -= spacing1
-            y_space -= spacing1
-            y_space -= spacing1
-            pdf_canvas.drawString(50, y_space, f"Dear {prefix} {employee.last_name}")     
-            pdf_canvas.setFont("Helvetica", 10)   
-            y_space -= spacing1   
-                   
-            if employee.increment_employee.first() is not None:
-                if employee.increment_employee.first().promotion_recommendation == 'Yes':
-                    pdf_canvas.setFont("Helvetica-Bold", 12)
-                    pdf_canvas.setFillColor('blue')
-                    y_space -= spacing1
-                    pdf_canvas.drawString(50, y_space, f" Congratulations.You have been promoted")       
-                    y_space -= spacing1               
-                    y_space -= spacing1
-
-            pdf_canvas.setFillColor('black')
-            pdf_canvas.setFont("Helvetica", 10) 
-            pdf_canvas.drawString(50, y_space, f"Management is pleased to inform you of your appraisal as a token of recognition for your outstanding performance,")
-            y_space -= spacing1
-            pdf_canvas.drawString(50, y_space, f"dedication, and the significant contributions you have made to {employee.company.name}.")
-            y_space -= spacing1
-            y_space -= spacing1
-            pdf_canvas.drawString(50, y_space, f"Your commitment to excellence, ability to overcome challenges, and consistent display of teamwork and innovation")
-            y_space -= spacing1
-            pdf_canvas.drawString(50, y_space, f"have made a lasting impact on our organization. We deeply value the energy and expertise you bring to your role,")
-            y_space -= spacing1
-            pdf_canvas.drawString(50, y_space, f"and we are excited to acknowledge your hard work through this appraisal")
-            y_space -= spacing1
-            y_space -= spacing1
-           
-
-            pdf_canvas.drawString(50, y_space, f" Your enhanced remuneration is as follows:")       
-            y_space -= spacing1
-            y_space -= spacing1
-            pdf_canvas.drawString(150, y_space, f"Basic Salary: {employee.basic_salary:,.2f}")
-            y_space -= spacing1
-            pdf_canvas.drawString(150, y_space, f"House Allowance: {employee.house_allowance:,.2f}")
-            y_space -= spacing1
-            pdf_canvas.drawString(150, y_space, f"Medical Allowance: {employee.medical_allowance:,.2f}")
-            y_space -= spacing1
-            pdf_canvas.drawString(150, y_space, f"Transportation Allowance: {employee.transportation_allowance:,.2f}")
-            y_space -= spacing1
-            pdf_canvas.drawString(150, y_space, f"Festival Bonus: {employee.bonus:,.2f}")   
-            y_space -= spacing1+20
-            if employee.increment_employee.first() is not None:
-                 pdf_canvas.drawString(50, y_space, f"Your gross monthly remuneration amounts to {employee.gross_monthly_salary:,.2f} effective from {employee.increment_employee.first().effective_date}")
-            y_space -= spacing1
-            y_space -= spacing1
-            pdf_canvas.drawString(50, y_space, f"Wish you the best of luck.")
-        
-           
-            cfo_employee = Employee.objects.filter(position__name='CFO').first()
-            if cfo_employee:
-                pdf_canvas.drawString(50, 150, f"Autorized Signature________________")  
-                pdf_canvas.drawString(50, 135, f"Name:{cfo_employee.name}")  
-                pdf_canvas.drawString(50, 120, f"Designation:{cfo_employee.position}")  
+            filtered_data = SalaryIncrementAndPromotion.objects.filter(**filter_criteria)
+            
+            if filtered_data.exists():            
+                pdf_buffer = generate_increment_promotion_letter_pdf(employee_instance)
+                pdf_base64 = base64.b64encode(pdf_buffer.getvalue()).decode('utf-8')
             else:
-                pdf_canvas.drawString(50, 150, f"Autorized Signature________________")  
-                pdf_canvas.drawString(50, 135, f"Name:........") 
-                pdf_canvas.drawString(50, 120, f"Designation:.....")  
-            pdf_canvas.setFont("Helvetica-Bold", 10)
-            pdf_canvas.setFillColor('green')
-            pdf_canvas.drawString(50,80, f"Signature is not mandatory due to computerized authorization")
-            pdf_canvas.showPage()
-            pdf_canvas.save()    
-            return response
+                messages.info(request, "No matching data found. Please adjust the filters.")
 
-        else:
-            messages.info(request, "No data found.Please choose eligible name and increment parameters")
-            return HttpResponseRedirect(reverse('tasks:generate_increment_promotion_letter'))  # Redirect to form         
-                         
-    form =GenerateIncrementPromotionPdfForm()
-    return render(request, 'tasks/download_increment_promotion.html', {'form': form})
+    return render(request, "core/preview_increment_promotion.html", {
+        "employee": employee_instance,
+        "pdf_preview": pdf_base64,  
+        "form": form
+    })
+
+from.forms import GenerateIncrementPromotionGeneralPdfForm
+
+@login_required
+def preview_increment_promotion_general(request): 
+    employee_instance = None
+    form = GenerateIncrementPromotionGeneralPdfForm(request.POST or None)
+    pdf_base64 = None  
+
+    if request.method == "POST":
+        if form.is_valid():
+            appraisal_category = form.cleaned_data.get('appraisal_category')
+            appraisal_type = form.cleaned_data.get('appraisal_type')
+            appraisal_year = form.cleaned_data.get('appraisal_year')
+            employee_name = form.cleaned_data.get('employee_name')
+            month = form.cleaned_data.get('month')
+            quarter = form.cleaned_data.get('quarter')
+            half_year = form.cleaned_data.get('half_year')
+
+            employee_instance = Employee.objects.filter(name__icontains=employee_name).first()
+            if not employee_instance:
+                messages.info(request, "No employee found. Please try again.")
+                return HttpResponseRedirect(reverse('tasks:generate_increment_promotion_letter'))  # Redirect to form  
+
+
+            filter_criteria = {
+                'appraisal_category': appraisal_category,
+                'appraisal_type': appraisal_type,
+                'appraisal_year': appraisal_year,
+                'appraisal_year': appraisal_year,
+            }
+
+            if appraisal_type == 'MONTHLY' and month:
+                filter_criteria['month'] = month
+            elif appraisal_type == 'QUARTERLY' and quarter:
+                filter_criteria['quarter'] = quarter
+            elif appraisal_type == 'HALF-YEARLY' and half_year:
+                filter_criteria['half_year'] = half_year
+                
+            filtered_data = SalaryIncrementAndPromotion.objects.filter(**filter_criteria)
+            
+            if filtered_data.exists():            
+                pdf_buffer = generate_increment_promotion_letter_pdf(employee_instance)
+                pdf_base64 = base64.b64encode(pdf_buffer.getvalue()).decode('utf-8')
+            else:
+                messages.info(request, "No matching data found. Please adjust the filters.")
+
+    return render(request, "core/preview_increment_promotion.html", {
+        "employee": employee_instance,
+        "pdf_preview": pdf_base64,  
+        "form": form
+    })
+
+
+
+
+def send_increment_promotion(employee):      
+    if not employee.email:
+        return f"Employee email not found for {employee.name}."
+
+    pdf_buffer = generate_increment_promotion_letter_pdf(employee)   
+    message = f'Dear {employee.name}, your requested salary certificate is attached herewith.'
+    
+    try:
+        email = EmailMessage(
+            subject="Offer Letter from Our Company",
+            body=message,
+            from_email="yourcompany@example.com",
+            to=[employee.email]
+        )
+        email.attach(f"Pay slip_{employee.id}.pdf", pdf_buffer.getvalue(), 'application/pdf')
+        email.content_subtype = "html"
+        email.send()        
+      
+        return f"Offer letter sent to {employee.name} successfully!"
+    except Exception as e:
+        return f"Error sending offer letter to {employee.name}: {str(e)}"
+
+
+@login_required
+def generate_and_send_increment_promotion_single(request, employee_id): 
+    employee = get_object_or_404(Employee,id=employee_id)
+    message = send_increment_promotion(employee)
+    if "Error" in message:
+        messages.error(request, message)
+    else:
+        messages.success(request, message)
+
+    return redirect('core:employee_list')
+
+
+
+
+@login_required
+def generate_and_send_appraisal_letter_to_all_eligible(request):
+    form = GenerateIncrementPromotionPdfForm(request.POST or None)
+    if request.method == "POST":
+        if form.is_valid():
+            appraisal_category = form.cleaned_data.get('appraisal_category')
+            appraisal_type = form.cleaned_data.get('appraisal_type')
+            appraisal_year = form.cleaned_data.get('appraisal_year')
+            month = form.cleaned_data.get('month')
+            quarter = form.cleaned_data.get('quarter')
+            half_year = form.cleaned_data.get('half_year')
+
+            filter_criteria = {
+                'appraisal_category': appraisal_category,
+                'appraisal_type': appraisal_type,
+                'appraisal_year': appraisal_year,
+            }
+
+            if appraisal_type == 'MONTHLY' and month:
+                filter_criteria['month'] = month
+            elif appraisal_type == 'QUARTERLY' and quarter:
+                filter_criteria['quarter'] = quarter
+            elif appraisal_type == 'HALF-YEARLY' and half_year:
+                filter_criteria['half_year'] = half_year
+                
+            employees = Employee.objects.filter(
+                id__in=SalaryIncrementAndPromotion.objects.filter(**filter_criteria)
+                .values_list('employee_id', flat=True)
+            ).distinct()
+
+            if not employees.exists():
+                messages.info(request, "No eligible employees found.")
+                return redirect('core:employee_list')  
+         
+            for employee in employees:
+                message = send_increment_promotion(employee)
+                if "Error" in message:
+                    messages.error(request, message)
+                else:
+                    messages.success(request, message)
+            messages.info(request, 'Offer letters sent successfully.')
+            return redirect('core:employee_list')  
+
+    return render(request, "core/preview_increment_promotion_all.html", {
+        "form": form
+    })

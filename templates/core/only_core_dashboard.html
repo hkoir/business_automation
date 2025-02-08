@@ -1,87 +1,30 @@
 {% extends 'base.html' %}  
 
 {% block content %}
-<style>
 
-
-    /* Small screens: Mobile devices */
-    @media (max-width: 767px) {
-        .menu-cardx {
-            width:100px;
-        }
-    }
     
-    /* Medium screens: Tablets and small laptops */
-    @media (min-width: 768px) and (max-width: 1024px) {
-        .menu-cardx {
-            width:100px;
-        }
-    }
-    
-    /* Large screens: Laptops and standard desktops */
-    @media (min-width: 1025px) and (max-width: 1440px) {
-        .menu-cardx {
-            width:100px;
-        }
-    }
-    
-    /* Extra large screens: Wide desktops or monitors */
-    @media (min-width: 1441px) {
-        .menu-cardx {
-            width:100px;
-        }
-    }
-    
-    
-        .menu-card {
-            text-align: center;
-            padding: 10px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border-radius: 10px;
-            background-color: aliceblue;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            width:120px;
-            height:100px;
-    
-        align-items: center;
-        justify-content: center;
-           
-        }
-    
-        .menu-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-    
-        .menu-icon {
-            font-size: 1.5rem;
-            color: #007bff;
-            width:20px;
-            height:20px;
-            justify-content: center;
-        }
-    
-        .menu-title {
-            margin-top: 10px;       
-            font-size: 1rem;
-            font-weight: 600;
-            color: #333;
-            text-align: center;
-            
-        }
-    
-        body {
-            background-color: #f8f9fa;
-        }
-    
-</style>
 
 
 
-<div class="container-fluid">
-    <div class="row">
+<div class="container-fluid main-content">
+    <div class="row">        
+        <div class="col-12 animate">
+            <h4 class="text-center">
+               
+                <span class="fw-bolder" style="color: white;font-size:14px;">Increase organizational efficiency ||</span>
+                <span class="fw-bolder" style="color: yellow;font-size:14px;"> by streamlining processes and workflows</span><br>
+                
+                <span class="fw-bolder" style="color: yellow;font-size:14px;">Reduce human intervention ||</span>
+                <span class="fw-bolder" style="color: darkred;font-size:14px;"> Minimize error and saving time</span><br>
 
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+                <span class="fw-bolder" style="color: white;font-size:14px;"> Instant real time report analysis</span>
+                   
+            </h4>
+        </div>
+            <h4 class="text-center mb-4" >
+                <span style="color: blue;font-weight: bolder;"> ||Core||</span> 
+             </h4>
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
             <a href="{% url 'accounts:register' %}"  class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-user menu-icon"></i>                    
@@ -91,7 +34,7 @@
         </div>
         
 
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+        <div class="col-6 col-md-3 col-lg-2 mt-2 ">
             <a href="{% url 'core:manage_department' %}"  class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-plus-square menu-icon"></i>                    
@@ -100,7 +43,7 @@
             </a>
         </div>
 
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
             <a href="{% url 'core:manage_position' %}"  class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-plus-square menu-icon"></i>                    
@@ -111,7 +54,7 @@
 
 
         
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
             <a href="{% url 'core:create_company' %}" class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-plus-square menu-icon"></i>                    
@@ -120,8 +63,8 @@
             </a>
         </div>
 
-        <div class="col-6 col-md-3 col-lg-2 m-2">
-            <a href="{% url 'core:create_location' %}"  class="text-decoration-none">
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
+            <a href="{% url 'core:manage_location' %}"  class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-plus-square menu-icon"></i>                    
                     <div class="menu-title">Compnay's location</div>
@@ -129,8 +72,8 @@
             </a>
         </div>
 
-        <div class="col-6 col-md-3 col-lg-2 m-2">
-            <a href="{% url 'core:create_employee' %}" class="text-decoration-none">
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
+            <a href="{% url 'core:manage_employee' %}" class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-plus-square menu-icon"></i>                    
                     <div class="menu-title">Enroll employee</div>
@@ -139,7 +82,7 @@
         </div>
 
 
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+        <div class="col-6 col-md-3 col-lg-2 mt-2 ">
             <a href="{% url 'core:view_employee' %}" class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-file menu-icon"></i>                    
@@ -148,7 +91,7 @@
             </a>
         </div>
         
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
             <a href="{% url 'core:employee_list' %}"  class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-file menu-icon"></i>                    
@@ -157,7 +100,7 @@
             </a>
         </div>
 
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
             <a href="{% url 'core:view_attendance' %}" class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-file menu-icon"></i>                    
@@ -168,7 +111,7 @@
 
 
         
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
             <a href="{% url 'core:attendance_input' %}"  class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-file menu-icon"></i>                    
@@ -177,7 +120,7 @@
             </a>
         </div>
  
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
             <a href="{% url 'core:create_salary' %}"  class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-file menu-icon"></i>                    
@@ -186,7 +129,7 @@
             </a>
         </div>
 
-        <div class="col-6 col-md-3 col-lg-2 m-2">
+        <div class="col-6 col-md-3 col-lg-2 mt-2">
             <a href="{% url 'core:view_employee_changes' %}"  class="text-decoration-none">
                 <div class="menu-card">   
                     <i class="fas fa-file menu-icon"></i>                    
@@ -196,7 +139,7 @@
         </div>
 
          
-    <div class="col-6 col-md-3 col-lg-2 m-2">
+    <div class="col-6 col-md-3 col-lg-2 mt-2">
         <a href="{% url 'tasks:increment_promotion' %}" class="text-decoration-none">
             <div class="menu-card">   
                 <i class="fas fa-chart-area menu-icon"></i>                    
@@ -208,6 +151,9 @@
      
 
     </div>
+    <div style="height:200px"></div>
 </div>
 
-    {% endblock %}
+<div style="height:1200px"></div>
+    
+{% endblock %}

@@ -567,7 +567,7 @@ def submit_finished_goods(request, request_id):
             finished_goods.user = request.user  
             finished_goods.save()
             messages.success(request, 'Finished goods submitted successfully!')
-            create_notification(request.user,f'Production department has submitted{product} to receive')
+            create_notification(request.user,f'Production department has submitted{product} to receive',notification_type='PRODUCTION-NOTIFICATION')
             return redirect('manufacture:materials_request_order_list')  
     else:
         form = FinishedGoodsForm(request_order_queryset=MaterialsRequestOrder.objects.filter(id=request_id))
@@ -643,7 +643,7 @@ def direct_submit_finished_goods(request):
             finished_goods.status = 'SUBMITTED'
             finished_goods.save()
             messages.success(request, 'Finished goods submitted successfully!')
-            create_notification(request.user,f'Production department has submitted{product} to receive')
+            create_notification(request.user,f'Production department has submitted{product} to receive','PRODUCTION-NOTIFICATION')
             return redirect('manufacture:direct_submit-finished-goods')  
     else:
         form = FinishedGoodsForm()

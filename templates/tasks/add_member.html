@@ -3,44 +3,6 @@
 {% block content %}
 
 
-<style>
-
-    .table th{
-        text-align: center;
-    }
-    .table td{
-        text-align: center;
-        white-space: nowrap;
-    }
-    
-           
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
-
-
-
 
 <div class="container-fluid main-content">
     <div class="row">  
@@ -50,12 +12,17 @@
                 <div class="row">
                         <div class="col-4">                            
                             <div class="card shadow" style="padding:10px;background-color:aliceblue;">
-                                <div class="card-body">
-                                    <h6 class="card-title text-center"><strong>Add member</strong> </h6>
-                                    <form method="post" enctype="multipart/form-data" action="{% url 'tasks:add_member' %}" id="add_category">
-                                        {% csrf_token %} 
+                                 <!-- Card Header -->
+                                <div class="card-header bg-primary text-white text-center">
+                                    <h3 class="mb-0"> Add member</h3>
+                                </div> 
+                                <div class="card-body">                       
+                                    <form method="post" enctype="multipart/form-data" action="" id="add_customer">
+                                        {% csrf_token %}
                                         {{ form.as_p }}
-                                        <button type="submit" name="add_to_basket" class="btn btn-primary">Add member</button>
+                                        <div class="d-grid">
+                                            <button type="submit" name="customer_submit"value="customer_submit" class="btn btn-primary btn-lg">Add member</button>
+                                        </div>
                                     </form>
                                  </div>
                             </div>        
@@ -71,8 +38,8 @@
                                 <button type="submit" class="btn btn-primary">Filter</button>
                             </form>
                             <h2>Members List</h2>
-                            <table class="table table-striped">
-                                <thead>
+                            <table class="table table-hover">
+                                <thead class="table-dark">
                                     <tr class="bg-primary text-white">
                                         <th>Team ID</th>
                                         <th>Team Name</th>
@@ -155,38 +122,6 @@
 
 <div style="height:800px"></div>
                
-
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-<script>
-    // Show Django message modal if there are messages
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
-            new bootstrap.Modal(messageModal).show();
-        }
-    });
-
-</script>
-      
 
 
 <script>

@@ -207,7 +207,7 @@ def confirm_purchase_dispatch_item(request):
                         user=request.user,
                     )
 
-                create_notification(request.user,f'Items for purchase Shipment number:{purchase_shipment.shipment_id} has been dispatched by vendor:{purchase_shipment.purchase_order.supplier}')
+                create_notification(request.user,f'Items for purchase Shipment number:{purchase_shipment.shipment_id} has been dispatched by vendor:{purchase_shipment.purchase_order.supplier}',notification_type='SHIPMENT-NOTIFICATION')
 
                 request.session['basket'] = []
                 request.session.modified = True
@@ -282,7 +282,7 @@ def update_dispatch_status(request, dispatch_item_id):
         old_status = dispatch_item.status
         dispatch_item.status = new_status
         dispatch_item.save()  
-        create_notification(request.user, f'Product: {dispatch_item.dispatch_item.product} status updated from {old_status} to {new_status}')     
+        create_notification(request.user, f'Product: {dispatch_item.dispatch_item.product} status updated from {old_status} to {new_status}',notification_type='SHIPMENT-NOTIFICATION')     
 
     shipment = dispatch_item.purchase_shipment
     shipment.update_shipment_status()
@@ -303,7 +303,7 @@ def update_dispatch_status(request, dispatch_item_id):
             logger.info(f"Shipment {shipment.id} marked as REACHED.")
 
             for dispatch_item in shipment.shipment_dispatch_item.filter(status__in=['REACHED', 'OBI']):
-                create_notification(request.user, f'Item {dispatch_item.dispatch_item.product} has just reached')
+                create_notification(request.user, f'Item {dispatch_item.dispatch_item.product} has just reached',notification_type='SHIPMENT-NOTIFICATION')
 
     except PurchaseShipment.DoesNotExist:
         logger.error(f"Shipment {shipment.id} not found.")
@@ -592,7 +592,7 @@ def update_sale_dispatch_status(request, dispatch_item_id):
         old_status = dispatch_item.status
         dispatch_item.status = new_status
         dispatch_item.save()
-        create_notification(request.user, f'Product: {dispatch_item.dispatch_item.product} status updated from {old_status} to {new_status}')     
+        create_notification(request.user, f'Product: {dispatch_item.dispatch_item.product} status updated from {old_status} to {new_status}',notification_type='SHIPMENT-NOTIFICATION')     
 
     shipment = dispatch_item.sale_shipment
     shipment.update_shipment_status()
@@ -612,7 +612,7 @@ def update_sale_dispatch_status(request, dispatch_item_id):
             logger.info(f"Shipment {shipment.id} marked as REACHED.")
 
             for dispatch_item in shipment.sale_shipment_dispatch.filter(status__in=['REACHED', 'OBI']):
-                create_notification(request.user, f'Item { dispatch_item.dispatch_item.product} has just reached')
+                create_notification(request.user, f'Item { dispatch_item.dispatch_item.product} has just reached',notification_type='SHIPMENT-NOTIFICATION')
 
     except SaleShipment.DoesNotExist:
         logger.error(f"Shipment {shipment.id} not found.")   

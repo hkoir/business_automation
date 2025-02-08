@@ -3,23 +3,15 @@
 
 {% block content %}
 
-<style>
-
-    html, body{
-
-        background-color: beige;
-    }
-</style>
 
 <div class="container">
     <div class="row">
         <div class="col">
-            <a href="{% url 'tasks:tasks_list' %}">Back to task list</a>
-
-            <h4 style="margin-top:10px">Chat opens for Task: {{ task.title }}</h4>    
+           
+            <h4 style="margin-top:10px">Chat opens for Task: {{ task.title }}, Ticket Number:{{ task.ticket }}</h4>    
 
     <div id="chat-messages">
-        {% for message in messages %}
+        {% for message in taskmessages %}
             <div class="message">
                 <span class="timestamp">{{ message.timestamp|date:"H:i" }}</span>
                 <span class="sender">{{ message.sender }}</span>: {{ message.message }}

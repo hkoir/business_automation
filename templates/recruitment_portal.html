@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+{% load static %}
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>DOPS SCM</title>
+
+
+<!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap CSS (Bootstrap 5.3) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Bootstrap JS (Bootstrap 5.3) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Datepicker -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Font Awesome CSS for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- Font Awesome CDN -->
+<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"> -->
+
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+<!-- Add CSS for Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<!-- Add JS for Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+
+<link rel="stylesheet" href="{% static 'css/core.css' %}">
+<script src="{% static 'js/common.js' %}"></script>
+
+
+
+</head>
+ 
+
+<body>
+    
+   
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary navbar-fixed-top">
+        <div class="container-fluid"> 
+            <!-- Brand Logo -->
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'customerportal:job_list_candidate_view' %}" style="font-size: 24px; font-family: Helvetica;">
+                <img src="{% static 'images/Logo.png' %}" alt="Logo" class="rounded-circle me-2" style="width: 45px; height: 45px;">
+                HOPS
+            </a>
+    
+            <!-- Mobile Toggle Button -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+    
+            <!-- Navbar Items -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+    
+                    <!-- Dropdown: Place of Happiness -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-warning" href="#" id="placeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-home me-1"></i> Place of Happiness
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="placeDropdown">
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'customerportal:job_list_candidate_view' %}"><i class="fas fa-briefcase me-2"></i> Job List</a></li>
+                        </ul>
+                    </li>
+    
+                    <!-- Dropdown: User -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-warning" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-cog me-1"></i> User
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                            {% if user.is_authenticated %}
+                                <li><a class="dropdown-item" href="{% url 'customerportal:selected_candidate_job_status' %}"><i class="fas fa-briefcase me-2"></i> Your Jobs</a></li>
+                                <li>
+                                    <form action="{% url 'accounts:logout' %}" method="post" class="m-0 p-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt me-2"></i> Logout</button>
+                                    </form>
+                                </li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:password_change' %}"><i class="fas fa-key me-2"></i> Change Password</a></li>
+                            {% else %}
+                                <li><a class="dropdown-item" href="{% url 'accounts:login' %}"><i class="fas fa-sign-in-alt me-2"></i> Login</a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:register' %}"><i class="fas fa-user-plus me-2"></i> Register</a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:pwdreset' %}"><i class="fas fa-lock me-2"></i> Forgot Password</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+    
+                </ul>
+    
+                <!-- User Info -->
+                <div class="d-flex align-items-center me-3">
+                    {% if user_info %}
+                        <a href="{% url 'accounts:update_profile_picture' %}" class="me-2">
+                            {% if profile_picture_url %}
+                                <img src="{{ profile_picture_url }}" class="rounded-circle" style="width: 40px; height: 40px;">
+                            {% else %}
+                                <i class="fas fa-user-circle text-light fs-3"></i>
+                            {% endif %}
+                        </a>
+                        <span class="text-warning">Welcome, {{ user_info }}</span>
+                    {% else %}
+                        <i class="fas fa-user-circle text-light fs-3 me-2"></i>
+                        <span class="text-warning">Guest</span>
+                    {% endif %}
+                </div>
+    
+                <!-- Search Bar -->
+                <form class="d-flex" method="GET" action="">
+                    <input class="form-control me-2" type="search" placeholder="Search" name="q">
+                    <button class="btn btn-outline-light" type="submit">Search</button>
+                </form>
+    
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="container mt-5 pt-4">
+        {% block content %}
+        {% endblock %}
+    </div>
+    
+    <!-- Footer -->
+    <footer class="bg-primary text-white text-center py-2 mt-4">
+        &copy; 2025 MyMePlus Technology User Portal. All rights reserved.
+    </footer>
+    
+
+
+
+
+
+
+    
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
+                <!-- Close Button -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="common_loader-box">
+    <div id="common_loader"></div>
+    <div class="common_loading_text">Loading...</div>
+  </div>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {   
+        const messageModal = document.getElementById('messageModal');
+        const messagesContainer = document.getElementById('messagesContainer');   
+        if (messageModal && messagesContainer && messagesContainer.children.length > 0) { 
+            const modalInstance = new bootstrap.Modal(messageModal);
+            modalInstance.show();
+   
+            setTimeout(() => {
+                modalInstance.hide();
+            }, 5000);
+        }
+    });
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const notifications = document.querySelectorAll('.mark-as-read');
+        
+        notifications.forEach(notification => {
+            notification.addEventListener('click', (e) => {
+                e.preventDefault();
+                const notificationElement = e.target.closest('.notification');
+                const notificationId = notificationElement.querySelector('.mark-as-read').dataset.id;
+    
+                fetch(`/reporting/notification/read/${notificationId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        notificationElement.remove();
+                        const badge = document.querySelector('.nav-link .badge');
+                        if (badge) {
+                            let count = parseInt(badge.textContent, 10);
+                            count = Math.max(count - 1, 0);
+                            if (count === 0) {
+                                badge.remove();
+                            } else {
+                                badge.textContent = count;
+                            }
+                        }
+                    } else {
+                        console.error('Failed to mark notification as read');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+    });
+    
+    
+</script>
+
+
+</body>
+</html>
+

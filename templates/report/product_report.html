@@ -5,61 +5,23 @@
 {% block content %}
 
 
-<style>
-
-
- html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevents the body from horizontally scrolling */
-    }
-
-
-.table,th,td{
-    text-align: center;
-}
-
-    
-    .select2-container {
-        width: 60% !important; /* Ensure the container is 100% wide */
-    }
-    
-    .select2-container .select2-selection--single {
-        width: 100% !important; /* Ensure the selection area is also 100% wide */
-    }
-    
-    .select2-dropdown {
-        width: auto !important; 
-    }
-    
-    .select2-search__field {
-        width: 80% !important; 
-    }
-    
-    .main-content {   
-        overflow-y: auto;
-        margin-left:0px;
-        position: absolute;
-        width: 100%;
-        left: 0;
-            }
-    </style>
 
 <div class="container-fluid main-content">
     <div class="row">
-        <h4 class="text-center" style="color:rgb(240, 145, 12);margin-bottom:20px;"><strong>DOPS Inventory management system</strong></h6>   
+        <h4 class="text-center" style="color:yellow;margin-bottom:20px;"><strong>DOPS Inventory management system</strong></h6>   
                            
             <div class="col-12">  
                 <div class="container-fluid">
                     <div class="row">
                         <div class="col"></div>
                         <div class="col">
-                            <table class="table table-striped">
+                            <table class="table table-hover">
+                              
                                 <h4 style="color:blue">Product: {{ product.name }}:
                                     <span style="color:rgb(9, 109, 30);font-weight: bold;font-size: 24px;">
                                         Current stock value: {{ grand_total_stock|add_commas }}
                                     </span></h4>
-                                <thead>                                   
+                                    <thead class="table-dark">                                
                                     <tr class="bg-primary text-white">
                                         <th>Warehouse</th>
                                         <th>Total inventory</th>                                     
@@ -120,14 +82,14 @@
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-8">
-                        <div>
+                        <div class="bg-light">
                             <!-- Canvas for the bar chart -->
                             <canvas id="warehouseBarChart" width="600" height="300"></canvas>
                         </div>
             
                     </div>
                     <div class="col-4">
-                        <div>      
+                        <div class="bg-light">      
                             <!-- Canvas for the doughnut chart -->
                             <canvas id="warehouseDoughnutChart" width="400" height="200"></canvas>
                         </div>
@@ -136,7 +98,7 @@
             </div>
         </div>
        
-
+        <div style="height:50px"></div>
     </div>
 </div>
 
@@ -176,6 +138,8 @@
     const totalAvailable = warehouseData.map(data => data.total_available);
     const totalStockValue = warehouseData.map(data => data.total_stock_value);
 
+    const reorderValue = warehouseData.map(data => data.reorder_level);
+
     // Bar Chart Configuration
     const barCtx = document.getElementById('warehouseBarChart').getContext('2d');
     const warehouseBarChart = new Chart(barCtx, {
@@ -200,19 +164,29 @@
                     },
 
                     {
-                        label: 'Total Sold',
-                        data: totalSold,
-                        backgroundColor: 'rgba(233, 30, 99, 0.5)',  // Pink
-                        borderColor: 'rgba(233, 30, 99, 1)',        // Dark Pink
-                        borderWidth: 1
-                    },
-                    {
                         label: 'Available Quantity',
                         data: totalAvailable,
                         backgroundColor: 'rgba(0, 80, 0, 1)',  
                         borderColor: 'rgba(0, 80, 0, 1)',        
                         borderWidth: 1
                     },
+
+                    {
+                        label: 'Reorder Level',
+                        data: reorderValue,
+                        backgroundColor: 'rgba(255, 10, 0, 1)',  
+                        borderColor: 'rgba(255, 10, 0, 1)',        
+                        borderWidth: 1
+                    },
+
+                    {
+                        label: 'Total Sold',
+                        data: totalSold,
+                        backgroundColor: 'rgba(233, 30, 99, 0.5)',  // Pink
+                        borderColor: 'rgba(233, 30, 99, 1)',        // Dark Pink
+                        borderWidth: 1
+                    },
+                   
                     {
                         label: 'Production_in',
                         data: totalExistingIn,

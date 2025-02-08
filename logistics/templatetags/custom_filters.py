@@ -2,6 +2,8 @@
 from django import template
 register = template.Library()
 import ast
+import os
+
 
 @register.filter
 def get_item(dictionary, key):
@@ -63,3 +65,57 @@ def has_pending_extension_requests(task):
 
 
 
+@register.filter
+def dict_key(value, key):
+    """Fetch value from dictionary by key."""
+    return value.get(key, None)
+
+
+from django import template
+from django.contrib.contenttypes.models import ContentType
+from tasks.models import TaskMessage
+
+@register.filter
+def get_messages_for(obj):
+    content_type = ContentType.objects.get_for_model(obj)
+    return TaskMessage.objects.filter(content_type=content_type, object_id=obj.id)
+
+@register.filter
+def unread_messages_for(obj, user):
+    content_type = ContentType.objects.get_for_model(obj)
+    return TaskMessage.objects.filter(
+        content_type=content_type, object_id=obj.id, read=False
+    ).exclude(sender=user)
+
+
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
+
+@register.filter
+def month_names(value):
+    months = {
+        1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
+        7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'
+    }
+    return months.get(value, '')
+
+
+
+
+@register.filter
+def is_image(file_url):
+    ext = os.path.splitext(file_url)[1].lower()
+    return ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"]
+
+@register.filter
+def is_pdf(file_url):
+    ext = os.path.splitext(file_url)[1].lower()
+    return ext == ".pdf"
+
+
+@register.filter
+def status_in(queryset, status):
+    return queryset.filter(status=status).count()

@@ -17,7 +17,10 @@ urlpatterns = [
     path('', tenant_expire_check, name='tenant_expire_check'),
     path('home/', views.home, name='home'),
     path('login/', views.login_view, name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='accounts:logged_out'), name='logout'),
+    path('login_job_seeker/', views.login_job_seeker_view, name='login_job_seeker'),
+    path('login_customer_support/', views.login_customer_support_view, name='login_customer_support'),
+#     path('logout/', auth_views.LogoutView.as_view(next_page='accounts:logged_out'), name='logout'),
+    path('logout/', views.logged_out_view, name='logout'),
  
    
    ###################################################################################################
@@ -28,27 +31,53 @@ urlpatterns = [
     ################################################################################
 
       # Reset password
-    path("password_reset/", auth_views.PasswordResetView.as_view( template_name="accounts/password_reset/password_reset_form.html",
+    path(
+        "password_reset/",
+        auth_views.PasswordResetView.as_view(
+            template_name="accounts/password_reset/password_reset_form.html",
             success_url="password_reset_email_confirm",
             email_template_name="accounts/password_reset/password_reset_email.html",
-            form_class=PwdResetForm,), name="pwdreset", ),
-
-    path("password_reset_confirm/<uidb64>/<token>",auth_views.PasswordResetConfirmView.as_view(template_name="accounts/password_reset/password_reset_confirm.html",
+            form_class=PwdResetForm,
+        ),
+        name="pwdreset",
+          ),
+    path(
+        "password_reset_confirm/<uidb64>/<token>",
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name="accounts/password_reset/password_reset_confirm.html",
             success_url="password_reset_complete/",
-
-            form_class=PwdResetConfirmForm,),name="password_reset_confirm"),
-    path("password_reset/password_reset_email_confirm/",TemplateView.as_view(template_name="accounts/password_reset/reset_status.html"),
-        name="password_reset_done" ),
-
-    path("password_reset_confirm/Mg/password_reset_complete/",TemplateView.as_view(template_name="accounts/password_reset/reset_status.html"),
-        name="password_reset_complete"),
+            form_class=PwdResetConfirmForm,
+        ),
+        name="password_reset_confirm",
+         ),
+    path(
+        "password_reset/password_reset_email_confirm/",
+        TemplateView.as_view(template_name="accounts/password_reset/reset_status.html"),
+        name="password_reset_done",
+          ),
+    path(
+        "password_reset_confirm/Mg/password_reset_complete/",
+        TemplateView.as_view(template_name="accounts/password_reset/reset_status.html"),
+        name="password_reset_complete",
+          ),
 
    ####################################################################################################
   
    # Custom views
     path('register/', views.register_view, name='register'), 
-    path('logged_out/', logged_out_view, name='logged_out'),
+    path('register_customer_support/', views.register_customer_support, name='register_customer_support'),  
+     path('register_job_seeker/', views.register_job_seeker, name='register_job_seeker'),  
+  
     path('update_profile_picture/', views.update_profile_picture, name='update_profile_picture'),
+    path('common_search/', views.common_search, name='common_search'),
 
-     path('common_search/', views.common_search, name='common_search'),
+    ###################################################################################################
+  # Permission
+  path('assign_permissions/', views.assign_permissions, name='assign_permissions'),
+  path('assign_user_to_group/', views.assign_user_to_group, name='assign_user_to_group'),
+  path('assign_permissions_to_group/', views.assign_permissions_to_group, name='assign_permissions_to_group'),
+  path('get_permissions_for_model/', views.get_permissions_for_model, name='get_permissions_for_model'),
+  path('search_all/', views.search_all, name='search_all')
+  
+
 ]

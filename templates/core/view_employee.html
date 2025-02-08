@@ -2,55 +2,17 @@
 {% load static %}
 
 
-
 {% block content %}
 
-<style>
-
-
-table {
-    border-collapse: collapse;
-    width: 100%;
-
-}
-
-th, td {
-    border: 1px solid black; /* Set border color for individual cells */
-    text-align: center;
-    padding: 10px;
-}
-
-th {
-    background-color: black;
-    color:white;
-}
-
-table thead th {
-white-space: normal;
-}
-
-  
-.main-content {   
-           overflow-y: auto;
-           margin-left:0px;
-           position: absolute;
-           width: 100%;
-           left: 0;
-               }
-
-</style>
 
 
 
 
 
 
-<h4 class="text-center">Employee Database</h4>
 
-
-
-
-<div class="container-fluid">
+<div class="container-fluid main-content">
+    <h4 class="text-center">Employee Database</h4>
     <div class="row">                   
      
         <form method="GET" action="{% url 'core:view_employee' %}" class="mb-2">
@@ -59,35 +21,54 @@ white-space: normal;
         </form>  
         <hr>
         {% for employee in page_obj %}
-        <div class="col-4 col-md-3 col-lg-2">
-            <div class="card shadow" style="background-color: aliceblue">
-                <div class="d-flex justify-content-center" style="margin-top: 10px">
+        <div class="col-12 col-sm-6 col-md-3 col-lg-2 mb-4">
+            <div class="card shadow-lg border-0" style="background-color: #f8f9fa; border-radius: 15px;">
+                <!-- Employee Photo -->
+                <div class="d-flex justify-content-center mt-3">
                     {% if employee.employee_photo_ID %}
-                        <img src="{{ employee.employee_photo_ID.url }}" class="card-img-top rounded-circle" alt="{{ employee.name }}" style="width:40px;height:40px;">
+                        <img src="{{ employee.employee_photo_ID.url }}" 
+                             class="rounded-circle border" 
+                             alt="{{ employee.name }}" 
+                             style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #007bff;">
+                    {% else %}
+                        <img src="https://via.placeholder.com/80" 
+                             class="rounded-circle border" 
+                             alt="No Photo Available" 
+                             style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #007bff;">
                     {% endif %}
                 </div>
-                <div class="card-body" style="white-space: nowrap;">
-                    <p class="card-title">                        
-                        {{ employee.name }}<br>
-                        {{ employee.position }}<br>
-                        {{ employee.joining_date }}<br>
-                        {{ employee.department }}<br>
-                        {% if employee.user_profile.phone %}
-                        <span style="font-size: 12px;">Phone:{{ employee.user_profile.phone_number }}</span><br>
+                <!-- Employee Details -->
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-1" style="font-weight: 600;">{{ employee.name }}</h5>
+                    <p class="text-muted mb-2" style="font-size: 14px;">{{ employee.position }}</p>
+                    <p class="text-muted mb-2" style="font-size: 13px;">
+                        <strong>Department:</strong><br> {{ employee.department }}
+                    </p>
+                    <p class="text-muted mb-2" style="font-size: 13px;">
+                        <strong>Joining:</strong> {{ employee.joining_date }}
+                    </p>
+                    <hr class="my-2">
+                    <!-- Contact Information -->
+                    <p class="mb-1" style="font-size: 12px;">
+                        <i class="fas fa-phone-alt text-primary"></i> 
+                        {% if employee.user_profile.phone_number %}
+                            {{ employee.user_profile.phone_number }}
                         {% else %}
-                        <span style="font-size: 12px;">Phone:+88-01743800705</span><br>
-                        {% endif %}
-                        {% if employee.user_profile.email %}
-                        <span style="font-size: 12px;">email:{{ employee.user_profile.email }}</span><br>
-                        {% else %}
-                        <span style="font-size: 10px;">email:mymeplusTech@gmail.com</span><br>
+                            +88-01743800705
                         {% endif %}
                     </p>
-                  
+                    <p class="mb-0" style="font-size: 9px;">
+                        <i class="fas fa-envelope text-primary"></i> 
+                        {% if employee.user_profile.email %}
+                            {{ employee.user_profile.email }}
+                        {% else %}
+                            mymeplusTech@gmail.com
+                        {% endif %}
+                    </p>
                 </div>
             </div>
-            
         </div>
+        
     {% endfor %}
     
         
@@ -123,40 +104,6 @@ white-space: normal;
 
 <div style="height:600px"></div>
 
-
-
-
-
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-<script>
-    // Show Django message modal if there are messages
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
-            new bootstrap.Modal(messageModal).show();
-        }
-    });
-
-</script>
 
 
 {% endblock %}

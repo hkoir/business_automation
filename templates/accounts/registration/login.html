@@ -1,4 +1,4 @@
-{% extends 'base.html' %}  
+{% extends "sub_base.html" %}
 {% load custom_filters %}
 {% block content %}
 
@@ -14,12 +14,13 @@
                 </div>
                 
                 <!-- Card Body -->
-                <div class="card-body" style="background-color: #f8f9fa;">
+                <div class="card-body">
                     <form method="POST" enctype="multipart/form-data" class="needs-validation p-4" novalidate>
                         {% csrf_token %}
                         {{ form.as_p }}
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">Register</button>
+                            <button type="submit"class="btn btn-primary btn-lg w-100" onclick="proceed()">Login</button> 
+                          
                         </div>
                     </form>
                 </div>
@@ -27,6 +28,7 @@
                 <!-- Card Footer -->
                 <div class="card-footer text-center">
                     <small>Don't have an account? Contact your administrator.</small>
+                    
                 </div>
             </div>
         </div>
@@ -34,12 +36,8 @@
 </div>
 
 
-    <div style="height:800px"></div>
-
-
-
-
-
+ 
+<div style="height:300px"></div>
     
 
 <!-- Bootstrap Modal for displaying Django message -->
@@ -61,7 +59,6 @@
 </div>
 
 
-<div style="height:800px"></div>
 
 <script>
  // Show Django message modal if there are messages
@@ -77,4 +74,52 @@
     });
 </script>
 
+
+
+<script>
+    function proceed() {       
+        function showLoadingMessage() {
+                if (!document.querySelector('.loader-container')) {
+                    const loaderContainer = document.createElement('div');
+                    loaderContainer.className = 'loader-container';
+                    loaderContainer.innerHTML = `
+                        <div class="loader"></div>
+                        <div class="loading-text">Loading...</div>
+                    `;
+                    document.body.appendChild(loaderContainer);
+                }
+            }    
+
+        function hideLoadingMessage() {
+                const loaderContainer = document.querySelector('.loader-container');
+                if (loaderContainer) {
+                    loaderContainer.remove(); 
+                }
+            }
+    
+        $.ajax({
+            type: 'POST',
+            url: '{% url "accounts:login" %}', 
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            data: {
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+            },
+            beforeSend: function() {  
+                showLoadingMessage(); 
+            },           
+            success: function(response) { 
+                setTimeout(function() {
+                    hideLoadingMessage();               
+                   
+                }, 3000); 
+            },
+            error: function(error) {           
+                console.error(error);
+            }
+        });
+    }
+    </script> 
+    
+  
+    
 {% endblock %}

@@ -3,43 +3,6 @@
 
 {% block content %}
 
-<style>
-
-   
-.table td,th{
-        white-space: nowrap;
-        text-align: center;
-       }
-   
-     
-
-.select2-container {
-        width: 50% !important; /* Ensure the container is 100% wide */
-    }  
-    
-.select2-search__field {
-        width: 100% !important; 
-    }
-  
-.select2-container--default .select2-selection--single {
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-    }
-    
-       
-.main-content {   
-           overflow-y: auto;
-           margin-left:0px;
-           position: absolute;
-           width: 100%;
-           left: 0;
-               }
-               
-</style>
-
 
 
 <div class="container-fluid main-content">
@@ -76,9 +39,9 @@
         <div class="col">
         <a href="{% url 'purchase:purchase_order_item' %}" class="btn btn-sm btn-primary">More shipment details</a>
         <h4 class="mt-4">Shipment List</h4>
-        <table class="table table-striped">
-            <thead>
-                <tr class="btn-primary text-white">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
                     <th>Purchase Order</th>
                     <th>Shipment ID</th>
                     <th>Total Amount</th>
@@ -139,32 +102,6 @@
 
 
 
-
-
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-
-
-
-
 <script>
     $(document).ready(function() {
         $('#id_purchase_shipment_id').select2({
@@ -199,17 +136,6 @@
     });
 
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        const messagesContainer = document.getElementById('messagesContainer');
-        if (messageModal && messagesContainer && messagesContainer.children.length > 0) {
-            const modalInstance = new bootstrap.Modal(messageModal);
-            modalInstance.show();
-            setTimeout(() => {
-                    modalInstance.hide();
-                }, 5000)
-        }
-    });
     </script>
     
 

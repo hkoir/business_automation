@@ -14,105 +14,78 @@ def supplier_dashboard(request):
 
 
 @login_required
-def create_supplier(request):
-    suppliers = Supplier.objects.all().order_by('-created_at')
-    form = AddSupplierForm(request.POST or None)
+def create_supplier(request, id=None):  
+    instance = get_object_or_404(Supplier, id=id) if id else None
+    message_text = "updated successfully!" if id else "added successfully!"  
+    form = AddSupplierForm(request.POST or None, request.FILES or None, instance=instance)
 
-    if request.method == 'POST':
-        if 'supplier_submit' in request.POST:
-            if form.is_valid():
-                supplier = form.save(commit=False)  
-                supplier.user = request.user
-                supplier.save()
-                messages.success(request, "Supplier added successfully")
-                return redirect('supplier:create_supplier')
-            else:
-                messages.error(request, "Form is invalid. Please check the details and try again.")
+    if request.method == 'POST' and form.is_valid():
+        form_intance=form.save(commit=False)
+        form_intance.save()        
+        messages.success(request, message_text)
+        return redirect('supplier:create_supplier')  
 
-        elif 'action' in request.POST:
-            action = request.POST['action']
-            supplier_id = request.POST.get('supplier_id')
-
-            if supplier_id and supplier_id.isdigit():
-                supplier_id = int(supplier_id)
-                
-                if action == 'update':
-                    supplier_obj = get_object_or_404(Supplier, id=supplier_id)
-                    form = AddSupplierForm(request.POST, instance=supplier_obj) 
-                    if form.is_valid():
-                        form.save()
-                        messages.success(request, "Supplier updated successfully")
-                        return redirect('supplier:create_supplier')
-                    else:
-                        messages.error(request, "Form is invalid. Please check the details.")
-                    
-                elif action == 'delete':
-                    supplier_obj = get_object_or_404(Supplier, id=supplier_id)
-                    supplier_obj.delete()
-                    messages.success(request, "Supplier deleted successfully")
-                    return redirect('supplier:create_supplier')
-            else:
-                messages.error(request, "Supplier ID is missing or invalid.")
-
-    paginator = Paginator(suppliers, 10)
+    datas = Supplier.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'supplier/create_supplier.html', {'form': form, 'page_obj': page_obj})
 
-
-@login_required
-def create_location(request):
-    locations = Location.objects.all().order_by('-created_at')
-    form = AddLocationForm(request.POST or None)
-    if request.method == 'POST':
-        if 'location_submit' in request.POST:
-            if form.is_valid():
-                form_instance = form.save(commit=False)
-                form_instance.user = request.user
-                form_instance.save()
-                messages.success(request, "Location added successfully")
-                return redirect('supplier:create_location')
-            else:
-                messages.error(request, "Form is invalid. Please check the details and try again.")                       
-    paginator = Paginator(locations, 10)  
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    return render(request, 'supplier/create_location.html', {'form': form, 'page_obj': page_obj})
-
-@login_required
-def update_location(request, location_id):
-    locations = Location.objects.all().order_by('-created_at')
-    location_instance = get_object_or_404(Location, id=location_id)
-    if request.method == 'POST':
-        form = AddLocationForm(request.POST, instance=location_instance)
-        if form.is_valid():
-            form_instance = form.save(commit=False)
-            form_instance.user = request.user
-            form_instance.save()
-            messages.success(request, 'Location updated successfully!')
-            return redirect('supplier:create_location')
-    else:
-        form = AddLocationForm(instance=location_instance)
-    paginator = Paginator(locations, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    return render(request, 'supplier/update_location.html', {
+    return render(request, 'supplier/create_supplier.html', {
         'form': form,
-        'page_obj': page_obj,
-        'location_instance': location_instance,
-        'locations':locations
+        'instance': instance,
+        'datas': datas,
+        'page_obj': page_obj
     })
 
 
 @login_required
-def delete_location(request, location_id):
-    location_obj = get_object_or_404(Location, id=location_id)    
+def delete_supplier(request, id):
+    instance = get_object_or_404(Supplier, id=id)
     if request.method == 'POST':
-        location_obj.delete()
-        messages.success(request, "Location deleted successfully")
-        return redirect('supplier:create_location')
-    return render(request, 'supplier/confirm_delete.html', {'location': location_obj})
+        instance.delete()
+        messages.success(request, "Deleted successfully!")
+        return redirect('supplier:create_supplier')  
+
+    messages.warning(request, "Invalid delete request!")
+    return redirect('supplier:create_supplier') 
+
+
+
+@login_required
+def create_location(request, id=None):  
+    instance = get_object_or_404(Location, id=id) if id else None
+    message_text = "updated successfully!" if id else "added successfully!"  
+    form = AddLocationForm(request.POST or None, request.FILES or None, instance=instance)
+
+    if request.method == 'POST' and form.is_valid():
+        form_intance=form.save(commit=False)
+        form_intance.save()        
+        messages.success(request, message_text)
+        return redirect('supplier:create_location')  
+
+    datas = Location.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'supplier/create_location.html', {
+        'form': form,
+        'instance': instance,
+        'datas': datas,
+        'page_obj': page_obj
+    })
+
+
+@login_required
+def delete_location(request, id):
+    instance = get_object_or_404(Location, id=id)
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, "Deleted successfully!")
+        return redirect('supplier:create_location')   
+
+    messages.warning(request, "Invalid delete request!")
+    return redirect('supplier:create_location')   
 
 
 

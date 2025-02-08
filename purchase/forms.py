@@ -7,7 +7,7 @@ from.models import PurchaseRequestOrder,PurchaseRequestItem, QualityControl
 from inventory.models import Warehouse,Location
 from supplier.models import Supplier
 from purchase.models import PurchaseRequestOrder,PurchaseOrder
-
+from django.contrib.auth.models import User
 
 
 

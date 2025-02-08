@@ -6,41 +6,11 @@
 
 {% block content %}
 
-<style>
-
-
-table {
-    border-collapse: collapse;
-    width: 100%;
-
-}
-
-th, td {
-    border: 1px solid black; /* Set border color for individual cells */
-    text-align: center;
-    padding: 10px;
-}
-
-th {
-    background-color: black;
-    color:white;
-}
-
-table thead th {
-white-space: normal;
-}
-
-
-
-</style>
-
-
-
 
 <h1 style="margin-top:100px">Monthly Salary Sheet - {{ month }}/{{ year }}</h1>
 
-<table>
-    <thead>
+<table class="table table-hover">
+    <thead class="table-dark">
         <tr>
             <th>Employee ID</th>
             <th>Month</th>

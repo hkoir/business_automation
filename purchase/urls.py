@@ -7,6 +7,7 @@ app_name = 'purchase'
 
 
 urlpatterns = [    
+
     
   path('purchase_dashboard/', views.purchase_dashboard, name='purchase_dashboard'),
   path('create_purchase_request/', views.create_purchase_request, name='create_purchase_request'),

@@ -4,54 +4,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-    /* Chart Container */
-    #performanceChart {
-        width: 80%;
-        height: 400px;
-        margin: auto;
-    }
-
-    .employee-scores {
-        margin-top: 30px;
-    }
-
-    .employee-scores table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .employee-scores th, .employee-scores td {
-        padding: 8px 12px;
-        text-align: left;
-        border-bottom: 1px solid #ddd;
-    }
-
-    .employee-scores th {
-        background-color: #f2f2f2;
-    }
-
-    .employee-scores tr:hover {
-        background-color: #f1f1f1;
-    }
-
-    .table th,td{
-        text-align: center;
-        font-size: 14px;
-    }
-    .table td{
-        white-space: nowrap;
-    }
-
-     
-    .main-content {   
-           overflow-y: auto;
-           margin-left:0px;
-           position: absolute;
-           width: 100%;
-           left: 0;
-               }
-</style>
 
 
 <div class="container-fluid main-content">
@@ -81,9 +33,9 @@
            
            {% if employee_scores %}
                 <h6 class="m-2">Performance for {{ employee_scores.0.employee_name }}</h6>
-                <table class="table table-striped">
-                    <thead>
-                        <tr clss="bg-primary text-white">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
                           
                             <th>Date</th>
                             <th>Score</th>
@@ -125,10 +77,10 @@
             <div class="container">
                 <div class="row">
                     {% if has_data %}
-                    <div class="col-5">
+                    <div class="col-5 bg-light">
                         <canvas id="performanceBarChart"></canvas>
                     </div>
-                    <div class="col-7">                       
+                    <div class="col-7 bg-light">                       
                         <canvas id="performanceLineChart"></canvas>                       
                     </div>
                     {% else %}
@@ -145,59 +97,20 @@
 
 
 
-
-<!-- Bootstrap Modal for displaying Django message -->
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Messages</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="messagesContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-<script>
-    // Show Django message modal if there are messages
-    document.addEventListener("DOMContentLoaded", function() {
-        const messageModal = document.getElementById('messageModal');
-        if (messageModal && document.getElementById('messagesContainer').children.length > 0) {
-            new bootstrap.Modal(messageModal).show();
-        }
-    });
-
-</script>
-
-
-
-
-<!-- Chart.js Script -->
 <script>
     window.onload = function() {
         const evaluationData = JSON.parse('{{ chart_data|safe|escapejs }}');
-
-        // Prepare data for the chart
         const labels = evaluationData.map(item => item.created_at);
         const scores = evaluationData.map(item => item.total_score);
 
-        // Calculate the max y-axis value
         const maxYValue = Math.max(
                 ...scores,       
-            ) * 1.2;
+            ) * 1.4;
 
-
-        // Create the Bar Chart
+ 
         const ctxBar = document.getElementById('performanceBarChart').getContext('2d');
         const performanceBarChart = new Chart(ctxBar, {
-            type: 'bar',  // Bar chart type
+            type: 'bar',  
             data: {
                 labels: labels,
                 datasets: [{
@@ -223,10 +136,9 @@
             }
         });
 
-        // Create the Line Chart
         const ctxLine = document.getElementById('performanceLineChart').getContext('2d');
         const performanceLineChart = new Chart(ctxLine, {
-            type: 'line',  // Line chart type
+            type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
