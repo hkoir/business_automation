@@ -23,7 +23,6 @@ urlpatterns = [
   path('sale_order_list_report/', views.sale_order_list_report, name='sale_order_list_report'),
  
 
-
   path('qc_dashboard/', views.qc_dashboard, name='qc_dashboard'),
   path('qc_dashboard/<int:sale_order_id>/', views.qc_dashboard, name='qc_dashboard_with_order'), 
   path('qc_inspect_item/<int:item_id>/', views.qc_inspect_item, name='qc_inspect_item'),

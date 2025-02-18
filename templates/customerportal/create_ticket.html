@@ -7,8 +7,8 @@
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-12 col-md-4"></div>
-            <div class="col-12 col-md-4">                            
+        <div class="col-12 col-md-2"></div>
+            <div class="col-12 col-md-8">                            
                 <div class="card shadow-lg" style="background-color: aliceblue;">
                         <!-- Card Header -->
                         <div class="card-header bg-primary text-white text-center">
@@ -25,7 +25,7 @@
                         </div>
                 </div>        
             </div>
-            <div class="col-12 col-md-4"></div>
+            <div class="col-12 col-md-2"></div>
     </div>
 </div>
             
@@ -57,6 +57,7 @@
             toggleField('id_production', false);
             toggleField('id_sales', false);
             toggleField('id_operations', false);
+            toggleField('id_repair_return', false);
           
 
             // Show fields based on the appraisal type value
@@ -66,6 +67,8 @@
                 toggleField('id_operations', true);
             } else if (ticketTypeValue === 'PRODUCTION') {
                 toggleField('id_production', true);
+            } else if (ticketTypeValue === 'REPAIR-RETRUN') {
+                toggleField('id_repair_return', true);
             }
         }
 
@@ -78,7 +81,7 @@
         });
 
         // Attach change events to the other fields for future expansion
-        $('#id_sales, #id_operations, #id_production').change(function () {
+        $('#id_sales, #id_operations, #id_production, #id_repair_return').change(function () {
             toggleFields();
         });
     });

@@ -5,7 +5,7 @@
 {% block content %}
 
     
-       <div class="container-fluid main-content">
+       <div class="container-fluid main-content my-5">
         <div class="row">
             <div class="col-12 col-md-4">
                 <div class="card shadow-lg" style="background-color: aliceblue;">
@@ -33,30 +33,34 @@
                 {% endif %}        
             </div>
            
-
+         
             <div class="col-12">
-                {% if dates %}
-                <h2>Sales Data</h2>
-                <table class="table table-hover">
+                {% if sales_data %}
+                <h4> {% if product_name %}
+                    Sales data for: {{ product_name }}
+                    {% endif %}
+                   </h4>
+                   <table class="table table-hover">
                     <thead class="table-dark">
-                        <tr>
-                            <th>Product</th>
-                            {% for date in dates %}
-                                <th>{{ date }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in page_obj %}
                             <tr>
-                                <td>{{ row.product }}</td>
-                                {% for sale in row.sales %}
-                                    <td>{{ sale }}</td>
-                                {% endfor %}
+                                <th>Order Date</th>                          
+                                <th>Total Sold</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>  
+                        </thead>
+                        <tbody>
+                            {% for sale in sales_data %}
+                            <tr>
+                                <td>{{ sale.order_date }}</td>                           
+                                <td>{{ sale.total_sold }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3">No sales data available.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
                 <div class="pagination">
                     <span class="step-links">
                         {% if page_obj.has_previous %}
@@ -75,9 +79,10 @@
                     </span>
                 </div>   
                 {% endif %}       
-            </div>     
+            </div>  
 
         </div>
+        <h4 style="height:50px"></h4>
        </div>
 
 

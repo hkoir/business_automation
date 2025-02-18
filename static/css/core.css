@@ -1,10 +1,59 @@
+
+
+
 html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    height: 100% !important;
-    font-family: Arial, sans-serif !important;
-    background: linear-gradient(to bottom right, #4a90e2, #50c7c7) !important;
-}
+    background-color: white;
+    color: #333333;
+    padding-top: 100px; /* Offset for fixed navbars */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .social-nav {   
+        background-color: #1a1a2e;
+        color: white;
+        position: fixed;
+        top: 0;
+        width: 100%;
+        z-index: 1030;
+        transition: top 0.3s ease-in-out;
+    }
+
+    .main-nav {
+        background-color: #16213e;
+        color: white;
+        position: fixed;
+        top: 56px;
+        width: 100%;
+        z-index: 1029;
+        transition: top 0.3s ease-in-out;
+    }
+
+    .main-nav.fixed-top {
+        top: 0;
+    }
+
+    .nav-link, .navbar-brand {
+        color: white;
+    }
+
+    .nav-link:hover {
+        color: #ffd700;
+    }
+
+    .container-content {
+        margin-top: 10px;
+    }
+
+ 
+    .nav-link i {
+        transition: color 0.3s ease;
+        color:lightskyblue
+        
+    }
+    .nav-link:hover i {
+        color: #DAA520; 
+        }
+
 
 
 .main-content {   
@@ -14,7 +63,7 @@ html, body {
     width: 100%;
     left: 0;
     top: 100px;
-    padding-bottom: 100px;
+    padding-bottom: 0px;
 } 
 
 
@@ -69,22 +118,57 @@ table th{
         }
         
 
+/* Ensure Select2 fields take up full width */
 .select2-container {
- width: 60% !important; 
+    width: 100% !important;
+    min-width: 200px !important;
+    max-width: 250px !important; /* Prevent overflow */
 }
 
-.select2-container .select2-selection--single {
- width: 100% !important; 
+/* Adjust the size and appearance of Select2 input fields */
+.select2-container--default .select2-selection--single {
+    font-size: 16px !important;
+    height: 40px !important;
+    line-height: 40px !important;
+    padding: 5px 10px !important;
+    border-radius: 5px;
+}
+
+/* Ensure dropdown width matches field width */
+.select2-container--default .select2-dropdown {
+    width: 100% !important;
+    min-width: 200px !important;
+}
+
+.select2-results__option {
+    font-size: 16px !important;
+    padding: 8px 10px;
+}
+
+.select2-container--default .select2-search--inline .select2-search__field {
+    width: 100% !important;
+    font-size: 14px;
+    padding: 5px;
 }
 
 .select2-dropdown {
- width: auto !important; 
+    left: auto !important;
+    right: 0 !important; 
+    z-index: 9999 !important; 
 }
 
-.select2-search__field {
- width: 80% !important; 
-}
 
+@media (max-width: 768px) {
+    .select2-container {
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .select2-container--default .select2-selection--single {
+        font-size: 14px !important;
+        height: 35px !important;
+    }
+}
 
 
 @keyframes marquee {
@@ -157,7 +241,7 @@ table th{
  }
 
  .navbar-brand {
-     font-size: 40px;
+     font-size: 20px;
      font-weight: 700;
      color: #0AEDED;
      -webkit-text-stroke: #fff 1px;
@@ -202,7 +286,7 @@ table th{
 .welcome-message {
     font-size: 14px;
     white-space: nowrap;
-    color: black;
+    color: yellow;
     }
 
 
@@ -598,16 +682,18 @@ ul.custom-arrow-list li {
         position: fixed;
         bottom: 0;
         width: 100%;
+        margin-top: 100px;
+        height:30px
     }
    
     .animate {
         
-        animation: shake 5s infinite, glow 5s ease-in-out infinite;
+        animation: shake 5s infinite ease-in-out infinite;
          
        
     }
 
-
+   
    
     .loader-container {
         position: fixed;
@@ -639,47 +725,6 @@ ul.custom-arrow-list li {
         }
             
   
-
-.common_loader-box {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40%; 
-    height: 40%; 
-    background-color: rgba(255, 255, 255, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    }
-
-    #common_loader {
-        border: 10px solid darkorange; 
-        border-top: 10px solid #3498db; 
-        border-radius: 50%;
-        width: 70px; 
-        height: 70px; 
-        animation: spin 3s linear infinite;
-    }
-
-    .common_loading_text{
-        margin-top: 10px; 
-        font-size: 20px;
-        color:blue
-
-    }
-
-    #common_loader:after {
-    animation: animate2 1.5s ease-in-out infinite;
-    clip: rect(0, 80px, 80px, 40px);
-    content: ".........";
-    border-radius: 50%;
-    height: 80px;
-    width: 80px;
-    position: absolute;
-    }
-
 
 
 

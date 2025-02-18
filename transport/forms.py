@@ -50,7 +50,7 @@ class TransportRequestForm(forms.ModelForm):
             'item_description': forms.Textarea(attrs={
                 'row': 2,
                 'class':'form-control',
-                'style':'height:100px'
+                'style':'height:30px'
                 }),  
               
            
@@ -85,6 +85,18 @@ class TransportExtensionApprovaltForm(forms.ModelForm):
             'extended_until':forms.DateTimeInput(attrs={'type':'datetime-local'})
         }
         
+
+from.models import PenaltyPayment 
+class PenaltyPaymentForm(forms.ModelForm):
+    class Meta:
+        model= PenaltyPayment
+        fields=['penalty','paid_amount','paid_at','payment_doc']
+        widgets={
+            'paid_at':forms.DateInput(attrs={'type':'date'})
+            
+            
+        }
+
 
 
 class TransportUsageForm(forms.ModelForm):
@@ -215,7 +227,7 @@ class FuelPumpDatabaseForm(forms.ModelForm):
     contact_date = forms.DateField(label='contact date', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     class Meta:
         model = FuelPumpDatabase
-        exclude =['created_at','fuel_pump_id']    
+        exclude =['created_at','fuel_pump_id','pump_code']    
         widgets={
             'fuel_pump_address':forms.Textarea(attrs={
             'style':'height:100px'
@@ -249,8 +261,6 @@ class FuelPumpPaymentForm(forms.ModelForm):
 
 
 
-
-
 class PGRViewForm(forms.Form):
     start_date = forms.DateField(
         label='Start Date',
@@ -279,6 +289,22 @@ class PGRViewForm(forms.Form):
 
 
 
+MONTH_CHOICES = [
+        ('',''),
+        ('JANUARY', 'January'),
+        ('FEBRUARY', 'February'),
+        ('MARCH', 'March'),
+        ('APRIL', 'April'),
+        ('MAY', 'May'),
+        ('JUNE', 'June'),
+        ('JULY', 'July'),
+        ('AUGUST', 'August'),
+        ('SEPTEMBER', 'September'),
+        ('OCTOBER', 'October'),
+        ('NOVEMBER', 'November'),
+        ('DECEMBER', 'December'),
+    ]
+
 class vehicleSummaryReportForm(forms.Form):
     start_date = forms.DateField(
         label='Start Date',
@@ -299,6 +325,20 @@ class vehicleSummaryReportForm(forms.Form):
 
     vehicle_number = forms.CharField(
         label='Vehicle Number',
+        required=False,
+     
+    )
+
+    
+    month = forms.ChoiceField(
+        choices=MONTH_CHOICES,
+        label='Month',
+        required=False,
+     
+    )
+
+    year = forms.IntegerField(        
+        label='Year',
         required=False,
      
     )

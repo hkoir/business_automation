@@ -135,7 +135,7 @@ class TransportRequest(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Request by {self.staff.username} for {self.vehicle.vehicle_code} on {self.request_datetime}"
+        return f"{self.vehicle.vehicle_registration_number} on {self.request_datetime}"
 
     def approve(self):
         self.status = 'APPROVED'
@@ -323,12 +323,26 @@ class Penalty(models.Model):
     transport_request = models.ForeignKey(TransportRequest, on_delete=models.CASCADE,related_name='penalty')
     penalty_amount = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
     issued_at = models.DateTimeField(auto_now_add=True)
-    reason = models.TextField(blank=True, null=True)
+    reason = models.TextField(blank=True, null=True)   
+    payment_status = models.BooleanField(default=False)   
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Penalty for {self.transport_request} of amount {self.penalty_amount}"
+        return f"{self.transport_request} of amount {self.penalty_amount}"
+
+
+class PenaltyPayment(models.Model):
+    staff = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True)
+    penalty = models.ForeignKey(Penalty, on_delete=models.CASCADE,related_name='penalty_payment')
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    payment_doc =models.ImageField(upload_to='Penalty_payment',null=True,blank=True)
+    paid_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Paid amount {self.paid_amount}"
 
 
 

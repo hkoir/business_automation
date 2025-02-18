@@ -7,29 +7,83 @@
 
 <div class="container-fluid main-content">
     <div class="row">
-        <div class="col-12 col-md-4">
-            <div class="card shadow-lg" style="background-color: aliceblue;">
+        <div class="col-12 my-3">  
+                                               
+            <div class="card shadow" style="padding:10px;background-color:aliceblue;">
                  <!-- Card Header -->
                  <div class="card-header bg-primary text-white text-center">
-                    <h3 class="mb-0"> {% if instance %} Update {% else %} Create {% endif %}</h3>
-                </div>              
-                <form method="POST" enctype="multipart/form-data" class="p-2 m-4">
-                    {% csrf_token %}
-                    {{ form.as_p }}   
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg"> {% if instance %} Update {% else %} Add {% endif %}</button>
-                    </div>
-                </form>
+                    <h3 class="mb-0"> Create/Update Company Level Policy</h3>
+                </div> 
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="add_category" autocomplete="off">
+                        {% csrf_token %} 
+                    <div class="container">                       
+                        <div class="row">
+                           
+                            <div class="col-6 col-md-3">
+                                Name: {{ form.name }}
+                             </div>
+                             <div class="col-6 col-md-3">
+                                Company: {{ form.company }}
+                             </div>
+                            <div class="col-6 col-md-3">
+                                hra percentage: {{ form.hra_percentage }}
+                            </div>
+                            <div class="col-6 col-md-3">
+                                Medical allowance: {{ form.medical_allowance_percentage }}
+                             </div>
+                            <div class="col-6 col-md-3">
+                                conveyance allowance percentage: {{ form.conveyance_allowance_percentage }}
+                             </div>
+                             <div class="col-6 col-md-3">
+                                performance bonus percentage {{ form.performance_bonus_percentage }}
+                             </div>
+                             <div class="col-6 col-md-3">
+                                festival bonus percentage: {{ form.festival_bonus_percentage}}
+                             </div>
+                             <div class="col-6 col-md-3 p-1">
+                                provident fund percentage: {{ form.provident_fund_percentage }}
+                             </div>
+                             <div class="col-6 col-md-3">
+                                professional tax: {{ form.professional_tax }}
+                             </div>
+                             <div class="col-6 col-md-3">
+                                grauity percentage: {{ form.grauity_percentage}}
+                             </div>
+                             <div class="col-6 col-md-3">
+                                leave travel allowance performance: {{ form.leave_travel_allowance_performance}}
+                             </div>
+                            
+                             <div class="col-6 col-md-3">
+                                <button type="submit" name="add_to_basket" class="btn btn btn-primary mt-4">Submit</button>
+                             </div>
+                          
+
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </div>
-        <div class="col-12 col-md-8">
+    </div>
+                
+        <div class="col-12">
             <table class="table table-hover">
                 <thead class="table-dark">
                     <tr>
                         <th class="text-center p-2">Company</th>
                         <th class="text-center p-2">Policy Name</th>
                         <th class="text-center p-2">Policy code</th>
-                        <th class="text-center p-2">hra_percentage</th>
+                        <th class="text-center p-2">hra percentage</th>
+                        <th class="text-center p-2"> medical allowance percentage </th>
+                        <th class="text-center p-2"> conveyance allowance percentage</th>
+
+                        <th class="text-center p-2">performance bonus percentage</th>
+                        <th class="text-center p-2"> festival bonus percentage </th>
+                        <th class="text-center p-2"> provident fund percentage</th>
+
+                        <th class="text-center p-2"> professional tax </th>
+                        <th class="text-center p-2"> grauity percentage </th>
+                        <th class="text-center p-2"> leave travel allowance performance </th>
                         <th class="text-center p-2">Action</th>
                        
                     </tr>
@@ -40,8 +94,20 @@
                             <td class="text-center p-1">{{ data.company }}</td>
                             <td class="text-center p-1">{{ data.name }}</td>                           
                             <td class="text-center p-1">{{ data.policy_code }}</td>                            
-                            <td class="text-center p-1">{{ data.hra_percentage}}</td>                           
-                                                      
+                            <td class="text-center p-1">{{ data.hra_percentage}}</td>
+                            <td class="text-center p-1">{{ data.medical_allowance_percentage}}</td>
+                             <td class="text-center p-1">{{ data.conveyance_allowance_percentage }}</td>
+                           
+                             <td class="text-center p-1">{{ data.performance_bonus_percentage }}</td>                           
+                            <td class="text-center p-1">{{ data.festival_bonus_percentage }}</td>                            
+                            <td class="text-center p-1">{{ data.provident_fund_percentage}}</td>  
+                           
+                            <td class="text-center p-1">{{ data.professional_tax }}</td>                           
+                            <td class="text-center p-1">{{ data.grauity_percentage }}</td>                            
+                            <td class="text-center p-1">{{ data.leave_travel_allowance_performance}}</td>  
+                                     
+                            
+
                             <td class="text-center">
                                 <a href="{% url 'core:create_company_policy' %}" class="btn btn-sm btn-info">Add</a>
                                 <a href="{% url 'core:update_company_policy' data.id %}" class="btn btn-sm btn-info">Edit</a>

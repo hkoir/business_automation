@@ -10,7 +10,17 @@ app_name = 'recruitment'
 
 
 urlpatterns = [
-     
+
+    path('recruitment_dashboard/', views.recruitment_dashboard, name='recruitment_dashboard'),
+    
+    path('create_job/', views.manage_job, name='create_job'),
+    path('update_job/<int:id>/', views.manage_job, name='update_job'),
+    path('delete_job/<int:id>/', views.delete_job, name='delete_job'),
+   
+    path('job_request_list/', views.job_request_list, name='job_request_list'),   
+    path('process_job_requirement/<int:id>/', views.process_job_requirement, name='process_job_requirement'),
+    path('launch_job_by_hiring_manager/<int:id>/', views.launch_job_by_hiring_manager, name='launch_job_by_hiring_manager'),
+
     path('create_project/', views.manage_project, name='create_project'),
     path('update_project/<int:id>/', views.manage_project, name='update_project'),
     path('delete_project/<int:id>/', views.delete_project, name='delete_project'),
@@ -57,15 +67,11 @@ urlpatterns = [
     path('updateskille/<int:id>/', views.manage_skills, name='update_skill'),
     path('delete_skill/<int:id>/', views.delete_skills, name='delete_skill'),
 
-
     path('create_job_category/', views.manage_job_category, name='create_job_category'),
     path('update_job_category/<int:id>/', views.manage_job_category, name='update_job_category'),
     path('delete_job_category/<int:id>/', views.delete_job_category, name='delete_job_category'),
 
-    path('create_job/', views.manage_job, name='create_job'),
-    path('update_job/<int:id>/', views.manage_job, name='update_job'),
-    path('delete_job/<int:id>/', views.delete_job, name='delete_job'),
-
+  
     path('job_list/', views.job_list, name='job_list'),
     path('job_list_candidate_view/', views.job_list_candidate_view, name='job_list_candidate_view'),
     path('job_list_interview_panel_view/', views.job_list_interview_panel_view, name='job_list_interview_panel_view'),
@@ -137,6 +143,26 @@ urlpatterns = [
     path('delete_candidate_documents/<int:id>/', views.delete_candidate_documents, name='delete_candidate_document'),
 
 ]
+
+'''
+create_job_category
+create_job
+job_list
+cv_screening
+create_exam
+exam_list
+create_questions
+exam_screening
+create_panel
+create_panel_member
+interview-screening
+selected_candidate
+grand_summary
+create_common_documents
+create_candiadte_documents
+
+
+'''
 
 
 

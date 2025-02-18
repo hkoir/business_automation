@@ -139,3 +139,16 @@ class TransactionFilterForm(forms.Form):
         required=False
     )
    
+
+
+from .models import Inventory
+
+class WarehouseReorderLevelForm(forms.ModelForm):
+    class Meta:
+        model = Inventory
+        fields = ['product', 'warehouse', 'reorder_level']
+        widgets = {
+            'product': forms.Select(attrs={'class': 'form-control'}),
+            'warehouse': forms.Select(attrs={'class': 'form-control'}),
+            'reorder_level': forms.NumberInput(attrs={'class': 'form-control'}),
+        }

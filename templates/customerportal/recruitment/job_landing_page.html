@@ -1,0 +1,94 @@
+
+{% extends "recruitment_portal.html" %}
+{% load static %}
+
+{% block content %}
+
+   <style>
+.hero-section {
+    background-color: #f8f9fa;
+    background-image: url('your-image-url.jpg'); /* Optional */
+    background-size: cover;
+    background-position: center;
+    padding: 100px 20px;
+    text-align: center;
+    color: #212529;
+}
+
+.hero-section h1 {
+    font-size: 2.5rem;
+    font-weight: 600;
+}
+.hero-section p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+
+   </style>
+               
+
+<div class="container-fluid main-content mb-4">   
+    <div class="row"> 
+        <div class="col-12">                        
+            <!-- Hero Section -->
+            <div class="hero-section">
+                <div>
+                    <h1>Find Your Next Career Opportunity</h1>
+                    <p>Join our innovative and growing team.</p>
+                    <a href="#job-listings" class="btn btn-light btn-lg mt-3">View Openings</a>
+                </div>
+            </div>
+
+            <!-- Job Listings Preview -->
+            <div class="container my-5" id="job-listings">
+                <h2 class="text-center mb-4">Featured Openings</h2>
+                <div class="row">
+                    <!-- Example Job Card -->
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm card-hover">
+                            <div class="card-body">
+                                <h5 class="job-title">Software Developer</h5>
+                                <p><i class="fas fa-map-marker-alt"></i> Dhaka, Bangladesh</p>
+                                <p>We are seeking a passionate software developer to join our team.</p>
+                                <a href="#" class="btn btn-apply btn-sm">Apply Now</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Repeat similar cards for more jobs -->
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm card-hover">
+                            <div class="card-body">
+                                <h5 class="job-title">HR Manager</h5>
+                                <p><i class="fas fa-map-marker-alt"></i> Dhaka, Bangladesh</p>
+                                <p>Looking for an experienced HR professional to manage our team.</p>
+                                <a href="#" class="btn btn-apply btn-sm">Apply Now</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm card-hover">
+                            <div class="card-body">
+                                <h5 class="job-title">Transport Coordinator</h5>
+                                <p><i class="fas fa-map-marker-alt"></i> Chittagong, Bangladesh</p>
+                                <p>Manage transport operations across multiple locations.</p>
+                                <a href="#" class="btn btn-apply btn-sm">Apply Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="#" class="btn btn-outline-primary">View All Vacancies</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div style="height:20px"></div>
+
+
+{% endblock %}

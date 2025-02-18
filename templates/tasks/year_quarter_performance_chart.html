@@ -36,14 +36,14 @@
         </div>
         <div class="col-12 mt-4">
             <h4 class="text-center mb-4">
-                <span style="color:blue;font-weight: bold;">Quarterly Performance for:{{ employee_name }}</span>
-                <span style="color:rgb(7, 176, 18);font-weight: bold;"> Year:{{ year }}:Department-{{department}}</span>
+                <span style="color:blue;font-weight: bold;">Quarterly Performance for:{{ employee.name }}</span>
+                <span style="color:rgb(176, 7, 10);font-weight: bold;"> Year:{{ year }}:Department-{{department}}</span>
             </h4>
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-6 col-md-4">                        
                         {% if report_data %}                     
-                        <h6>Employee: {{ employee_name }}</h6>
+                        <h6>Employee: {{ employee.name }}</h6>
 
                         <table class="table table-hover">
                             <thead class="table-dark">

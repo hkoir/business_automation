@@ -25,6 +25,7 @@ urlpatterns = [
 
  path('inventory-status/', views.monitor_inventory_status, name='monitor_inventory_status'),
 
+ path('archive_old_notifications/', views.archive_old_notifications, name='archive_old_notifications'),
 
 
 ]

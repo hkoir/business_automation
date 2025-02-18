@@ -14,7 +14,7 @@
                         </div>
                         <div class="card-body" style="margin-left: 30px;">             
                             
-                            <form id="appraisalForm" method="post" enctype="multipart/form-data" action="" id="add_category">
+                            <form id="appraisalForm2" method="post" enctype="multipart/form-data" action="" id="add_category">
                                 {% csrf_token %} 
                                 {{ form.as_p }}
                                 <div class="d-grid">                              
@@ -30,7 +30,7 @@
                             {% if pdf_preview %}
                             <h5>Would you like to send email with this attachment to  {{ employee.name }} ?</h5>
                     
-                            <form id="appraisalForm2" method="post" action="{% url 'tasks:generate_and_send_increment_promotion_single' employee.id %}">
+                            <form id="appraisalForm" method="post" action="{% url 'tasks:generate_and_send_increment_promotion_single' employee.id %}">
                                
                                 {% csrf_token %}                                
                                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#confirmModal">

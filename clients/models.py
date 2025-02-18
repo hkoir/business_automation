@@ -11,6 +11,7 @@ app_name='clients'
 
 class Client(TenantMixin):
     name = models.CharField(max_length=100) 
+    registered_tenant = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return self.name
@@ -24,7 +25,8 @@ class Domain(DomainMixin):
 
 class SubscriptionPlan(models.Model):
     DURATION_CHOICES = [
-        (6, '6 Months'),
+        (1,  '30 days free trial'),
+        (6,  '6 Months'),
         (12, '1 Year'),
         (24, '2 Years'),
         (36, '3 Years'),
@@ -47,11 +49,13 @@ class Tenant(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True, related_name='tenant_user')
     tenant = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='tenant', null=True, blank=True)  # Maps to Client
     name = models.CharField(max_length=100)
-    subdomain = models.CharField(max_length=100, unique=True)  
+    subdomain = models.CharField(max_length=100, unique=True,help_text='subdomain could be your company name or nay name you prefer')  
     email = models.EmailField()
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     logo = models.ImageField(upload_to='tenant_lgo',blank=True, null=True)
+    ip_address = models.CharField(max_length=45, blank=True, null=True) 
+    is_trial_used = models.BooleanField(default=False) 
     created_on = models.DateTimeField(auto_now_add=True)  
     updated_on = models.DateTimeField(auto_now=True)  
 
@@ -79,8 +83,10 @@ class Subscription(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)  
     updated_on = models.DateTimeField(auto_now=True)  
 
-    def is_expired(self):
-        return self.expiration_date and self.expiration_date < timezone.now().date()
+    def save(self, *args, **kwargs):
+        if self.expiration_date:
+            self.is_expired = self.expiration_date < timezone.now().date()
+        super().save(*args, **kwargs)
 
     def renew_subscription(self, new_plan):
         self.subscription_plan = new_plan
@@ -106,6 +112,7 @@ class TenantInfo(models.Model):
 
 class PaymentProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="payment_profile")
+    tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name="tenant_payment_profile",blank=True, null=True)
     payment_token = models.CharField(max_length=255, unique=True)  # Token from payment gateway
     card_last4 = models.CharField(max_length=4, blank=True, null=True)  # Last 4 digits
     card_brand = models.CharField(max_length=50,
@@ -116,3 +123,35 @@ class PaymentProfile(models.Model):
         ], blank=True, null=True)  
     card_expiry_month = models.IntegerField(blank=True, null=True)  # Expiry month
     card_expiry_year = models.IntegerField(blank=True, null=True)  # Expiry year
+
+
+
+from accounts.models import UserProfile
+
+class DemoRequest(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    company = models.CharField(max_length=255, blank=True, null=True) 
+    job_title = models.CharField(max_length=255, blank=True, null=True)  
+    company_size = models.CharField(max_length=255, blank=True, null=True)  
+    phone_number = models.CharField(max_length=20, blank=True, null=True)  
+    message = models.TextField(blank=True, null=True)  
+    requested_at = models.DateTimeField(auto_now_add=True) 
+    status = models.CharField(max_length=50, choices=[
+        ('pending', 'Pending'),
+        ('scheduled', 'Scheduled'),
+        ('completed', 'Completed'),
+        ('rejected', 'Rejected'),  
+    ], default='pending')    
+
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='demo_requests') # Assign to sales rep
+    created_on = models.DateTimeField(auto_now_add=True)  
+    updated_on = models.DateTimeField(auto_now=True)  
+
+    def __str__(self):
+        return f"{self.name} - {self.email}"
+
+    class Meta:
+        verbose_name = "Demo Request"
+        verbose_name_plural = "Demo Requests"
+        ordering = ['-requested_at']  

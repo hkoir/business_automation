@@ -53,6 +53,52 @@ def mark_notification_read_view(request, notification_id):
     return redirect('reporting:notification_list')
 
 
+from datetime import timedelta
+from django.utils.timezone import now
+from.forms import NotificationArchieveForm
+from.models import ArchivedNotification
+
+
+def archive_old_notifications(request):
+    form = NotificationArchieveForm(request.GET or None)  
+    notification_list = Notification.objects.all()
+  
+
+    if form.is_valid():
+        start_date = form.cleaned_data.get('start_date')
+        end_date = form.cleaned_data.get('end_date')
+        no_of_days = form.cleaned_data.get('days')
+   
+        notifications = Notification.objects.all()
+
+        if start_date and end_date:
+            notifications = notifications.filter(created_at__range=(start_date, end_date))
+        elif no_of_days:
+            target_date = timezone.now() - timedelta(days=no_of_days)
+            notifications = notifications.filter(created_at__lte=target_date)
+
+
+        archived_count = 0
+        for notification in notifications:
+            ArchivedNotification.objects.create(
+                message=notification.message,
+                created_at=notification.created_at
+            )
+            notification.delete()
+            archived_count += 1
+
+        messages.success(request, f"{archived_count} notifications archived successfully.")
+        return redirect('reporting:notification_list')  # Change to the appropriate redirect
+    paginator = Paginator(notification_list, 10)  
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'report/archieve_old_notifications.html', {'form': form,'page_obj':page_obj})
+
+
+
+
+    
+
 
 @login_required
 def product_list(request):
@@ -91,10 +137,12 @@ def product_report(request, product_id):
 
         stock_value = stock_data['total_available'] * float(product.unit_price)
         grand_total_stock += stock_value
+        inventory = Inventory.objects.filter(product=product, warehouse=warehouse).first()
+        warehouse_reorder_level = inventory.reorder_level if inventory else 0
 
       
         warehouse_entry = {
-            'reorder_level':product.reorder_level,
+            'reorder_level': warehouse_reorder_level,
             'warehouse_name': warehouse.name,
             'warehouse_id': warehouse.id,
             'total_available': stock_data['total_available'],
@@ -131,79 +179,92 @@ def product_report(request, product_id):
     })
 
 
+from inventory.models import TransferItem
 
 @login_required
 def warehouse_report(request):
     warehouses = Warehouse.objects.all()
     warehouse_data = []
+    product_details=[]
     warehouse_json = None
     days = None
     start_date = None
     end_date = None
+    warehouse_name=None
+    product_name =None
+    transactions=[]
     form = SummaryReportChartForm(request.GET or {'days': 60}) 
     
     if form.is_valid():
         start_date = form.cleaned_data.get('start_date')
         end_date = form.cleaned_data.get('end_date')
-        days = form.cleaned_data.get('days') 
+        days = form.cleaned_data.get('days')
         warehouse_name = form.cleaned_data.get('warehouse_name') 
-        product_name = form.cleaned_data.get('product_name') 
+        product_name = form.cleaned_data.get('product_name')  
 
-        if start_date and end_date:         
-            start_date = timezone.make_aware(start_date) if timezone.is_naive(start_date) else start_date
-            end_date = timezone.make_aware(end_date) if timezone.is_naive(end_date) else end_date
+        if start_date and end_date:           
             warehouses = warehouses.filter(created_at__range=(start_date, end_date))
         elif days:
             end_date = timezone.now()
             start_date = end_date - timedelta(days=days)
-            warehouses = warehouses.filter(created_at__range=(start_date, end_date)) 
+            warehouses = warehouses.filter(created_at__range=(start_date, end_date))
+
+        filter_conditions = {}
 
         if warehouse_name:
-            warehouses = warehouses.filter(name=warehouse_name)
-        
-        for warehouse in warehouses:
-            products_in_warehouse = Inventory.objects.filter(warehouse=warehouse)
-            
-            if product_name:
-                products_in_warehouse = products_in_warehouse.filter(product__name__icontains=product_name)
-           
-            products_in_warehouse = products_in_warehouse.values('product__id', 'product__name').annotate(
-                total_available=Sum('quantity')
-            )
-           
-            product_details = []
-            for product in products_in_warehouse:
-                product_id = product['product__id']
-                product_name = product['product__name']
-                
-                total_purchased = PurchaseOrder.objects.filter(purchase_order_item__product_id=product_id, purchase_transactions__warehouse=warehouse).aggregate(total=Sum('purchase_order_item__quantity'))['total'] or 0
-                total_sold = SaleOrder.objects.filter(sale_order__product_id=product_id, sale_order__warehouse=warehouse).aggregate(total=Sum('sale_order__quantity'))['total'] or 0
-                total_incoming = TransferOrder.objects.filter(transfers__product_id=product_id, transfers__target_warehouse=warehouse).aggregate(total=Sum('transfers__quantity'))['total'] or 0
-                total_outgoing = TransferOrder.objects.filter(transfers__product_id=product_id, transfers__source_warehouse=warehouse).aggregate(total=Sum('transfers__quantity'))['total'] or 0                                 
-                          
-                total_replacement = Replacement.objects.filter(faulty_product__product_id=product_id, warehouse=warehouse).aggregate(total=Sum('quantity'))['total'] or 0
-              
-                
+            filter_conditions["warehouse"] = warehouse_name  
 
-                product_details.append({
-                    'product_name': product_name,
-                    'total_available': product['total_available'],
-                    'total_purchased': total_purchased,
-                    'total_sold': total_sold,
-                    'total_replacement': total_replacement,
-                    'total_incoming': total_incoming,
-                    'total_outgoing': total_outgoing,
-                   
-                })
-            
-            warehouse_data.append({
-                'warehouse_name': warehouse.name,
-                'products': product_details
+        if product_name:
+            filter_conditions["product__name"] = product_name
+
+        transactions = InventoryTransaction.objects.filter(**filter_conditions).values(
+            "product_id", "transaction_type"
+        ).annotate(total=Sum("quantity"))
+
+ 
+        transaction_lookup = {}
+        for t in transactions:
+            key = (t['product_id'], t['transaction_type'])
+            transaction_lookup[key] = transaction_lookup.get(key, 0) + t['total']
+  
+        product_ids = set(t['product_id'] for t in transactions)
+
+        product_data = []
+
+        for product_id in product_ids:
+            product_instance = Product.objects.get(id=product_id)
+
+            product_data.append({
+                'product_name': product_instance.name,
+                'reorder_level': product_instance.reorder_level,
+                'total_available': (
+                    transaction_lookup.get((product_id, 'EXISTING_ITEM_IN'), 0) +
+                    transaction_lookup.get((product_id, 'REPLACEMENT_IN'), 0) +
+                    transaction_lookup.get((product_id, 'TRANSFER_IN'), 0) +
+                    transaction_lookup.get((product_id, 'INBOUND'), 0) +
+                    transaction_lookup.get((product_id, 'MANUFACTURE_IN'), 0) -
+                    transaction_lookup.get((product_id, 'REPLACEMENT_OUT'), 0) -
+                    transaction_lookup.get((product_id, 'TRANSFER_OUT'), 0) -
+                    transaction_lookup.get((product_id, 'OUTBOUND'), 0) -
+                    transaction_lookup.get((product_id, 'OPERATIONS_OUT'), 0) -
+                    transaction_lookup.get((product_id, 'MANUFACTURE_OUT'), 0)
+                ),
+                'total_existing_product': transaction_lookup.get((product_id, 'EXISTING_ITEM_IN'), 0),
+                'total_replacement_in': transaction_lookup.get((product_id, 'REPLACEMENT_IN'), 0),
+                'total_replacement_out': transaction_lookup.get((product_id, 'REPLACEMENT_OUT'), 0),
+                'total_transfer_in': transaction_lookup.get((product_id, 'TRANSFER_IN'), 0),
+                'total_transfer_out': transaction_lookup.get((product_id, 'TRANSFER_OUT'), 0),
+                'total_purchased': transaction_lookup.get((product_id, 'INBOUND'), 0),
+                'total_sold': transaction_lookup.get((product_id, 'OUTBOUND'), 0),
+                'total_operation_used': transaction_lookup.get((product_id, 'OPERATIONS_OUT'), 0),
+                'total_manufacture_in': transaction_lookup.get((product_id, 'MANUFACTURE_IN'), 0),
+                'total_manufacture_out': transaction_lookup.get((product_id, 'MANUFACTURE_OUT'), 0),
             })
 
-        warehouse_json = json.dumps(warehouse_data)  
+        product_json = json.dumps(product_data)
+ 
             
-    paginator = Paginator(warehouse_data, 10)  
+    paginator = Paginator(product_data, 10)  
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -213,10 +274,15 @@ def warehouse_report(request):
         'warehouse_data': page_obj, 
         'page_obj': page_obj,
         'warehouse_json': warehouse_json,
+        'product_json': product_json,
+         'product_data': product_data,
         'form': form,
         'days': days,
         'start_date': start_date,
-        'end_date': end_date
+        'end_date': end_date,
+        'product_details': product_details,
+        'warehouse_name':warehouse_name,
+        'product_name':product_name
     })
 
 
@@ -501,16 +567,23 @@ def send_test_email():
         print(f"Error sending email: {e}")
 
 
-
-def calculate_average_usage(product, days=30):
+def calculate_average_usage(product, warehouse=None, days=30):
     start_date = now() - timedelta(days=days)
-    usage = InventoryTransaction.objects.filter(
-        product=product,
-        transaction_type='OUTBOUND',
-        created_at__gte=start_date
-    ).aggregate(total_usage=Sum('quantity'))['total_usage'] or 0
+    filters = {
+        'product': product,
+        'transaction_type': 'OUTBOUND',
+        'created_at__gte': start_date
+    }
+    if warehouse:
+        filters['warehouse'] = warehouse
+    
+    usage = InventoryTransaction.objects.filter(**filters).aggregate(
+        total_usage=Sum('quantity')
+    )['total_usage'] or 0
 
     return usage / days if usage else 0
+
+
 
 def send_lead_time_alert(alerts):
     subject = "Lead Time Stock Alert"
@@ -555,60 +628,64 @@ def monitor_inventory_status(request):
     low_stock_alerts = []
     warehouse_wise_low_stock = []
     low_stock_products = []
-    
-    for product in Product.objects.all():
-        average_usage = calculate_average_usage(product)
-        required_stock = average_usage * product.lead_time
+
+    for product in Product.objects.all():    
+        product_average_usage = calculate_average_usage(product)  
+        product_required_stock = product_average_usage * product.lead_time   
         warehouse_stocks = Inventory.objects.filter(product=product)
 
         for stock in warehouse_stocks:
-            warehouse_reorder_level = stock.warehouse.reorder_level if stock.warehouse else product.reorder_level
-            if stock.quantity < required_stock:
-                low_stock_alerts.append({
-                    'product': product.name,
-                    'warehouse': stock.warehouse.name if stock.warehouse else 'N/A',
-                    'current_stock': stock.quantity,
-                    'required_stock': required_stock,
-                    'average_usage': average_usage,
-                    'lead_time': product.lead_time,
-                })
-            if stock.quantity <= warehouse_reorder_level:
+            warehouse_avg_usage = calculate_average_usage(product, stock.warehouse)
+            warehouse_required_stock = warehouse_avg_usage * product.lead_time
+            warehouse_reorder_level=stock.reorder_level
+            
+            if stock.quantity < warehouse_required_stock:  # Warehouse-based stock check
                 warehouse_wise_low_stock.append({
                     'product': product.name,
                     'warehouse': stock.warehouse.name if stock.warehouse else 'N/A',
                     'current_stock': stock.quantity,
-                    'reorder_level': warehouse_reorder_level,
+                    'required_stock': warehouse_required_stock,
+                    'average_usage': warehouse_avg_usage,
+                    'lead_time': product.lead_time,
                 })
 
+            elif stock.quantity <= warehouse_reorder_level:
+                warehouse_wise_low_stock.append({
+                    'product': product.name,
+                    'warehouse': stock.warehouse.name,
+                    'average_usage': warehouse_avg_usage,
+                    'current_stock': stock.quantity,
+                    'required_stock': warehouse_required_stock,
+                    'reorder_level': warehouse_reorder_level,
+                    'lead_time': product.lead_time,
+                })
+    
         total_stock = warehouse_stocks.aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
-        if total_stock < required_stock:
-            low_stock_alerts.append({
-                'product': product.name,
-                'warehouse': 'All Warehouses',
-                'current_stock': total_stock,
-                'required_stock': required_stock,
-                'average_usage': average_usage,
-                'lead_time': product.lead_time,
-            })
         if total_stock <= product.reorder_level:
             low_stock_products.append({
                 'product': product.name,
                 'warehouse': 'All Warehouses',
                 'current_stock': total_stock,
                 'reorder_level': product.reorder_level,
+                'lead_time': product.lead_time,
             })
+        if total_stock < product_required_stock:
+            low_stock_alerts.append({
+                'product': product.name,
+                'warehouse': 'All Warehouses',
+                'current_stock': total_stock,
+                'required_stock': product_required_stock,
+                'average_usage': product_average_usage,
+                'lead_time': product.lead_time,
+            })
+      
 
     context = {
-        'low_stock_alerts': low_stock_alerts,
-        'warehouse_wise_low_stock': warehouse_wise_low_stock,
-        'low_stock_products': low_stock_products,
+        'low_stock_alerts': low_stock_alerts,  # Product-Level Low Stock
+        'warehouse_wise_low_stock': warehouse_wise_low_stock,  # Warehouse-Level Low Stock
+        'low_stock_products': low_stock_products,  # Reorder-Level Products
     }
-   
-    # inventory_update_signal.send(
-    #     sender=monitor_inventory_status,
-    #     user=request.user, 
-    #     message="This is a custom notification."
-    #     )
+
     return render(request, 'report/monitor_inventory_status.html', context)
 
 

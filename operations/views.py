@@ -340,7 +340,7 @@ def confirm_operations_items_request(request):
                     )
                     operations_request_item.save()
 
-                create_notification(request.user, f"Operations has submitted a request for {len(basket)} products.",notification_type='OPERATIONS-NOTIFICATION')
+                create_notification(request.user, message= f"Operations has submitted a request for {len(basket)} products.",notification_type='OPERATIONS-NOTIFICATION')
                     
                 request.session['basket'] = []
                 request.session.modified = True

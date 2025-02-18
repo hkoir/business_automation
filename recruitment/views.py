@@ -42,6 +42,33 @@ from.forms import CommonDocumentForm,CandidateDocumentForm
 
 from .models import Job, Exam, Candidate, PanelMember, TakeExam,Interview,InterviewScore
 
+
+
+
+@login_required
+def recruitment_dashboard(request):
+    menu_items = [
+        {'title': 'Create Job Category', 'url': reverse('recruitment:create_job_category')},
+        {'title': 'Create Job', 'url': reverse('recruitment:create_job')},
+        {'title': 'Job List', 'url': reverse('recruitment:job_list')},
+        {'title': 'CV Screening', 'url': reverse('recruitment:cv_screening')},
+        {'title': 'Create Exam', 'url': reverse('recruitment:create_exam')},
+        {'title': 'Exam List', 'url': reverse('recruitment:exam_list')},
+        {'title': 'Create Questions', 'url': reverse('recruitment:create_questions')},
+        {'title': 'Exam Screening', 'url': reverse('recruitment:exam_screening')},
+        {'title': 'Create Panel', 'url': reverse('recruitment:create_panel')},
+        {'title': 'Create Panel Member', 'url': reverse('recruitment:create_panel_member')},
+        {'title': 'Interview Screening', 'url': reverse('recruitment:interview_screening')},
+        {'title': 'Selected Candidate', 'url': reverse('recruitment:selected_candidate')},
+        {'title': 'Grand Summary', 'url': reverse('recruitment:grand_summary')},
+        {'title': 'Create Common Documents', 'url': reverse('recruitment:create_common_documents')},
+        {'title': 'Create Candidate Documents', 'url': reverse('recruitment:create_candidate_documents')},
+    ]
+
+    return render(request, 'recruitment/recruitment_dashboard.html', {'menu_items': menu_items})
+
+
+
 @login_required
 def manage_common_documents(request, id=None):  
     instance = get_object_or_404(CommonDocument, id=id) if id else None
@@ -119,6 +146,144 @@ def delete_candidate_documents(request, id):
 
     messages.warning(request, "Invalid delete request!")
     return redirect('recruitment:create_candidate_documents')    
+
+
+from.forms import JobRequestForm
+from.forms import JobRequestProcessForm
+
+
+@login_required
+def manage_job(request, id=None):  
+    instance = get_object_or_404(Job, id=id) if id else None
+    message_text = "updated successfully!" if id else "added successfully!"  
+    form = JobRequestForm(request.POST or None, request.FILES or None, instance=instance)
+
+    if request.method == 'POST' and form.is_valid():
+        form_intance=form.save(commit=False)
+        form_intance.user = request.user
+        form_intance.is_active = True
+        form_intance.save()        
+        messages.success(request, message_text)
+        return redirect('recruitment:create_job')  
+    else:
+        print(form.errors)
+
+    datas = Job.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    form = JobRequestForm( instance=instance)
+    return render(request, 'recruitment/manage_job.html', {
+        'form': form,
+        'instance': instance,
+        'datas': datas,
+        'page_obj': page_obj
+    })
+
+
+
+@login_required
+def delete_job(request, id):
+    instance = get_object_or_404(Job, id=id)
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, "Deleted successfully!")
+        return redirect('recruitment:create_job')    
+
+    messages.warning(request, "Invalid delete request!")
+    return redirect('recruitment:create_job')  
+
+
+
+def job_request_list(request):    
+    datas = Job.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'recruitment/job_request_list.html', {
+        'datas': datas,
+        'page_obj': page_obj
+    })
+
+
+
+@login_required
+def process_job_requirement(request, id):
+    requirement = get_object_or_404(Job, id=id)
+
+    role_status_map = {
+        "Requester": ["SUBMITTED", "CANCELLED"],
+        "Reviewer": ["REVIEWED", "CANCELLED"],
+        "Approver": ["APPROVED", "CANCELLED"],
+    }
+
+    if request.method == 'POST':
+        form = JobRequestProcessForm(request.POST)
+        if form.is_valid():  
+            if requirement.approval_data is None:
+                requirement.approval_data = {}         
+
+            approval_status = form.cleaned_data['approval_status']
+            remarks = form.cleaned_data['approval_comments']
+            role = None
+
+            user_roles = []
+            if request.user.groups.filter(name="Requester").exists():
+                user_roles.append("Requester")
+            if request.user.groups.filter(name="Reviewer").exists():
+                user_roles.append("Reviewer")
+            if request.user.groups.filter(name="Approver").exists():
+                user_roles.append("Approver")
+
+            for user_role in user_roles:
+                if approval_status in role_status_map[user_role]:
+                    role = user_role
+                    break
+
+            if not role:
+                messages.error(
+                    request,
+                    "You do not have permission to perform this action or invalid status."
+                )
+                return redirect('recruitment:job_request_list')
+
+            if role == "Requester":
+                requirement.requester_approval_status = approval_status
+                requirement.Requester_remarks = remarks
+            elif role == "Reviewer":
+                requirement.reviewer_approval_status = approval_status
+                requirement.Reviewer_remarks = remarks
+            elif role == "Approver":
+                requirement.approver_approval_status = approval_status
+                requirement.Approver_remarks = remarks
+
+            requirement.approval_data[role] = {
+                'status': approval_status,
+                'remarks': remarks,
+                'date': timezone.now().isoformat(),
+            }
+
+            requirement.save()
+            messages.success(request, f"Order {requirement.id} successfully updated.")
+            return redirect('purchase:purchase_order_list')
+        else:
+            messages.error(request, "Invalid form submission.")
+    else:
+        form = JobRequestProcessForm()
+    return render(request, 'recruitment/job_request_process.html', {'form': form, 'requirement': requirement})
+
+
+
+def launch_job_by_hiring_manager(request,id):
+    job_instance = get_object_or_404(Job,id=id)
+    form = JobForm(request.POST,request.FILES or None)
+
+    if request.method == 'POST':
+        form = JobForm(request.POST,request.FILES or None, instance = job_instance)
+        if form.is_valid():
+            form_instance = form.save(commit=False)
+            form_instance.is_active = True
+
 
 
 
@@ -647,50 +812,6 @@ def delete_job_category(request, id):
     messages.warning(request, "Invalid delete request!")
     return redirect('recruitment:create_job_category')   
 
-
-
-
-
-@login_required
-def manage_job(request, id=None):  
-    instance = get_object_or_404(Job, id=id) if id else None
-    message_text = "updated successfully!" if id else "added successfully!"  
-    form = JobForm(request.POST or None, request.FILES or None, instance=instance)
-
-    if request.method == 'POST' and form.is_valid():
-        form_intance=form.save(commit=False)
-        form_intance.user = request.user
-        form_intance.is_active = True
-        form_intance.save()        
-        messages.success(request, message_text)
-        return redirect('recruitment:create_job')  
-    else:
-        print(form.errors)
-
-    datas = Job.objects.all().order_by('-created_at')
-    paginator = Paginator(datas, 5)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    form = JobForm( instance=instance)
-    return render(request, 'recruitment/manage_job.html', {
-        'form': form,
-        'instance': instance,
-        'datas': datas,
-        'page_obj': page_obj
-    })
-
-
-
-@login_required
-def delete_job(request, id):
-    instance = get_object_or_404(Job, id=id)
-    if request.method == 'POST':
-        instance.delete()
-        messages.success(request, "Deleted successfully!")
-        return redirect('recruitment:create_job')    
-
-    messages.warning(request, "Invalid delete request!")
-    return redirect('recruitment:create_job')  
 
 
 

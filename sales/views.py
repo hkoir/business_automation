@@ -2,8 +2,7 @@ from django.shortcuts import render,redirect,get_object_or_404
 from django.db import transaction
 from django.utils import timezone
 from django.contrib import messages
-from django.contrib import messages
-from django.db.models import Sum,Q
+
 import uuid
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
@@ -20,7 +19,14 @@ from inventory.models import Warehouse,Location
 from logistics.models import SaleDispatchItem
 from core.forms import CommonFilterForm
 from django.core.paginator import Paginator
-from.forms import PurchaseStatusForm
+from.forms import PurchaseStatusForm,SalesReportForm
+
+from django.db.models import Sum, F,Q
+from django.db.models.functions import TruncDate
+from collections import defaultdict
+import json
+
+
 
 
 
@@ -662,6 +668,8 @@ def sale_order_item_dispatch(request, order_id):
 
 
 
+
+
 @login_required
 def update_sale_order_status(request, order_id):
     sale_order = get_object_or_404(SaleOrder, id=order_id)
@@ -690,24 +698,21 @@ def update_sale_order_status(request, order_id):
 
 
 
-
 @login_required
 def qc_dashboard(request, sale_order_id=None):
     if sale_order_id:
         pending_items = SaleDispatchItem.objects.filter(
             sale_shipment__sales_order=sale_order_id,  
-            status = 'READY_FOR_QC'
+            status = 'READY_FOR_DISPATCH'
         )
         sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
     else:
-        pending_items = SaleDispatchItem.objects.filter(status='READY_FOR_QC')
+        pending_items = SaleDispatchItem.objects.filter(status='READY_FOR_DISPATCH')
         sale_order = None
 
     if not pending_items:
         messages.info(request, "No items pending for quality control inspection.")
     return render(request, 'sales/qc_dashboard.html', {'pending_items': pending_items, 'sale_order': sale_order})
-
-
 
 
 
@@ -728,6 +733,7 @@ def qc_inspect_item(request, item_id):
             qc_entry = form.save(commit=False)
             qc_entry.sale_dispatch_item = sale_dispatch_item
             qc_entry.user = request.user
+            qc_entry.quality_checked_by = 'BY-EMPLOYEE'
             qc_entry.inspection_date = timezone.now()
             qc_entry.save()
             
@@ -791,16 +797,16 @@ def qc_inspect_item(request, item_id):
                     messages.error(request, f"Unexpected error: {e}")
                     return redirect('sales:qc_dashboard')        
 
-            sale_order.status = 'DELIVERED'
+            sale_order.status = 'DISPATCHED'
             sale_order.save()
 
-            sale_order_item.status = 'DELIVERED'
+            sale_order_item.status ='DISPATCHED'
             sale_order_item.save()
 
-            sale_request_order.status = 'DELIVERED'
+            sale_request_order.status ='DISPATCHED'
             sale_request_order.save()
 
-            sale_request_item.status = 'DELIVERED'
+            sale_request_item.status = 'DISPATCHED'
             sale_request_item.save()
 
             all_items_delivered = sale_order.sale_order.filter(status='DELIVERED').count() == sale_order.sale_order.count()
@@ -821,7 +827,7 @@ def qc_inspect_item(request, item_id):
             update_sale_shipment_status(shipment.id)
             update_sale_request_order(sale_request_order.id)
 
-            create_notification(request.user, f'Sale request order number: {sale_request_order} has been dispatched', notification_type='SALES-NOTIFICATION')
+            create_notification(request.user, message=f'Sale request order number: {sale_request_order} has been dispatched', notification_type='SALES-NOTIFICATION')
 
             messages.success(request, "Quality control inspection recorded and inventory updated successfully.")
             return redirect('sales:qc_dashboard')
@@ -848,32 +854,30 @@ def qc_inspect_item(request, item_id):
 
 
 
-from django.db.models import Sum, F
-from django.db.models.functions import TruncDate
-from collections import defaultdict
-import json
-
-from django.db.models import Sum
-from django.db.models.functions import TruncDate
-from collections import defaultdict
-from.forms import SalesReportForm
 
 def product_sales_report(request):
     chart_data={}
     sales_table_data = []
     products = set()
     dates = set()
+    product_name = None
+   
 
     form=SalesReportForm(request.GET or None)
     if form.is_valid():
         start_date = form.cleaned_data['start_date']
         end_date = form.cleaned_data['end_date']
+        product_name = form.cleaned_data.get('product_name')
 
         sales_data = SaleOrderItem.objects.all()
 
         if start_date and end_date:
             sales_data = sales_data.filter(sale_order__order_date__range=(start_date,end_date))
         
+        if product_name:
+            sales_data = sales_data.filter(product=product_name)
+
+
         sales_data = (
             sales_data.annotate(order_date=TruncDate(F('sale_order__order_date')))
             .values('order_date', 'product__name')
@@ -921,15 +925,20 @@ def product_sales_report(request):
 
        
     else:
-        print('form is invalid')
+        print('form is invalid',form.errors)
+        form=SalesReportForm()
+
     paginator=Paginator(sales_table_data,8)
     page_number=request.GET.get('page')
     page_obj=paginator.get_page(page_number)
 
+    form=SalesReportForm()
     return render(request, 'sales/sales_report.html', {
         'chart_data': json.dumps(chart_data),
         'sales_table_data': sales_table_data,
         'dates': dates,
         'page_obj':page_obj,
-        'form':form
+        'form':form,
+        'sales_data': sales_data,
+        'product_name':product_name
     })

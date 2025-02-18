@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<div class="container">
+<div class="container-fluid main-content">
     <h2 class="text-center my-2">Candidate Status for Each Job</h2>
     <form method="GET" enctype="multipart/form-data">
         {% csrf_token %}
@@ -60,6 +60,7 @@
             </div>
         </div>
     {% endfor %}
+    <h4 style="height:10px"></h4>
 </div>
 
 <div style="height:1000px" ></div>

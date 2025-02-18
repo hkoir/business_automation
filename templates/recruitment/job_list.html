@@ -94,7 +94,10 @@
                             <td>
                                 {% if data.job_panel %}
                                 {% for panel in data.job_panel.all %}
-                                <a href="{% url 'recruitment:panel_details' panel.id %}">View Panel boards</a><br>
+                                <ul>
+                                    <li>  <a href="{% url 'recruitment:panel_details' panel.id %}">View Panel boards</a><br></li>
+                                </ul>
+                              
                                 {% endfor %}
                                 {% else %}
                                 <i class="fas fa-hourglass-half text-danger fw-bold">In Process</i>
@@ -164,7 +167,7 @@
             </div>
         </div>
     </div>
-
+    <h4 style="height:10px"></h4>
     
 </div>
 

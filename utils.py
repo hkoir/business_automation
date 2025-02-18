@@ -151,6 +151,7 @@ def update_sale_shipment_status(shipment_id):
         shipment.status = 'DELIVERED'
         shipment.save()
 
+
 ############################################################################
 
 

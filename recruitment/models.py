@@ -43,31 +43,57 @@ class JobCategory(models.Model):
 
 
 from core.models import SalaryStructure,Department,Position,Location
+import uuid
 
 class Job(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    job_code = models.CharField(max_length=30,blank=True, null=True)
-    project=models.ForeignKey(Project,on_delete=models.CASCADE,null=True,blank=True,related_query_name='project_job')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    company=models.ForeignKey(Company,on_delete=models.CASCADE)
-    department=models.ForeignKey(Department,on_delete=models.CASCADE,null=True,blank=True,related_name='job_department')
-    score_card=models.ForeignKey(ScoreCard,on_delete=models.CASCADE,null=True,blank=True)
-    job_category = models.ForeignKey(JobCategory,on_delete=models.CASCADE,null=True,blank=True)
-    title = models.CharField(max_length=200,null=True,blank=True)
-    position=models.ForeignKey(Position,on_delete=models.CASCADE,null=True,blank=True,related_name='job_position')
-    reporting_manager = models.ForeignKey(Employee,on_delete=models.CASCADE,null=True,blank=True,help_text='Please write reporting manager or hiring manager name')
-    location=models.ForeignKey(Location,on_delete=models.CASCADE,null=True,blank=True,related_name='job_location')
-    no_of_vacancies = models.IntegerField(null=True,blank=True)
-    salary_structure = models.ForeignKey(SalaryStructure,on_delete=models.CASCADE,null=True,blank=True,related_name='job_salary_structure')
-   
-    deadline = models.DateField()   
-    is_active = models.BooleanField(default=False,null=True,blank=True)
+    STATUS_CHOICES = [
+       ('SUBMITTED', 'Submitted'),
+        ('REVIEWED', 'Reviewed'),
+        ('APPROVED', 'Approved'),
+        ('CANCELLED', 'Cancelled'),
+        ('CLOSED', 'Close'),
+    ]
+
+    requester = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='requested_jobs')  # User who submits the request
+    job_code = models.CharField(max_length=30, blank=True, null=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, related_query_name='project_job')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True, related_name='job_department')
+    score_card = models.ForeignKey(ScoreCard, on_delete=models.CASCADE, null=True, blank=True)
+    job_category = models.ForeignKey(JobCategory, on_delete=models.CASCADE, null=True, blank=True)
+    title = models.CharField(max_length=200, null=True, blank=True)
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, null=True, blank=True, related_name='job_position')
+    reporting_manager = models.ForeignKey(Employee, on_delete=models.CASCADE, null=True, blank=True,related_name='job_reporting_manager')
+    hiring_manager = models.ForeignKey(Employee, on_delete=models.CASCADE, null=True, blank=True,related_name='job_hiring_manager')
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, null=True, blank=True, related_name='job_location')
+    no_of_vacancies = models.IntegerField(null=True, blank=True)
+    salary_structure = models.ForeignKey(SalaryStructure, on_delete=models.CASCADE, null=True, blank=True, related_name='job_salary_structure')
+
+    deadline = models.DateField()
+ 
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED')
+    approval_data = models.JSONField(default=dict,null=True,blank=True)
+    
+    requester_approval_status = models.CharField(max_length=20, null=True, blank=True)
+    reviewer_approval_status = models.CharField(max_length=20, null=True, blank=True)
+    approver_approval_status = models.CharField(max_length=20, null=True, blank=True)
+
+    Requester_remarks=models.TextField(null=True,blank=True)
+    Reviewer_remarks=models.TextField(null=True,blank=True)
+    Approver_remarks=models.TextField(null=True,blank=True)
+
+    is_active = models.BooleanField(default=False, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)  
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self,*args,**kwargs):
+        if not self.job_code:
+            self.job_code= f"JC-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args,*kwargs)
 
     def __str__(self):
-        return self.title
-    
+        return f"{self.title} ({self.status})"
+
 
 
 class Experience(models.Model):

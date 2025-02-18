@@ -76,13 +76,15 @@ class Inventory(models.Model):
         Warehouse,
         on_delete=models.CASCADE,
         null=True,
-        blank=True
+        blank=True,
+        related_name='warehouse_inventory'
     )
     location = models.ForeignKey(
         Location,
         on_delete=models.CASCADE,
         null=True,
-        blank=True
+        blank=True,
+        related_name='location_inventory'
     )
     product = models.ForeignKey(
         Product,

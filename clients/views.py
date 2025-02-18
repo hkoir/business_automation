@@ -24,8 +24,24 @@ from .forms import TenantApplicationForm,CreditCardPaymentForm
 
 
 
+from .models import DemoRequest
+from.forms import DemoRequestForm
 
-def tenant_dashboard(request):  
+
+def demo_request(request):
+    if request.method == 'POST':
+        form = DemoRequestForm(request.POST) 
+        if form.is_valid():
+            demo_request = form.save()  
+            messages.success(request,'Thanks for your interest, we will contact with you soon, in the mean time if you feel to contact with us , please do not hesitate to knock us.')        
+            return redirect('clients:dashboard') 
+    else:
+        form = DemoRequestForm() 
+    return render(request, 'tenant/demo_request.html', {'form': form})
+
+
+
+def tenant_dashboard(request):    
     plans = SubscriptionPlan.objects.all().order_by('duration')
     for plan in plans:
         plan.features_list = plan.features.split(',') if plan.features else [] 
@@ -42,63 +58,107 @@ def tenant_dashboard(request):
   
     is_public_schema = tenant.schema_name == get_public_schema_name()
     tenant_schema_name = request.tenant.schema_name
-         
+   
+    x= "Streamline HR management process including entire recruitment process,employee performance appraisal, Leave management and many more"
+    
+    modules = [
+    {"name": "Core HR process Management", "icon": "fas fa-cogs", "description": x, "link": "clients:create_user_profile"},
+    {"name": "Recruitment Process automation", "icon": "fas fa-users", "description": "Manage employees efficiently.", "link": None},
+    {"name": "Employee's Appraisal process Automation", "icon": "fas fa-chart-line", "description": "Automate performance reviews.", "link": None},
+    {"name": "Leave management process automation", "icon": "fas fa-file-signature", "description": "Simplify hiring workflows.", "link": None},
+    {"name": "Supply Chain Management process automation", "icon": "fas fa-truck", "description": "Optimize your supply chain.", "link": None},
+    {"name": "Transport Pool Management process automation", "icon": "fas fa-bus", "description": "Manage transport and fleet.", "link": None},
+]
+
 
     if is_public_schema:
         template_name = "tenant/default_dashboard.html"
         context = {
             "welcome_message": "Welcome to the public dashboard",
-            'plans':plans
+            'plans':plans,
+            'modules':modules
 
         }
     else:
-        template_name = "tenant/tenant_dashboard.html"
+        template_name = "customerportal/public_landing_page.html"
         context = {
             "tenant": tenant,
             "welcome_message": f"Welcome to {tenant.name}'s Dashboard!",
             'tenant_links':tenant_links,
-            'plans':plans
-        }
+            'plans':plans,
+            'modules':modules
+        }        
     return render(request, template_name, context)
+
 
 
 def tenant_expire_check(request):
     tenant = getattr(request, 'tenant', None)
     if tenant:
         tenant_instance = tenant.tenant.first()
-        if tenant_instance and tenant_instance.subscription and tenant_instance.subscription.expiration_date:
-            if tenant_instance.subscription.expiration_date < timezone.now().date():
-                return redirect('clients:renew_tenant')
+        if tenant_instance and tenant_instance.subscription and tenant_instance.subscription.is_expired:
+            messages.warning(request,'Your subscription has expired, please renew')
+            return redirect('clients:renew_tenant')            
 
     if not request.user.is_authenticated:
-        return redirect('clients:dashboard')
+        if tenant.registered_tenant:
+            return redirect('accounts:login')
+        else:
+             return redirect('clients:dashboard')
 
-    if request.user.is_authenticated:
-        user_profile = getattr(request.user, 'user_profile', None)
-        if not user_profile:
-            return redirect('clients:create_user_profile')
+    else:      
         if request.user.groups.filter(name='Customer').exists():
-            return redirect('customerportal:ticket_list')
+            return redirect('customerportal:customer_landing_page')
         elif request.user.groups.filter(name='job_seekers').exists():
-            return redirect('customerportal:job_list_candidate_view')
+            return redirect('customerportal:job_landing_page')
+        elif request.user.groups.filter(name='public').exists():
+             return redirect('customerportal:public_landing_page')
         else:
             return redirect('core:dashboard')
-    else:
-        return redirect('core:dashboard')
+   
 
-       
+def tenant_expire_check2(request):
+    if connection.schema_name == get_public_schema_name(): 
+        if not request.user.is_authenticated:          
+            return redirect('clients:dashboard') 
+        elif request.user.groups.filter(name='public').exists():    
+            return redirect('clients:dashboard')
+        else:
+            print('redirected to core dashboard')
+            return redirect('core:dashboard') 
+    else: 
+        tenant = getattr(request, 'tenant', None)
+        if tenant:
+            tenant_instance = tenant.tenant.first()
+            if tenant_instance and tenant_instance.subscription and tenant_instance.subscription.expiration_date:
+                if tenant_instance.subscription.expiration_date < timezone.now().date():
+                    return redirect('clients:renew_tenant')
+
+        if not request.user.is_authenticated:
+            return redirect('clients:dashboard') 
+        elif request.user.groups.filter(name='Customer').exists():
+            return redirect('customerportal:customer_landing_page')
+        elif request.user.groups.filter(name='job_seekers').exists():
+            return redirect('customerportal:job_landing_page')
+        elif request.user.groups.filter(name='public').exists():
+             return redirect('customerportal:public_landing_page')
+        else:
+            return redirect('core:dashboard')  
 
 
 def create_user_profile(request):
-    user_instance = request.user
-    user_profile = UserProfile.objects.filter(user=user_instance).first()
-    if request.method == 'POST':
-        form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
-        if form.is_valid():
-            form.save()
-            return redirect('clients:dashboard')
+    if request.user.is_authenticated:
+        user_instance = request.user
+        user_profile = UserProfile.objects.filter(user=user_instance).first()
+        if request.method == 'POST':
+            form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
+            if form.is_valid():
+                form.save()
+                return redirect('clients:dashboard')
+        else:
+            form = UserProfileForm(instance=user_profile)
     else:
-        form = UserProfileForm(instance=user_profile)
+        return redirect('accounts:login')
     return render(request, 'tenant/user_profile.html', {'form': form})
 
 
@@ -122,75 +182,99 @@ def process_payment(payment_token, amount, currency='usd'):
         return False
 
 
-def check_payment_info(request, plan_id):
-    if not PaymentProfile.objects.filter(user=request.user).exists():
-        return redirect('clients:save_payment_info', plan_id=plan_id)
-    return None
 
 
 
-def apply_for_tenant_subscription(request):  
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+
+def apply_for_tenant_subscription(request):
     plan_id = request.GET.get('plan_id')
     plan = get_object_or_404(SubscriptionPlan, id=plan_id)
 
-    payment_check = check_payment_info(request, plan_id)
-    if payment_check:
-        return payment_check
+    if plan.duration != 1: #free plan checking  
+        try:  
+            payment_profile = PaymentProfile.objects.get(user=request.user)
+            payment_token = payment_profile.payment_token
+            amount = plan.price
+            currency = 'usd'
 
-    payment_profile = PaymentProfile.objects.get(user=request.user)
-    payment_token = payment_profile.payment_token 
-    
-    amount = plan.pric
-    currency = 'usd' 
-    
-    if not process_payment(payment_token, amount, currency):
-        messages.error(request, "Payment processing failed. Please try again.")
-        return redirect('clients:save_payment_info', plan_id=plan_id)
-    
+            if not process_payment(payment_token, amount, currency):
+                messages.error(request, "Payment processing failed. Please try again.")
+                return redirect('clients:save_payment_info', plan_id=plan_id)
+        except PaymentProfile.DoesNotExist:  
+            messages.error(request, "Please add a payment method before subscribing to this plan.")
+            return redirect('clients:save_payment_info', plan_id=plan_id)
+        except Exception as e: 
+            messages.error(request, f"An error occurred during payment: {e}")
+            return redirect('clients:save_payment_info', plan_id=plan_id)
+        
+
     if request.method == 'POST':
         form = TenantApplicationForm(request.POST, request.FILES)
         if form.is_valid():
             subdomain = form.cleaned_data['subdomain']
-            name = form.cleaned_data['name']
+            name = form.cleaned_data['name'] 
             email = form.cleaned_data['email']
-            password = form.cleaned_data['name']  
-            logo = form.cleaned_data['logo']  
+            password = form.cleaned_data['password'] 
+            logo = form.cleaned_data['logo']
+            phone_number = form.cleaned_data['phone_number'] 
+            address = form.cleaned_data['address'] 
+            ip_address = get_client_ip(request)
 
             try:
-                with transaction.atomic():  
-                  
+                with transaction.atomic():
                     if Client.objects.filter(schema_name=subdomain).exists():
                         messages.error(request, "A tenant with this subdomain already exists.")
-                        return render(request, 'tenant/apply_for_tenant.html', {'form': form, 'plan': plan})
-                    
-                    if User.objects.filter(username=name).exists():
-                        messages.error(request, "A user with this username already exists.")
-                        return render(request, 'tenant/apply_for_tenant.html', {'form': form, 'plan': plan})
-
+                        return redirect('clients:dashboard')
+                    tenant=Tenant.objects.filter(email=email)                           
+                    if tenant:
+                        if tenant.subscription.subscription_plan.duration == 1:
+                            if tenant.is_trial_used: 
+                                error_message = "This email has already been used for a trial."
+                                messages.info(request, error_message)
+                                return redirect('clients:dashboard') 
+                                               
+                                   
                     tenant = Client.objects.create(schema_name=subdomain, name=subdomain)
+                    tenant.registered_tenant = True
                     tenant.save()
-                    
+
                     domain = Domain(domain=f"{subdomain}.localhost", tenant=tenant, is_primary=True)
-                    domain.save()                    
-      
+                    domain.save()
+
                     if not request.user.is_authenticated:
                         user = User.objects.create_user(
-                            username=form.cleaned_data['email'],
-                            email=form.cleaned_data['email'],
-                            password=password 
+                            username=email,
+                            email=email,
+                            password=password  
                         )
                         user.is_superuser = True
-                        user.is_staff = True  
-                        user.save()                  
+                        user.is_staff = True
+                        user.save()
+                    else:
+                        user = request.user 
+                        user.email = email 
+                        user.save()
 
                     tenant_instance = Tenant.objects.create(
+                        ip_address = ip_address,
+                        is_trial_used = True,
                         user=user,
                         tenant=tenant,
                         name=name,
                         subdomain=subdomain,
                         email=email,
-                        phone_number=form.cleaned_data['phone_number'],
-                        address=form.cleaned_data['address'],
+                        phone_number=phone_number,
+                        address=address,
                         logo=logo,
                     )
 
@@ -198,20 +282,19 @@ def apply_for_tenant_subscription(request):
                         tenant=tenant_instance,
                         subscription_plan=plan,
                         expiration_date=now().date() + timedelta(days=plan.duration * 30),
-                        is_renewal=False,
+                        is_renewal=False,                        
                         status='active',
                     )
-                
-                    send_tenant_email(email, name, password, subdomain)
 
+                    send_tenant_email(email, name, password, subdomain)
                     messages.success(request, 'Tenant created successfully. Credentials sent to your email.')
-                    return redirect('accounts:login')
+                    return redirect('accounts:login') 
+
             except IntegrityError as e:
                 messages.error(request, f"Error: {e}")
     else:
-        form = TenantApplicationForm()    
+        form = TenantApplicationForm()
     return render(request, 'tenant/apply_for_tenant.html', {'form': form, 'plan': plan})
-
 
 
 
@@ -248,7 +331,7 @@ def save_payment_info(request,plan_id):
                 )
 
                 messages.success(request, "Payment information saved successfully!")
-                return redirect(reverse('clients:process_subscription') + f"?plan_id={plan_id}")
+                return redirect(reverse('clients:apply_for_tenant') + f"?plan_id={plan_id}")
             except Exception as e:
                 messages.error(request, f"Error saving payment information: {str(e)}")
         else:
@@ -287,9 +370,8 @@ def renew_subscription(request):
     plan = get_object_or_404(SubscriptionPlan, id=plan_id)
     user = request.user
 
-    if not user.is_authenticated:
-        messages.error(request, "Please login to renew your subscription")
-        return redirect('clients:dashboard')
+    if not user.is_authenticated:        
+        return redirect('accounts:login')
   
     user_profile = getattr(user, 'user_profile', None)
     if user_profile and user_profile.tenant:

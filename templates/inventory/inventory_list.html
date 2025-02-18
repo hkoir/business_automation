@@ -48,46 +48,41 @@
                 Result data from: {{ start_date }} to {{ end_date }}
             {% endif %} 
         </h6>      
-        
+        {% if grouped_data %}
         <h4 class="text-center" style="color:blue;font-weight: bold;">
             <span style="font-size: 14px;">
-                <span style="color:rgb(0, 128, 102);font-weight: bold; font-size: 20px;">Current Stock Value: {{ grand_total_stock_value|add_commas }}</span>
+                <span style="color:rgb(215, 9, 71);font-weight: bold; font-size: 20px;">Current Stock Value: {{ grand_total_stock_value|add_commas }}</span>
                 &nbsp;&nbsp;
             <a href="{% url 'inventory:inventory_executive_sum' %}" class="btn btn-sm btn-primary">Grand Stock value</a>       
             <a href="{% url 'inventory:inventory_aggregate_list' %}"class="btn btn-sm btn-primary">Aggregated Product</a>
         </span>
         </h4>
-
-        <div class="col-12 mt-4 mb-4">   
-            <div class="container">
+     
+        <div class="col-12 my-3">   
+            <div class="container-fluid">
                 <div class="row">                   
 
-                    <div class="col-12 col-md-8 bg-light">
-                        <canvas id="barChart"></canvas>
-                        <div id="warehouseNames"></div>
+                    <div class="col-12 col-md-9 bg-light">
+                        <canvas id="barChart" height="100"></canvas>
                     </div>
-                    <div class="col-12 col-md-4 bg-light">                      
-                              <!-- Canvas for the doughnut chart -->
-                        <canvas id="warehouseDoughnutChart" width="200" height="100"></canvas>
+
+                    <div class="col-12 col-md-3 bg-light">                     
+                     <canvas id="warehouseDoughnutChart"></canvas>
                                                     
                     </div>
                 </div>
-            </div>         
+            </div>        
                 
          </div>
 
-        <hr style="height:5px">
-
+        <hr style="height:5px">             
        
-       
-
-        {% if grouped_data %}
         <div class="col-12 mt-4">
             <div class="container-fluid">            
                                
                 {% for warehouse, products, warehouse_total_stock_value in grouped_data %}
                 <div class="row mt-4">
-                    <div class="col">
+                    <div class="col-12">
                         <h6 style="font-weight: bold; color:yellow">Warehouse: {{ warehouse }}</h6>
                         
                         <div>
@@ -149,12 +144,12 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="8" class="text-center">No products available for this warehouse.</td>
+                                    <td colspan="8" class="text-center text-warning">No products available for this warehouse.</td>
                                 </tr>
                                 {% endfor %}
                                 {% else %}
                                 <tr>
-                                    <td colspan="8" class="text-center">No products found for this warehouse. </td>
+                                    <td colspan="8" class="text-center text-warning">No products found for this warehouse. </td>
                                 </tr>
                                 {% endif %}
                             </tbody>
@@ -166,7 +161,7 @@
         </div>
         {% else %}
         <div class="col-12 mt-4">
-            <p class="text-center text-primary">No inventory data available.Click <b>"generate data"</b></p>
+            <h5 class="text-center" style="color:yellow">No inventory data available within specified criteria.Choose filter and  <b>"generate data"</b></h5>
         </div>
         {% endif %}       
 
@@ -289,9 +284,8 @@
     ...reorderLevel
 ) * 1.4;
 
-
     
-    const barThickness=30
+   
     // Bar chart
     const ctxBar = document.getElementById('barChart').getContext('2d');
     
@@ -307,7 +301,7 @@
                      backgroundColor: 'rgba(76, 175, 80, 0.5)',  // Green
                     borderColor: 'rgba(76, 175, 80, 1)',        // Dark Green
                     borderWidth: 1,
-                    barThickness:barThickness
+                   
                 },  
 
                 {
@@ -316,7 +310,7 @@
                     backgroundColor: 'rgba(33, 150, 243, 0.5)', // Blue
                     borderColor: 'rgba(33, 150, 243, 1)',       // Dark Blue
                     borderWidth: 1,
-                    barThickness:barThickness
+                    
                 },
                 {
                     label: 'Total Available',
@@ -324,7 +318,7 @@
                     backgroundColor: 'rgba(0, 150, 136, 1)',  // Pink
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Pink
                     borderWidth: 1,
-                    barThickness:barThickness
+                  
                 },  
 
                 {
@@ -333,7 +327,7 @@
                     backgroundColor: 'rgba(255, 50, 36, 1)',  // Pink
                     borderColor: 'rgba(255, 50, 36, 1)',        // Dark Pink
                     borderWidth: 1,
-                    barThickness:barThickness
+                   
                 },  
                 
                               
@@ -343,7 +337,7 @@
                     backgroundColor: 'rgba(255, 87, 34, 0.5)',  // Deep Orange
                     borderColor: 'rgba(255, 87, 34, 1)',        // Dark Deep Orange
                     borderWidth: 1,
-                    barThickness:barThickness
+                   
                 },              
               
 
@@ -353,7 +347,7 @@
                     backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
                     borderColor: 'rgba(255, 193, 7, 1)',        // Dark Amber
                     borderWidth: 1,
-                    barThickness:barThickness
+                    
                 },
                 {
                     label: 'Total Operations Out',
@@ -361,7 +355,7 @@
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
                     borderWidth: 1,
-                    barThickness:barThickness
+                    
                 },
                 {
                     label: 'Total Manufacture in',
@@ -369,7 +363,7 @@
                     backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
                     borderColor: 'rgba(255, 193, 7, 1)',        // Dark Amber
                     borderWidth: 1,
-                    barThickness:barThickness
+                   
                 },
 
                 {
@@ -378,7 +372,7 @@
                     backgroundColor: 'rgba(255, 193, 7, 0.5)',  // Amber
                     borderColor: 'rgba(255, 193, 7, 1)',        // Dark Amber
                     borderWidth: 1,
-                    barThickness:barThickness
+                    
                 },
                 {
                     label: 'Total Transfer In',
@@ -386,7 +380,7 @@
                     backgroundColor: 'rgba(0, 188, 212, 0.5)', // Teal
                     borderColor: 'rgba(0, 188, 212, 1)',       // Dark Teal
                     borderWidth: 1,
-                    barThickness:barThickness
+                    
                 },            
                                
                 {
@@ -395,7 +389,7 @@
                     backgroundColor: 'rgba(255, 152, 0, 0.5)',  // Orange
                     borderColor: 'rgba(255, 152, 0, 1)',        // Dark Orange
                     borderWidth: 1,
-                    barThickness:barThickness
+                    
                 },
                 {
                     label: 'Total Replacement Out',
@@ -403,7 +397,7 @@
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
                     borderWidth: 1,
-                    barThickness:barThickness
+                    
                 },
 
                 {
@@ -412,7 +406,7 @@
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
                     borderWidth: 1,
-                    barThickness:barThickness
+                   
                 },
 
                 {
@@ -421,7 +415,7 @@
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
                     borderWidth: 1,
-                    barThickness:barThickness
+                   
                 },
 
                 {
@@ -430,22 +424,33 @@
                     backgroundColor: 'rgba(0, 150, 136, 0.5)',  // Sea Green
                     borderColor: 'rgba(0, 150, 136, 1)',        // Dark Sea Green
                     borderWidth: 1,
-                    barThickness:barThickness
+                   
                 },
                
               
             ]
         },
         options: {
-            responsive: true,
-            scales: {
+        responsive: true,
+        scales: {
                 y: {
                     beginAtZero: true,
                     max: maxYValue,
                     min: 0,
                 }
+            },
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    font: {
+                        size: 14
+                    },
+                    color: '#333' // Ensures label text is readable
+                }
             }
         }
+    }
     });
 
    

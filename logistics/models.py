@@ -22,15 +22,18 @@ class PurchaseShipment(models.Model):
     estimated_delivery = models.DateField()
     total_amount = models.DecimalField(max_digits=15, decimal_places=2,null=True,blank=True)
     STATUS_CHOICES = [
-    ('PENDING', 'Pending'),
-     ('IN_PROCESS', 'In Process'),
-    ('IN_TRANSIT', 'In Transit'),
-     ('REACHED', 'REACHED'),
-    ('DELIVERED', 'Delivered'),
-    ('PARTIAL_DELIVERED', 'Partial Delivered'),
-    ('CANCELLED', 'Cancelled'),
+        ('IN_PROCESS', 'In Process'),
+        ('READY_FOR_QC', 'Ready for QC'),
+        ('DISPATCHED', 'Dispatched'),
+        ('ON_BOARD', 'On Board'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('CUSTOM_CLEARANCE_IN_PROCESS', 'Custom Clearance In Process'),   
+        ('REACHED', 'Reached'),         
+        ('OBI','OBI done'),
+        ('DELIVERED', 'Delivered'),     
+        ('CANCELLED', 'Cancelled'),
         ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')   
+    status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='PENDING')   
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -67,8 +70,9 @@ class PurchaseShipment(models.Model):
 
     def update_shipment_status(self):       
         dispatch_items = self.shipment_dispatch_item.all() 
-        all_received = dispatch_items.filter(status__in=['RECEIVED','OBI']).count() == dispatch_items.count()
+        all_received = dispatch_items.filter(status__in=['RECEIVED','OBI','DELIVERED']).count() == dispatch_items.count()
         any_in_process = dispatch_items.filter(status='IN_PROCESS').exists()
+        any_in_custom = dispatch_items.filter(status='CUSTOM_CLEARANCE_IN_PROCESS').exists()
         any_in_transit = dispatch_items.filter(status__in=['IN_TRANSIT', 'ON_BOARD']).exists()
         
         if all_received:
@@ -77,6 +81,8 @@ class PurchaseShipment(models.Model):
             self.status = 'IN_PROCESS'
         elif any_in_transit:
             self.status = 'IN_TRANSIT'
+        elif any_in_custom:
+            self.status = 'CUSTOM_CLEARANCE_IN_PROCESS'
         else:
             self.status = 'PENDING'
 
@@ -102,9 +108,11 @@ class PurchaseDispatchItem(models.Model):
     dispatch_quantity = models.PositiveIntegerField(null=True, blank=True)
     dispatch_date = models.DateField(null=True, blank=True) 
     delivery_date = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=30,  null=True, blank=True, default='IN_PROCESS',   
+    status = models.CharField(max_length=100,  null=True, blank=True, default='IN_PROCESS',   
     choices=[
         ('IN_PROCESS', 'In Process'),
+        ('READY_FOR_QC', 'Ready for QC'),
+        ('DISPATCHED', 'Dispatched'),
         ('ON_BOARD', 'On Board'),
         ('IN_TRANSIT', 'In Transit'),
         ('CUSTOM_CLEARANCE_IN_PROCESS', 'Custom Clearance In Process'),   
@@ -149,15 +157,18 @@ class SaleShipment(models.Model):
     tracking_number = models.CharField(max_length=50, unique=True)
     estimated_delivery = models.DateField()
     STATUS_CHOICES = [
-    ('PENDING', 'Pending'),
-     ('IN_PROCESS', 'In Process'),
-    ('IN_TRANSIT', 'In Transit'),
-     ('REACHED', 'REACHED'),
-    ('DELIVERED', 'Delivered'),
-    ('PARTIAL_DELIVERED', 'Partial Delivered'),
-    ('CANCELLED', 'Cancelled'),
+        ('IN_PROCESS', 'In Process'),
+        ('READY_FOR_DISPATCH', 'Ready for Dispatch'),
+        ('DISPATCHED', 'Dispatched'),
+        ('ON_BOARD', 'On Board'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('CUSTOM_CLEARANCE_IN_PROCESS', 'Custom Clearance In Process'),   
+        ('REACHED', 'Reached'),         
+        ('OBI','OBI done'),
+        ('DELIVERED', 'Delivered'),     
+        ('CANCELLED', 'Cancelled'),
         ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
   
@@ -191,18 +202,23 @@ class SaleShipment(models.Model):
         )['total_ordered'] or 0  
         return total_shipped >= total_ordered
         
-    def update_shipment_status(self):       
+
+
+    def update_shipment_status(self):    
         dispatch_items = self.sale_shipment_dispatch.all() 
-        all_delivered = dispatch_items.filter(status='DELIVERED').count() == dispatch_items.count()
+        all_received = dispatch_items.filter(status__in=['RECEIVED','OBI','DELIVERED']).count() == dispatch_items.count()
         any_in_process = dispatch_items.filter(status='IN_PROCESS').exists()
+        any_in_custom = dispatch_items.filter(status='CUSTOM_CLEARANCE_IN_PROCESS').exists()
         any_in_transit = dispatch_items.filter(status__in=['IN_TRANSIT', 'ON_BOARD']).exists()
         
-        if all_delivered:
+        if all_received:
             self.status = 'DELIVERED'
         elif any_in_process:
             self.status = 'IN_PROCESS'
         elif any_in_transit:
             self.status = 'IN_TRANSIT'
+        elif any_in_custom:
+            self.status = 'CUSTOM_CLEARANCE_IN_PROCESS'
         else:
             self.status = 'PENDING'
 
@@ -231,10 +247,10 @@ class SaleDispatchItem(models.Model):
     location = models.ForeignKey(Location,on_delete=models.CASCADE,related_name='dispatch_location',null=True,blank=True)
     dispatch_date = models.DateField(null=True, blank=True) 
     delivery_date = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=30,  null=True, blank=True, default='IN_PROCESS',   
+    status = models.CharField(max_length=100,  null=True, blank=True, default='IN_PROCESS',   
     choices=[
         ('IN_PROCESS', 'In Process'),
-        ('READY_FOR_QC', 'Ready for QC'),
+        ('READY_FOR_DISPATCH', 'Ready for Dispatch'),
         ('DISPATCHED', 'Dispatched'),
         ('ON_BOARD', 'On Board'),
         ('IN_TRANSIT', 'In Transit'),

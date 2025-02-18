@@ -32,6 +32,15 @@ class Notification(models.Model):
         return f"{self.message} - {'Read' if self.is_read else 'Unread'}"
 
 
+class ArchivedNotification(models.Model):
+    message  = models.TextField()
+    created_at = models.DateTimeField()
+    archived_on = models.DateTimeField(auto_now_add=True)
+
+
+
+
+
 class InventoryReport(models.Model):
     inventory=models.ForeignKey(Inventory,on_delete=models.CASCADE,related_name='inventory_report',null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='inventory_report_user')

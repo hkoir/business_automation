@@ -280,6 +280,8 @@ class CommonFilterForm(forms.Form):
         widget=forms.Select(attrs={'id': 'id_product_name'}),
     )
 
+    
+
     category = forms.ModelChoiceField(
         queryset=Category.objects.all(),
         required=False,
@@ -353,7 +355,7 @@ class CommonFilterForm(forms.Form):
 
 #####################################################################
 
-    year = forms.IntegerField(required=True, label="Year")
+    year = forms.IntegerField(required=False, label="Year")
     month = forms.IntegerField(required=False, label="Month")
     start_year = forms.IntegerField(label='Start Year',required=False)
     end_year = forms.IntegerField(label='End Year',required=False)
@@ -368,7 +370,6 @@ class CommonFilterForm(forms.Form):
     )   
 
     employee = forms.CharField(max_length=20,label='Employee',required=False)
-
     employee_name = forms.ModelChoiceField(
         queryset=Employee.objects.all(),
         required=False,
@@ -409,3 +410,55 @@ class CommonFilterForm(forms.Form):
         required=False,
         label="Aggregation Type"
     )
+
+
+########################## Leave management ######################
+from .models import LeaveApplication,LeaveType
+from datetime import timedelta
+
+
+class LeaveTypeForm(forms.ModelForm):
+    class Meta:
+        model = LeaveType
+        exclude=['accrual_rate']
+
+        widgets = {           
+        'description':forms.Textarea(attrs={
+            'class':'form-control',
+            'row':2,
+            'style':'height:50px'
+        })
+        }
+
+
+class LeaveApplicationForm(forms.ModelForm):
+    class Meta:
+        model = LeaveApplication
+        fields = ['leave_type', 'applied_start_date', 'applied_end_date', 'applied_reason', 'attachment']
+        widgets = {
+            'applied_start_date': forms.DateInput(attrs={'type': 'date'}),
+            'applied_end_date': forms.DateInput(attrs={'type': 'date'}),
+            'applied_reason':forms.Textarea(attrs={
+                'class':'form-control',
+                'row':2,
+                'style':'height:50px'
+            })
+        }
+
+
+class ApprovalForm(forms.ModelForm):
+    class Meta:
+        model = LeaveApplication
+        fields = ['leave_type', 'approved_start_date', 'approved_end_date','status','rejection_reason']
+        widgets = {
+            'approved_start_date': forms.DateInput(attrs={'type': 'date'}),
+            'approved_end_date': forms.DateInput(attrs={'type': 'date'}),
+            'rejection_reason':forms.Textarea(attrs={
+                'class':'form-control',
+                'row':2,
+                'style':'height:50px'
+            })
+        }
+
+
+    

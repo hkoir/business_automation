@@ -8,17 +8,17 @@
     <div class="row">
         <div class="col-12">
             <form method="GET" action="{% url 'reporting:product_list' %}">
-                <label for="id_product_name">Product:</label>
-                {{ form.product_name }} 
-                <button type="submit" class="btn btn-primary">Find item</button>
-            </form>            
-        
-            {% if product %}
-                <h6 class="text-center mb-2">
-                    Search result for Product: <b>{{ product }}</b>
-                </h6>
-            {% endif %}
+                <div class="d-flex align-items-center gap-2"> 
+                    <label for="id_product_name" class="me-2">Product:</label>
+                    <div class="flex-grow-1">
+                        {{ form.product_name }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Find item</button>
+                </div>
+            </form>
         </div>
+        
+       
         <hr>
         </div>
         <div class="col-12">
@@ -31,6 +31,9 @@
                         <th>Product Name</th>
                         <th>Category</th>
                         <th>Unit price</th>
+                        <th>Available qty</th>
+                        <th>Reorder qty</th>
+                        <th>Low stock status</th>
                         <th>Action</th>
                         <th>Action</th>
                         <th>Action</th>
@@ -46,6 +49,15 @@
                         <td>{{ product.name }}</td>
                         <td>{{ product.category.name }}</td>
                         <td>{{ product.unit_price }}</td>
+                        <td>{{ product.product_inventories.first.quantity }}</td>
+                        <td>{{ product.reorder_level}}</td>
+                        <td>
+                            {% if product.product_inventories.first.quantity <= product.reorder_level %}
+                            <span style="color:red;font-weight:bold">Low stock</span>
+                            {% else %}
+                            <i class="fas fa-check" style="color:green;font-weight:bold">Stock ok</i>
+                            {% endif %}
+                        </td>
                         <td>
                             <a href="{% url 'product:update_product' product.id %}">Update product</a>
                         </td>
@@ -95,37 +107,40 @@
 
 
 <script>
-$(document).ready(function() {
-    $('#id_product_name').select2({
-        width: '100%',
-        placeholder: 'Search product...',
-        allowClear: true,
-        ajax: {
-            url: "{% url 'accounts:common_search' %}",  // Ensure this URL is correct
-            dataType: 'json',
-            delay: 250,
-            data: function(params) {
-                return {
-                    q: params.term
-                };
-            },
-            processResults: function(data) {
-                return {
-                    results: $.map(data.results, function(item) {
-                        return {
-                            id: item.id,
-                            text: item.text
-                        };
-                    })
-                };
-            },
-            cache: true
+
+$('#id_product_name').select2({
+    width: '100%',
+    placeholder: 'Search product...',
+    allowClear: true,
+    ajax: {
+        url: "{% url 'accounts:common_search' %}",
+        dataType: 'json',
+        delay: 250,
+        data: function(params) {
+            return {
+                q: params.term
+            };
         },
-        minimumInputLength: 1,
-        placeholder: 'Search for a product',
-        allowClear: true
-    });
+        processResults: function(data) {
+            return {
+                results: $.map(data.results, function(item) {
+                    return {
+                        id: item.id,
+                        text: item.text
+                    };
+                })
+            };
+        },
+        cache: true
+    },
+    minimumInputLength: 1,
+    language: {
+        inputTooShort: function () {
+            return "";  
+        }
+    }
 });
+
 </script>
 
 

@@ -4,12 +4,6 @@
 {% block content %}
 <style>
     
-/* General Styling */
-body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f8f9fa;
-    color: #333;
-}
 
 /* Circular spinning login box */
 .login-circle-container2 {
@@ -84,98 +78,97 @@ body {
 
 </style>
 
-<div class="container-fluid main-content" style="margin-top: 100px;">
+<div class="container-fluid main-content my-5">
     <!-- Marquee Section -->
     <div class="row">           
             <div class="col-12">
                 <div class="container">       
                     <div class="row">
                             <!-- Spinning Login Box -->
-                            <div class="col-12 col-md-4 login-circle-container2">
-                                <a href="{% url 'accounts:login_customer_support' %}" class="login-circle2">
-                                    <span class="text-center fw-bold" style="font-size: 14px;color:crimson">
-                                        <i class="fas fa-cogs"></i><br>Looking for <br> customer support ??<br>
-                                        <span style="font-size: 16px; font-weight: bold; color:darkgreen"><i class="fas fa-sign-in"></i></span></span>
-                                    
-                                </a>
-                            </div>
+                           
                              <!-- Spinning Login Box -->
-                             <div class="col-12 col-md-4 login-circle-container2">
+                             <div class="col-12 col-md-6 login-circle-container2">
                                 <a href="{% url 'accounts:login' %}" class="login-circle2">
                                     <span class="text-center text-primary fw-bold" style="font-size: 14px;">
-                                        <i class="fas fa-users"></i><br>For staff only ??<br>
+                                        <i class="fas fa-user-tie"></i><br>Log in<br>
                                         <span style="font-size: 16px; font-weight: bold; color:darkgreen"><i class="fas fa-sign-in"></i></span></span>
                                    
                                 </a>
                             </div>
                              <!-- Spinning Login Box -->
-                             <div class="col-12 col-md-4 login-circle-container2">
-                                <a href="{% url 'accounts:login_job_seeker' %}" class="login-circle2">
-                                    <span class="text-center fw-bold" style="font-size: 14px;color:deeppink">
-                                        <i class="fas fa-user-circle"></i><br>Looking for job??<br>
-                                        <span style="font-size: 16px; font-weight: bold; color:darkgreen"><i class="fas fa-sign-in"></i></span></span>
-                                    
-                                </a>
+                             <div class="col-12 col-md-6"> 
+                                <h4 class="text-center">Don't have accunt?? register now</h4>
+                                <ul>
+                                    <li><a href="{% url 'accounts:register_customer_support' %}"
+                                        class="btn btn-primary mb-2">Register as our business partner (Customers and Suppliers)</a></li>
+                                    <li><a href="{% url 'accounts:register_job_seeker' %}"
+                                        class="btn btn-primary mb-2">Register for our job vacancies</a></li>
+                                    <li><a href="{% url 'accounts:register_public' %}"
+                                        class="btn btn-primary">Register for your offerings and services</a></li>
+                                </ul>
+
+
                             </div>
                     </div>
                 </div>
-            </div>                                   
+            </div>      
+            
+            
 
-    <div class="col-12 mt-5">
-    <!-- Tenant Content -->
-     <div class="container-fluid">
-        <div class="row">
-            <div class="col-12 col-md-2"></div>
-            <div class="col-12 col-md-8">
-                {% if request.tenant.schema_name != get_public_schema_name %}
-                    <div class="tenant-details">
-                        <h1>Welcome {{ request.tenant.name }}</h1>
-                        <p>{{ request.tenant.tenant.first.description }}</p>
-    
-                        {% if request.tenant.tenant.first.subscription.is_expired %}
-                            <div class="alert alert-danger">
-                                <strong>Warning!</strong> Your subscription has expired. Please renew to continue using the services.
-                            </div>
-                        {% else %}
-                            <div class="alert alert-success">
-                                <strong>Success!</strong> Your subscription is active. Enjoy the services.
-                            </div>
-                        {% endif %}
-                        
-                        <div class="tenant-details">
-                            
-                                {% if request.tenant.tenant.first.logo.url %}
-                                <img src="{{ request.tenant.tenant.first.logo.url}}"
-                                class="rounded-circle border" 
-                                style="width: 80px; height: 80px; object-fit: cover; border: 2px solid #007bff;"><br>
-                                {% endif %}
-                               
-                            <p style="color:yellow;font-size: 24px;"><strong>{{ request.tenant.tenant.first.name }}</strong> </p>
-                            <p><strong><i class="fas fa-envelope"></i></strong> {{ request.tenant.tenant.first.email }}</p>
-                            <p><strong><i class="fas fa-phone"></i></strong> {{ request.tenant.tenant.first.phone_number }}</p>
-                            <p><strong><i class="fas fa-globe"></i></strong> {{ request.tenant.tenant.first.address }}</p>
+            <div class="col-12 mt-5">
+            <!-- Tenant Content -->
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12 col-md-2"></div>
+                    <div class="col-12 col-md-8">
+                        {% if request.tenant.schema_name != get_public_schema_name %}
+                            <div class="tenant-details">
+                                <h1>Welcome {{ request.tenant.name }}</h1>
+                                <p>{{ request.tenant.tenant.first.description }}</p>
+            
+                    {% if request.tenant.tenant.first.subscription.is_expired %}
+                        <div class="alert alert-danger">
+                            <strong>Warning!</strong> Your subscription has expired. Please renew to continue using the services.
                         </div>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <strong>Success!</strong> Your subscription is active. Enjoy the services.
+                        </div>
+                    {% endif %}
+                    
+                    <div class="tenant-details">
                         
+                            {% if request.tenant.tenant.first.logo.url %}
+                            <img src="{{ request.tenant.tenant.first.logo.url}}"
+                            class="rounded-circle border" 
+                            style="width: 80px; height: 80px; object-fit: cover; border: 2px solid #007bff;"><br>
+                            {% endif %}
+                            
+                        <p style="color:blue;font-size: 24px;"><strong>{{ request.tenant.tenant.first.name }}</strong> </p>
+                        <p><strong><i class="fas fa-envelope"></i></strong> {{ request.tenant.tenant.first.email }}</p>
+                        <p><strong><i class="fas fa-phone"></i></strong> {{ request.tenant.tenant.first.phone_number }}</p>
+                        <p><strong><i class="fas fa-globe"></i></strong> {{ request.tenant.tenant.first.address }}</p>
                     </div>
-                {% else %}
-                    <!-- Public schema or default content -->
-                    <div>
-                        <h1>Welcome to the Public Dashboard</h1>
-                        <p>This is the public page. Please log in to access tenant-specific content.</p>
-                       
-                    </div>
-                {% endif %}
-                 </div>
-                 <div class="col-12 col-md-2"></div>
+                    
+                </div>
+            {% else %}
+                <!-- Public schema or default content -->
+                <div>
+                    <h1>Welcome to the Public Dashboard</h1>
+                    <p>This is the public page. Please log in to access tenant-specific content.</p>
+                    
+                </div>
+            {% endif %}
+                </div>
+                <div class="col-12 col-md-2"></div>
+             </div>
             </div>
-         </div>
-    </div>
-                
+        </div>
+            
 
     </div>
 
-    <div style="height:300px"></div>
-
+       <div style="height:300px"></div>
         <div class="col-12 bg-light text-center mb-0">
             <footer>
                 <p>&copy; 2025 mymeplus Technology. All rights reserved.</p>

@@ -17,12 +17,18 @@ class SaleRequestOrder(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     order_date = models.DateField(null=True, blank=True)
     STATUS_CHOICES = [
-    ('PENDING', 'Pending'),
-    ('IN_PROCESS', 'In Process'),
-    ('DELIVERED', 'Delivered'),
-    ('CANCELLED', 'Cancelled'),
+        ('IN_PROCESS', 'In Process'),
+        ('READY_FOR_DISPATCH', 'Ready for Dispatch'),
+        ('DISPATCHED', 'Dispatched'),
+        ('ON_BOARD', 'On Board'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('CUSTOM_CLEARANCE_IN_PROCESS', 'Custom Clearance In Process'),   
+        ('REACHED', 'Reached'),         
+        ('OBI','OBI done'),
+        ('DELIVERED', 'Delivered'),     
+        ('CANCELLED', 'Cancelled'),
         ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING',null=True,blank=True)  
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='PENDING',null=True,blank=True)  
     total_amount = models.DecimalField(max_digits=15, decimal_places=2)
     customer = models.ForeignKey(Customer, related_name='request_customer_sale', on_delete=models.CASCADE,null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
@@ -105,12 +111,18 @@ class SaleOrder(models.Model):
     order_date = models.DateTimeField(auto_now_add=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     STATUS_CHOICES = [
-    ('PENDING', 'Pending'),
-    ('IN_PROCESS', 'In Process'),
-    ('DELIVERED', 'Delivered'),
-    ('CANCELLED', 'Cancelled'),
+        ('IN_PROCESS', 'In Process'),
+        ('READY_FOR_DISPATCH', 'Ready for Dispatch'),
+        ('DISPATCHED', 'Dispatched'),
+        ('ON_BOARD', 'On Board'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('CUSTOM_CLEARANCE_IN_PROCESS', 'Custom Clearance In Process'),   
+        ('REACHED', 'Reached'),         
+        ('OBI','OBI done'),
+        ('DELIVERED', 'Delivered'),     
+        ('CANCELLED', 'Cancelled'),
         ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='IN_PROCESS',null=True,blank=True)  
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='IN_PROCESS',null=True,blank=True)  
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -233,12 +245,17 @@ class SaleQualityControl(models.Model):
         null=True,
         blank=True
     )
+    quality_check_by = models.CharField(max_length=30,choices=[('BY-CUSTOMER','By Customer'),('BY-EMPLOYEE','By Employee')],null=True,blank=True)
     total_quantity = models.PositiveIntegerField(null=True, blank=True)
     good_quantity = models.PositiveIntegerField(null=True, blank=True)
     bad_quantity = models.PositiveIntegerField(null=True, blank=True)
+    good_quantity_by_customer = models.PositiveIntegerField(null=True, blank=True)
+    bad_quantity_by_customer = models.PositiveIntegerField(null=True, blank=True)
     inspection_date = models.DateField(null=True, blank=True)
+    inspection_date_by_customer = models.DateField(null=True, blank=True)
     status= models.CharField(max_length=15,choices=[('pending','pending'),('done','done')],null=True,blank=True)
     comments = models.TextField(null=True, blank=True)
+    comments_by_customer = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
   

@@ -6,42 +6,45 @@
 
 
  
-<div class="container mt-4">
-    <div class="card shadow-lg">
-        <div class="card-header bg-primary text-white">
-            <h3 class="mb-0">Position Details</h3>
+<div class="container-fluid main-content">
+    <div class="row">
+        <div class="col-12 col-md-1"></div>
+        <div class="col-12 col-md-10">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Position Details</h3>
+                </div>
+                <div class="card-body m-4">
+                    <h4 class="text-primary">{{ position_instance.name }}</h4>
+                    
+                    <p><strong>Employee Level:</strong> {{ position_instance.employee_level }}</p>
+                    <p><strong>Department:</strong> {{ position_instance.department }}</p>
+                    
+                    <!-- Job Descriptions -->
+                    <h5 class="mt-4">Job Description:</h5>
+                    <ul class="list-group">
+                        {% for description in position_instance.descriptions.all %}
+                            <li class="list-group-item">{{ description.description }}</li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">No job descriptions available.</li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <!-- Job Requirements -->
+                    <h5 class="mt-4">Job Requirements:</h5>
+                    <ul class="list-group">
+                        {% for requirement in position_instance.requirements.all %}
+                            <li class="list-group-item">{{ requirement.requirement }}</li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">No job requirements available.</li>
+                        {% endfor %}
+                    </ul>
+                </div>               
+               
+            </div>
         </div>
-        <div class="card-body m-4">
-            <h4 class="text-primary">{{ position_instance.name }}</h4>
-            
-            <p><strong>Employee Level:</strong> {{ position_instance.employee_level }}</p>
-            <p><strong>Department:</strong> {{ position_instance.department }}</p>
-            
-            <!-- Job Descriptions -->
-            <h5 class="mt-4">Job Description:</h5>
-            <ul class="list-group">
-                {% for description in position_instance.descriptions.all %}
-                    <li class="list-group-item">{{ description.description }}</li>
-                {% empty %}
-                    <li class="list-group-item text-muted">No job descriptions available.</li>
-                {% endfor %}
-            </ul>
-            
-            <!-- Job Requirements -->
-            <h5 class="mt-4">Job Requirements:</h5>
-            <ul class="list-group">
-                {% for requirement in position_instance.requirements.all %}
-                    <li class="list-group-item">{{ requirement.requirement }}</li>
-                {% empty %}
-                    <li class="list-group-item text-muted">No job requirements available.</li>
-                {% endfor %}
-            </ul>
-        </div>
-        
-        <div class="card-footer text-end">
-            <a href="{% url 'core:create_position' %}" class="btn btn-secondary">Back to Positions list</a>
-        </div>
-    </div>
+        <div class="col-12 col-md-1"></div>
+    </div>    
 </div>
 
 

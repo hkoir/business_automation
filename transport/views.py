@@ -32,6 +32,31 @@ from.forms import FuelRefillForm,FuelPumpDatabaseForm,TransportRequestStatusUpda
 from .forms import TransportExtensionForm,TransportUsageForm,TransportilterForm
 from .forms import TransportRequestForm, ManagerApprovalForm,CreateTransportForm
 
+from django.urls import reverse
+
+
+
+@login_required
+def transport_dashboard(request):
+    menu_items = [
+        {'title': 'Create Transport', 'url': reverse('transport:create_transport')},
+        {'title': 'Available Transport', 'url': reverse('transport:available_transports')},
+        {'title': 'Transport request', 'url': reverse('transport:create_transport_request')},
+        {'title': 'Booking history', 'url': reverse('transport:booking_history')},
+        {'title': 'Penalty_history', 'url': reverse('transport:penalty_history')},
+        {'title': 'create Fuel Pump database', 'url': reverse('transport:create_fuel_pump_database')},
+        {'title': 'Fuel refill', 'url': reverse('transport:create_fuel_refill')},
+        {'title': 'Vehicle fault record', 'url': reverse('transport:create_vehicle_fault')},
+        {'title': 'Vehicle payment update', 'url': reverse('transport:create_vehicle_payment')},
+        {'title': 'Fuel by Pump', 'url': reverse('transport:fuel_by_pump')},
+        {'title': 'Datewise fuel consumed', 'url': reverse('transport:datewise_fuel_withdraw')},
+        {'title': 'Overtime', 'url': reverse('transport:vehicle_overtime_calc')},
+        {'title': 'Vehicle grand summary', 'url': reverse('transport:vehicle_grand_summary')},
+        {'title': 'Management report', 'url': reverse('transport:management_summary_report')},
+       
+    ]
+
+    return render(request, 'fleetmanagement/transport_dashboard.html', {'menu_items': menu_items})
 
 
 
@@ -480,6 +505,27 @@ def approve_time_extension(request, id):
     return render(request,'fleetmanagement/transport_extension_approval.html',{'form':form})
 
 
+
+from.forms import PenaltyPaymentForm
+def penalty_payment(request,penalty_id):
+    penalty_instance = get_object_or_404(Penalty,id=penalty_id)
+    form =PenaltyPaymentForm(request.POST,request.FILES,instance = penalty_instance)
+
+    if request.method == 'POST':
+        form = form =PenaltyPaymentForm(request.POST,request.FILES)
+        if form.is_valid():
+            form_instance = form.save(commit=False)
+            form_instance.staff = request.user
+            form_instance.penalty.payment_status =True
+            form_instance.save()
+            return redirect('transport:penalty_history')
+        else:
+            print(form.error)          
+    initial={
+        'penalty':penalty_instance
+    }
+    form =PenaltyPaymentForm(initial=initial)
+    return render(request,'fleetmanagement/penalty_payment.html',{'form':form})
 
 
 
@@ -1243,6 +1289,9 @@ def vehicle_grand_summary(request):
     mp = None
     number_of_days = None
     vehicle_reg_number = None  
+    month_number = None
+    month_name = None
+    year = None
     aggregated_data = {}
     form = vehicleSummaryReportForm(request.GET or {'days':60})
     vehicle_running_data = TransportUsage.objects.all()
@@ -1254,7 +1303,12 @@ def vehicle_grand_summary(request):
         start_date = form.cleaned_data.get('start_date')
         end_date = form.cleaned_data.get('end_date')
         days = form.cleaned_data.get('days')       
-        vehicle_number = form.cleaned_data.get('vehicle_number')     
+        vehicle_number = form.cleaned_data.get('vehicle_number')    
+        month_name = form.cleaned_data.get("month") 
+        year = form.cleaned_data.get("year") 
+
+        if month_name:          
+            month_number = datetime.strptime(month_name, "%B").month  # Converts "January" to 1 
 
         if start_date and end_date:
             vehicle_running_data = vehicle_running_data.filter(created_at__range=(start_date, end_date))
@@ -1267,11 +1321,23 @@ def vehicle_grand_summary(request):
             vehicle_running_data = vehicle_running_data.filter(created_at__range=(start_date, end_date))
             vehicle_fault_data = vehicle_fault_data.filter(created_at__range=(start_date, end_date))
             vehicle_refill_data = vehicle_refill_data.filter(created_at__range=(start_date, end_date))
-        if vehicle_number:
-            vehicle_running_data = vehicle_running_data.filter(vehicle__vehicle_reg_number=vehicle_number)
-            vehicle_fault_data = vehicle_fault_data.filter(vehicle__vehicle_reg_number=vehicle_number)
-            vehicle_refill_data = vehicle_refill_data.filter(vehicle__vehicle_reg_number=vehicle_number)
+        elif vehicle_number:
+            vehicle_running_data = vehicle_running_data.filter(booking__vehicle__vehicle_registration_number=vehicle_number)
+            vehicle_fault_data = vehicle_fault_data.filter(vehicle__vehicle_registration_number=vehicle_number)
+            vehicle_refill_data = vehicle_refill_data.filter(vehicle__vehicle_registration_number=vehicle_number)
         
+        elif month_number:
+            vehicle_running_data = vehicle_running_data.filter(created_at__month=month_number)
+            vehicle_fault_data = vehicle_fault_data.filter(created_at__month=month_number)
+            vehicle_refill_data = vehicle_refill_data.filter(created_at__month=month_number)
+            vehicle_payment_data = vehicle_payment_data.filter(created_at__month=month_number)
+        
+        elif year:
+            vehicle_running_data = vehicle_running_data.filter(created_at__year=year)
+            vehicle_fault_data = vehicle_fault_data.filter(created_at__year=year)
+            vehicle_refill_data = vehicle_refill_data.filter(created_at__year=year)
+            vehicle_payment_data = vehicle_payment_data.filter(created_at__year=year)
+
         total_CNG_cost=0
         total_gasoline_cost=0
         total_kilometer_cost=0
@@ -1366,7 +1432,7 @@ def vehicle_grand_summary(request):
                     aggregated_data[vehicle_reg_number]['total_bill_paid'] += total_bill_paid   
         for fault_data in vehicle_fault_data:        
             if fault_data.vehicle:
-                vehicle_reg_number = fault_data.vehicle.vehicle_registration_date
+                vehicle_reg_number = fault_data.vehicle.vehicle_registration_number
                 if vehicle_reg_number in aggregated_data:
                     aggregated_data[vehicle_reg_number]['total_fault_hours'] += fault_data.fault_duration_hours
        
@@ -1391,11 +1457,11 @@ def vehicle_grand_summary(request):
    
     paginator = Paginator(aggregated_data_list, 10)
     page_number = request.GET.get('page')   
-    aggregated_data_page = paginator.get_page(page_number)
+    page_obj = paginator.get_page(page_number)
 
     form = vehicleSummaryReportForm()
     context = {
-        'aggregated_data_page': aggregated_data_page,
+        'page_obj': page_obj,
         'form': form,
         'days': days,
         'start_date': start_date,
@@ -1416,10 +1482,22 @@ def management_summary_report(request):
     fuel_refill_data = FuelRefill.objects.all()
     vehicle_fault = Vehiclefault.objects.all()
 
+    month_number = None
+    month_name = None
+    year = None
+    vehicle_number=None
+    start_date=None
+    end_date=None
+
     if form.is_valid():
         start_date = form.cleaned_data.get('start_date')
         end_date = form.cleaned_data.get('end_date')
         days = form.cleaned_data.get('days')
+        vehicle_number = form.cleaned_data.get('vehicle_number')   
+        year = form.cleaned_data.get("year")   
+        month_name = form.cleaned_data.get("month")  
+        if month_name:          
+            month_number = datetime.strptime(month_name, "%B").month  # Converts "January" to 1 
 
         if start_date and end_date:
             vehicle_data = vehicle_data.filter(created_at__range=(start_date, end_date))
@@ -1431,6 +1509,22 @@ def management_summary_report(request):
             vehicle_data = vehicle_data.filter(created_at__range=(start_date, end_date))
             fuel_refill_data = fuel_refill_data.filter(created_at__range=(start_date, end_date))
             vehicle_fault = vehicle_fault.filter(created_at__range=(start_date, end_date))
+
+
+        elif vehicle_number:
+            vehicle_data = vehicle_data.filter(booking__vehicle__vehicle_registration_number=vehicle_number)
+            vehicle_fault = vehicle_fault.filter(vehicle__vehicle_registration_number=vehicle_number)
+            fuel_refill_data = fuel_refill_data.filter(vehicle__vehicle_registration_number=vehicle_number)
+        
+        elif month_number:
+            vehicle_data = vehicle_data.filter(created_at__month=month_number)
+            vehicle_fault = vehicle_fault.filter(created_at__month=month_number)
+            fuel_refill_data= fuel_refill_data.filter(created_at__month=month_number)
+        elif year:
+            vehicle_data = vehicle_data.filter(created_at__year=year)
+            vehicle_fault = vehicle_fault.filter(created_at__year=year)
+            fuel_refill_data= fuel_refill_data.filter(created_at__year=year)
+           
 
         vehicle_data = vehicle_data.aggregate(
             total_fuel_consumed=Sum('fuel_consumed'),
@@ -1521,5 +1615,8 @@ def management_summary_report(request):
         'start_date': start_date,
         'end_date': end_date,
         'days': days,
+        'month_name': month_name,
+        'year': year,
+        'vehicle_number': vehicle_number,
         'chart_data':json.dumps(chart_data)
     })

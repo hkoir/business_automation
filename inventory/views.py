@@ -41,7 +41,9 @@ from datetime import timedelta
 
 import uuid
 from manufacture.models import MaterialsRequestOrder
-
+ 
+from.forms import TransactionFilterForm
+from django.db.models.functions import TruncDate
 
 @login_required
 def inventory_dashboard(request):
@@ -195,9 +197,7 @@ def complete_quality_control(request, qc_id):
                 logger.error("Error creating delivery: %s", e)
                 messages.error(request, f"An error occurred {str(e)}")
                 return redirect('purchase:qc_dashboard')
-        
-
-         
+                 
             purchase_dispatch_item.status = 'DELIVERED'
             purchase_dispatch_item.save()   
 
@@ -205,8 +205,6 @@ def complete_quality_control(request, qc_id):
             update_shipment_status(purchase_shipment.id)
             update_purchase_request_order(purchase_request_order.id)  
        
-
-
             messages.success(request, "Quality control completed and product added to inventory.")
             return redirect('purchase:qc_dashboard')
         else:          
@@ -540,11 +538,6 @@ def transfer_order_detail(request,transfer_order_id):
 
 
 
-@login_required
-def all_inventory(request):
-    return redirect(request,'inventory/all_inventory.html')
-
-
 
 @login_required
 def inventory_list(request):   
@@ -557,6 +550,7 @@ def inventory_list(request):
     end_date = None
     date_filter = {}
     warehouse_name=None
+   
     product_name=None
     grouped_data = []
     chart_data = {}     
@@ -571,37 +565,45 @@ def inventory_list(request):
         warehouse_name = form.cleaned_data.get('warehouse_name')
         product_name = form.cleaned_data.get('product_name')
 
+        products = Product.objects.all()
         if product_name:
             products = products.filter(id=product_name.id)
+
+        warehouses = Warehouse.objects.all()
         if warehouse_name:
             warehouses = warehouses.filter(id=warehouse_name.id)
 
+        date_filter = {}
         if start_date and end_date:
             date_filter = {'created_at__range': (start_date, end_date)}
         elif days:
             end_date = timezone.now()
             start_date = end_date - timedelta(days=days)
             date_filter = {'created_at__range': (start_date, end_date)}
-        else:
-            date_filter = {}
+
+        stock_results = []
 
         for product in products:
             inventories = product.product_inventories.filter(**date_filter)  
+
             if warehouse_name:
-                inventories = inventories.filter(warehouse=warehouse_name)  
+                inventories = inventories.filter(warehouse__in=warehouses)
 
             for inventory in inventories:
                 stock_data = calculate_stock_value(product, inventory.warehouse)
+                stock_results.append(stock_data)
 
                 total_available = stock_data['total_available']
                 total_stock_value = total_available * float(product.unit_price)
-
                 grand_total_stock_value += total_stock_value
+
+                inventory_reorder_level = Inventory.objects.filter(product=product, warehouse=warehouse_name).first()
+                warehouse_reorder_level = inventory_reorder_level.reorder_level if inventory_reorder_level  else 0
                 
                 if product_name:
                     data.append({
                         'product': product.name,
-                        'reorder_level':product.reorder_level,
+                        'reorder_level':warehouse_reorder_level,
                         'warehouse': inventory.warehouse,
 
                         'total_stock': stock_data['total_stock'],
@@ -726,12 +728,13 @@ def inventory_aggregate_list(request):
             stock_data = calculate_stock_value2(product)
             total_available = stock_data['total_available']
             total_stock_value = total_available * float(product.unit_price)
-
             grand_total_stock_value += total_stock_value
+
+          
 
             aggregated_data.append({
                 'product': product.name,
-                'reorder_level':product.reorder_level,
+                'reorder_level': product.reorder_level,
                 'total_stock': stock_data['total_stock'],
                 'total_purchase': stock_data['total_purchase'],
                 'total_sold': stock_data['total_sold'],
@@ -827,11 +830,6 @@ def inventory_executive_sum(request):
     return render(request, 'inventory/inventory_executive_sum.html', context)
 
 
- 
-from.forms import TransactionFilterForm
-from django.db.models.functions import TruncDate
-
-
 
 def inventory_transaction_report(request):
     form = TransactionFilterForm(request.GET or None)
@@ -842,7 +840,7 @@ def inventory_transaction_report(request):
     chart_data={}
   
     if request.method == 'GET':
-        form = TransactionFilterForm(request.GET)     
+        form = TransactionFilterForm(request.GET or None)      
 
         if form.is_valid():      
             transaction_type_form = form.cleaned_data["transaction_type"]
@@ -866,17 +864,20 @@ def inventory_transaction_report(request):
                          
             transaction_type_display = transaction_type_data.filter(transaction_type=transaction_type_form).first()
             transaction_type_display =  transaction_type_display.get_transaction_type_display() if   transaction_type_data else transaction_type_form            
-                            
-            transactions = (
-                transaction_type_data.filter(
-                    transaction_type=transaction_type_form ,
-                    product__name=selected_product
-                )
-                .annotate(transaction_date_only=TruncDate("transaction_date"))  
-                .values("product__name", "transaction_date_only")
-                .annotate(total_quantity=Sum("quantity"))
-                .order_by("transaction_date_only")
-            )              
+
+            if selected_product:    
+                transactions = (
+                    transaction_type_data.filter(
+                        transaction_type=transaction_type_form ,
+                        product__name=selected_product
+                    )
+                    .annotate(transaction_date_only=TruncDate("transaction_date"))  
+                    .values("product__name", "transaction_date_only")
+                    .annotate(total_quantity=Sum("quantity"))
+                    .order_by("transaction_date_only")
+                )     
+            else:
+                messages.info(request,'please choose product')         
 
                     
             labels = sorted(set(transaction["transaction_date_only"].strftime("%Y-%m-%d") for transaction in transactions))  # Convert date to string
@@ -906,6 +907,7 @@ def inventory_transaction_report(request):
             }
            
         else:
+            form = TransactionFilterForm()
             print(form.errors)
             print('form is not valid')
 
@@ -916,4 +918,50 @@ def inventory_transaction_report(request):
         "chart_data": json.dumps(chart_data),  
         "transactions": transactions,  
     }
+    form = TransactionFilterForm()
     return render(request, "inventory/inventory_transaction_report.html", context)
+
+
+
+from .forms import WarehouseReorderLevelForm
+
+
+@login_required
+def manage_warehouse_reorder_level(request, id=None):  
+    instance = Inventory.objects.filter(id=id).first()  
+    message_text = "Updated successfully!" if instance else "Added successfully!"  
+
+    form = WarehouseReorderLevelForm(request.POST or None, instance=instance)
+
+    if request.method == 'POST' and form.is_valid():
+        form_instance = form.save(commit=False)
+        form.instance.user = request.user
+        form_instance.save()        
+        messages.success(request, message_text)
+        return redirect('inventory:create_warehouse_reorder_level')  
+
+    datas = Inventory.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'inventory/assign_warehouse_reorder_level.html', 
+    {
+        'form': form,
+        'instance': instance,
+        'datas': datas,
+        'page_obj': page_obj
+    })
+
+
+
+@login_required
+def delete_warehouse_reorder_level(request, id):
+    instance = get_object_or_404(Inventory, id=id)
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, "Deleted successfully!")
+        return redirect('inventory:create_warehouse_reorder_level')     
+
+    messages.warning(request, "Invalid delete request!")
+    return redirect('inventory:create_warehouse_reorder_level')  

@@ -530,7 +530,7 @@ def qc_dashboard(request, purchase_order_id=None):
             purchase_shipment__purchase_order=purchase_order_id,
             status__in=['REACHED', 'OBI']
         )
-        create_notification(request.user,'QC pending')
+        create_notification(request.user,message='QC pending',notification_type='PURCHASE-NOTIFICATION')
 
         purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)
     else:

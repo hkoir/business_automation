@@ -1,16 +1,17 @@
 
 {% extends "base.html" %}
 {% load static %}
-
+{% load custom_filters %}
 {% block content %}
 
 
 
 
 
-<h4 style="margin-top:30px">Monthly Salary Sheet - {{ month }}/{{ year }}</h4>
 
-<div class="container-fluid">
+<div class="container-fluid main-content my-5">
+    
+<h4 style="margin-top:30px">Monthly Salary Sheet - {{ month }}/{{ year }}</h4>
     <div class="row row-cols-1">
         <div class="col">
             
@@ -31,18 +32,24 @@
             <h4>Generated Report for {{ month }}/{{ year }}</h4> 
                         
          {% if salary %}
-                    <table>
-                        <thead>
+                    <table class="table table-hover">
+                        <thead class="table-dark">
                             <a href="{% url 'core:download_salary' %}?month={{ month }}&year={{ year }}">Download Salary Report</a>
 
                             <tr>
                                 <th>Employee ID</th>
                                 <th>Name</th>
                                 <th>Month</th>
-                                <th>Year</th>
-                                <th>Total Salary</th>
+                                <th>Year</th>                              
                                 <th>Basic</th>
-                                <th>Other Allowances</th>
+                                <th>House allowance</th>
+                                <th>Conveyance allowance</th>
+                                <th>Medical allowance</th>
+
+                                <th>Festival allowance</th>
+                                <th>Performance allowance</th>
+                                <th>Gross Salary</th>
+                               
                             </tr>
                         </thead>
                         <tbody>
@@ -51,10 +58,14 @@
                                     <td>{{ entry.employee.employee_code }}</td>
                                     <td>{{ entry.employee.name }}</td>
                                     <td>{{ entry.month }}</td>
-                                    <td>{{ entry.year }}</td>
-                                    <td>{{ entry.total_salary }}</td>
-                                    <td>{{ entry.employee.basic_salary }}</td>
-                                    <td>{{ entry.employee.transportation_allowance }}</td>
+                                    <td>{{ entry.year }}</td>                                   
+                                    <td>{{ entry.employee.salary_structure.basic_salary|add_commas }}</td>
+                                    <td>{{ entry.employee.salary_structure.hra|add_commas}}</td>
+                                    <td>{{ entry.employee.salary_structure.conveyance_allowance|add_commas }}</td>
+                                    <td>{{ entry.employee.salary_structure.medical_allowance|add_commas }}</td>
+                                    <td>{{ entry.employee.salary_structure.festival_allowance|add_commas }}</td>
+                                    <td>{{ entry.employee.salary_structure.performance_bonus|add_commas }}</td>
+                                    <td>{{ entry.employee.salary_structure.gross_salary }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -68,7 +79,7 @@
 
 
     </div>
-
+<h4 style="height:20px"></h4>
 </div>
 
 

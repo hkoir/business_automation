@@ -4,7 +4,7 @@
 
 
 
-<div class="container-fluid main-content" style="margin-top: 0px;">
+<div class="container-fluid main-content my-5" style="margin-top: 0px;">
     <div class="row">
         <h4>Dispatch Items for Sale Order: {{ sale_order.order_id }}</h4>
             <div class="col">              
@@ -51,21 +51,21 @@
             {% for shipment, dispatch_items in shipments.items %}
                 <h5>Sale Shipment ID: {{ shipment.shipment_id }} - Status: <span style="font-size: large;color:brown;font-weight: bold;">{{ shipment.get_status_display }}</span></h5>
             
-                <table class="table table-striped">
-                    <thead>
+                <table class="table table-hover">
+                    <thead class="table-dark">
                       
                         <!-- Column headers -->
                         <tr>
                             <th rowspan="2" style="width: 5%;">#</th>
                             <th rowspan="2" style="width: 15%;">Item Name</th>
-                            <th rowspan="2" style="color:rgb(21, 0, 128);font-weight: bold; width: 10%;">Order Qty</th>
+                            <th rowspan="2" style="color:yellow;font-weight: bold; width: 10%;">Order Qty</th>
                             <th rowspan="2" style="color:green;font-weight: bold; width: 10%;">Dispatch Qty</th>
-                            <th rowspan="2" style="color:rgb(0, 4, 128);font-weight: bold; width: 15%;">Committed Delivery</th>
+                            <th rowspan="2" style="color:yellow;font-weight: bold; width: 15%;">Committed Delivery</th>
                             <th rowspan="2" style="color:green;font-weight: bold; width: 15%;">Actual Delivery</th>
                             <th rowspan="2" style="width: 10%;">Delivery Status</th>
                             <th rowspan="2" style="width: 20%;">Next Action</th>
                             <th rowspan="2" style="width: 10%;">Cancel</th>
-                            <th colspan="2" style="color:red;font-weight: bold; width: 15%;">Quality Control</th>
+                            <th colspan="2" style="color:yellow;font-weight: bold; width: 15%;">Quality Control</th>
                         </tr>
                         <!-- Sub-headers for Quality Control -->
                         <tr>
@@ -84,7 +84,7 @@
                                     <td>{{ dispatch_item.dispatch_item.quantity }}</td>
                                     <td>{{ dispatch_item.dispatch_quantity }}</td>
                                     <td>{{ dispatch_item.delivery_date }}</td>                                                           
-                                    <td>{{dispatch_item.sale_quality_control.first.updated_at|date:"d M Y" }}</td>
+                                    <td>{{dispatch_item.sale_quality_control.first.inspection_date|date:"d M Y" }}</td>
 
                                     
                                     <td>{{ dispatch_item.get_status_display }}</td>   
@@ -93,25 +93,30 @@
                                             {% csrf_token %}
                                             <div class="d-flex align-items-center">
                                                 <select name="new_status" class="form-select me-2" style="width: 60%;">
-                                                    {% if dispatch_item.status == 'IN_PROCESS' %}
+                                                    {% if dispatch_item.status == 'READY_FOR-QC' %}
+                                                    <option value="IN_PROCESS">In Process</option>
+                                                    {% elif dispatch_item.status == 'IN_PROCESS' %}
                                                         <option value="ON_BOARD">On Board</option>
                                                     {% elif dispatch_item.status == 'ON_BOARD' %}
                                                         <option value="IN_TRANSIT">In Transit</option>
                                                     {% elif dispatch_item.status == 'IN_TRANSIT' %}
                                                         <option value="CUSTOM_CLEARANCE_IN_PROCESS">Custom Clearance In Process</option>
                                                     {% elif dispatch_item.status == "CUSTOM_CLEARANCE_IN_PROCESS" %}
-                                                        <option value="REACHED">Reached</option>                                                                                             
+                                                        <option value="REACHED">Reached</option>   
+                                                    {% elif dispatch_item.status == "OBI" %}
+                                                        <option value="OBU">OBI</option>                                                                                                     
+                                                    {% elif dispatch_item.status == "CANCELLED" %}
+                                                        <option value="CANCELLED">Cancelled</option>  
                                                     {% else %}
-                                                        <option disabled selected>Delivered</option>
+                                                        <option disabled selected>No action needed</option>
                                                     {% endif %}
                                                 </select>
-                                                <button type="submit" class="btn btn-primary btn-sm">Update</button>
-                                            </div>
+                                                <button type="submit" class="btn btn-secondary btn-sm">Update</button>
+                                            </div> 
                                         </form>
                                     </td>
                                                                          
-                               
-                                
+                                                               
                                 <td>
                                     {% if dispatch_item.status|in_list:"REACHED,OBI,DELIVERED,ONBOARD,CUSTOM_CLEARANCE_IN_PROCESS"|yesno:"true,false" %}
                                     <i class="fas fa-times" style="color:red;font-weight: bold;"></i>
@@ -120,8 +125,16 @@
                                     {% endif %}
                                 </td>
 
-                                    <td>{{ qc_quantities|get_item:dispatch_item.id|get_item:'good_quantity'|default:0 }}</td>
-                                    <td>{{ qc_quantities|get_item:dispatch_item.id|get_item:'bad_quantity'|default:0 }}</td>
+                                    <td>
+                                        {% if qc_quantities %}
+                                        {{ qc_quantities|get_item:dispatch_item.id|get_item:'good_quantity'|default:0 }}
+                                        {% endif %}
+                                    </td>
+
+                                    <td>   {% if qc_quantities %}
+                                        {{ qc_quantities|get_item:dispatch_item.id|get_item:'bad_quantity'|default:0 }}
+                                        {% endif %}
+                                    </td>
                                     
                                
                             </tr>

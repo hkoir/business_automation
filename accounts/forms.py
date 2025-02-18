@@ -16,6 +16,21 @@ from.models import UserProfile,Client
 
 
 
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+
+
+class PublicUserRegistrationForm(UserCreationForm):
+    class Meta:
+        model = User
+        fields = ("username", "email") # Add profile picture field
+
+
+
+class PublicUserLoginForm(AuthenticationForm):
+    pass  
+
+
 
 
 class UserProfileForm(forms.ModelForm):
@@ -41,7 +56,8 @@ class CustomLoginForm(AuthenticationForm):
         widget=forms.TextInput(attrs={
             'class': 'form-control', 
             'placeholder': 'Tenant', 
-            'readonly':'readonly'
+            'readonly': 'readonly'
+          
           
         }),
         label="Tenant",
@@ -50,7 +66,6 @@ class CustomLoginForm(AuthenticationForm):
         model = AuthenticationForm
         fields = ['username', 'password','tenant']
 
-       
 
 
 class TenantUserRegistrationForm(UserCreationForm):
@@ -65,10 +80,15 @@ class TenantUserRegistrationForm(UserCreationForm):
         label="Tenant",
     )
     profile_picture = forms.ImageField(required=False)
+    user_type = forms.ChoiceField(choices=[
+        ('Register_as_business_parner','Register as our business partners'),
+        ('register-as-our-services','Register as our offerings and services'),
+        ('register-as-our job-vacancies','Register as our job vacancies')
+    ])
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'tenant','password1', 'password2','profile_picture']
+        fields = ['user_type','username', 'email', 'tenant','password1', 'password2','profile_picture']
 
     def __init__(self, *args, **kwargs):
         tenant = kwargs.pop('tenant', None)
@@ -113,8 +133,6 @@ class TenantUserRegistrationForm(UserCreationForm):
 
 
 class UserRegistrationForm(UserCreationForm):
-    email = forms.EmailField(required=True)
-
     class Meta:
         model = User
         fields = ['username', 'email', 'password1', 'password2']

@@ -72,7 +72,8 @@ class Ticket(models.Model):
         ],null=True,blank=True
         )
     
-    sales=models.ForeignKey(SaleOrder,on_delete=models.CASCADE,null=True,blank=True,related_name='sales_ticket')      
+    sales=models.ForeignKey(SaleOrder,on_delete=models.CASCADE,null=True,blank=True,related_name='sales_ticket')
+    repair_return=models.ForeignKey(SaleOrder,on_delete=models.CASCADE,null=True,blank=True,related_name='repair_return_ticket')            
     operations = models.ForeignKey( OperationsDeliveryItem,on_delete=models.CASCADE,null=True,blank=True)
     production = models.ForeignKey(MaterialsRequestOrder,on_delete=models.CASCADE,null=True,blank=True)
     subject = models.CharField(max_length=200,null=True,blank=True)

@@ -4,21 +4,22 @@
 
 {% block content %}
 
-<form method="POST">
-    {% csrf_token %}
-    <input type="hidden" name="candidate_id" value="{{ candidate.id }}">
-    <h4>Are you sure you want to confirm onboarding for {{ candidate.full_name }}?</h4>
-    <button type="submit" class="btn btn-success">Confirm</button>
-</form>
 
 
-
-
-
-<div class="container my-3">   
+<div class="container-fluid main-content my-3">   
 
     <!-- Candidate and Interview Details Card -->
     <div class="row justify-content-center">
+        <div class="col-12 col-md-4">
+
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="candidate_id" value="{{ candidate.id }}">
+                <h4>Are you sure you want to confirm onboarding for {{ candidate.full_name }}?</h4>
+                <button type="submit" class="btn btn-success">Confirm</button>
+            </form>
+            
+        </div>
         <div class="col-12 col-md-8">
             <div class="card shadow-lg border-0 rounded-3" style="background-color: #f9fbfd;">
                 <div class="card-body p-4">
@@ -39,6 +40,7 @@
             </div>
         </div>
     </div>
+    <h4 style="height:10px"></h4>
 </div>
 
 

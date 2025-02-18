@@ -79,19 +79,21 @@
     </div>
 
 
-
     <div class="col-12">
         {% if products %}
     <table class="table table-hover">
         <thead class="table-dark">
             <tr>
-                <th class="text-center p-2">Name</th>
-                <th class="text-center p-2">Category</th>
-                <th class="text-center p-2">SKU</th>
-                <th class="text-center p-2">Unit Price</th>
-                <th class="text-center p-2">Created at</th>  
-                <th class="text-center p-2">Product report</th>                      
-                <th class="text-center p-2">Actions</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>SKU</th>
+                <th>Unit Price</th>
+                <th>Available qty</th>
+                <th>Reorder qty</th>
+                <th>Low stock status</th>
+                <th>Created at</th>  
+                <th>Product report</th>                      
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -100,7 +102,17 @@
                     <td class="text-center p-1">{{ data.name }}</td>
                     <td class="text-center p-1">{{ data.category.name }}</td>  
                     <td class="text-center p-1">{{ data.sku }}</td>  
-                    <td class="text-center p-1">{{ data.unit_price}}</td>                          
+                    <td class="text-center p-1">{{ data.unit_price}}</td>   
+                    <td>{{ data.product_inventories.first.quantity }}</td>
+                        <td>{{ data.reorder_level}}</td>
+                        <td>
+                            {% if data.product_inventories.first.quantity <= data.reorder_level %}
+                            <span style="color:red;font-weight:bold">Low stock</span>
+                            {% else %}
+                            <i class="fas fa-check" style="color:green;font-weight:bold">Stock ok</i>
+                            {% endif %}
+                        </td>      
+                                         
                     <td class="text-center p-2" style="white-space: nowrap;">{{data.created_at}}</td>
                     <td>
                         <a href="{% url 'reporting:product_report' data.id %}">Product report</a>

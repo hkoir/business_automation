@@ -7,6 +7,7 @@ app_name = 'transport'
 
 
 urlpatterns = [
+    path('transport_dashboard/', views.transport_dashboard, name='transport_dashboard'),
     path('create_transport/', views.manage_transport, name='create_transport'),
     path('update_transport/<int:id>/', views.manage_transport, name='update_transport'),
     path('delete_transport/<int:id>/', views.delete_transport, name='delete_transport'),
@@ -60,7 +61,7 @@ urlpatterns = [
   
     path('refresh-status/', views.refresh_status, name='refresh_status'),
 
-   path('vehicle_booking_calendar/<int:id>/', views.vehicle_booking_calendar, name='vehicle_booking_calendar'),
-
+    path('vehicle_booking_calendar/<int:id>/', views.vehicle_booking_calendar, name='vehicle_booking_calendar'),
+    path('penalty_payment/<int:penalty_id>/', views.penalty_payment, name='penalty_payment'),
 
    ]

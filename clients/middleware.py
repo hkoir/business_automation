@@ -8,6 +8,19 @@ from django.utils import timezone
 from django_tenants.utils import get_public_schema_name
 from django.contrib import messages
 
+from django.utils.deprecation import MiddlewareMixin
+from django.db import connection
+from django.http import HttpResponseForbidden
+from django.urls import resolve
+from django.contrib.auth import logout
+from django.conf import settings
+
+
+class TenantSessionMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        if hasattr(connection, 'schema_name'):
+            schema_name = connection.schema_name
+            request.session.cookie_name = f'sessionid_{schema_name}'
 
 
 class TenantValidationMiddleware:
@@ -36,8 +49,6 @@ class TenantValidationMiddleware:
 
 
 
-from django.http import HttpResponseForbidden
-from django.urls import resolve
 
 class CustomGeneralPurposeMiddleWare:    
     TENANT_APPS = ['customer','accounts','core','finance','inventory','logistics','manufacture','operations','product','purchase','repairreturn','reporting','sales','supplier','shipment','tasks','transport'] 
@@ -46,7 +57,13 @@ class CustomGeneralPurposeMiddleWare:
         self.restricted_apps = ['purchase']
 
     def __call__(self, request):
+
         current_schema=request.tenant.schema_name == get_public_schema_name()
+        if request.tenant.schema_name == get_public_schema_name() and request.user.is_authenticated:
+            logout(request)
+            request.session.flush()
+
+
         tenant = getattr(request, 'tenant', None) 
 
         if request.user.is_authenticated:     
@@ -59,9 +76,11 @@ class CustomGeneralPurposeMiddleWare:
 
         if tenant.tenant.first():
             if tenant and tenant.tenant.first().subscription:
-                if tenant and tenant.tenant.first().subscription.is_expired():
+                if tenant and tenant.tenant.first().subscription.is_expired:
                     messages.error(request, "Your subscription has expired. Please renew to continue.")
                     return redirect('clients:dashboard') 
+            else:
+                messages.error(request, "No subscription plan")
 
         if request.user.is_authenticated and hasattr(request, 'tenant'):
             current_tenant = request.tenant
@@ -76,9 +95,9 @@ class CustomGeneralPurposeMiddleWare:
                 return redirect('clients:dashboard')   
         
             
-        if current_schema and any(app in request.path for app in self.TENANT_APPS): 
-            messages.warning(request, "You are not authorized to access this page.Please login with your credentials")          
-            return redirect('accounts:login')      
+        # if current_schema and any(app in request.path for app in self.TENANT_APPS): 
+        #     messages.warning(request, "You are not authorized to access this page.Please login with your credentials")          
+        #     return redirect('accounts:login')      
         
         if tenant:   
             if tenant.tenant:  

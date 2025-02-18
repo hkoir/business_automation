@@ -31,7 +31,7 @@
       </div>
 
       <div class="col-12 col-md-8" style="margin-top: 50px;">  
-        <h4 class="text-center mb-3" style="color: rgb(6, 128, 14);font-weight: bold;">Appraisal Budget analysis for year {{ appraisal_year }} for {{appraisal_type}} appraisal</h4> 
+        <h4 class="text-center mb-3" style="color: green;font-weight: bold;">Appraisal Budget analysis for year {{ appraisal_year }} for {{appraisal_type}} appraisal</h4> 
         {% if report_data %}
         <div class="container">
             <div class="row">
@@ -48,6 +48,7 @@
                     <h6>
                         <span style="color:blue;font-weight: bolder;">Result:</span>:<br>
                         Total Employees: {{ total_employee }}<br>
+                        Total eligible count: {{ all_eligible_count }}<br>
                         Total eligible for promotion:{{all_eligible_count}}<br>
                         Top eligible for promotion: {{ total_eligible }}<br>
                          % of Top eligibility:{{ percentage_of_eligibility|floatformat:2|intcomma }}%<br>
@@ -143,8 +144,8 @@
                 {% if all_eligible_count %}
                         <!-- All Eligible Employee Table -->
                 <h4 class="mt-4">All Eligible Employee Details: Total count = {{all_eligible_count}}</h4>
-                <table class="table table-bordered">
-                    <thead>
+                <table class="table table-hover">
+                    <thead class="table-dark">
                         <tr>
                             <th>Employee Name</th>
                             <th>Department</th>

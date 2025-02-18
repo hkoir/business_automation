@@ -7,6 +7,51 @@ from.models import CommonDocument,CandidateDocument
 
 
 
+class JobRequestForm(forms.ModelForm):
+    class Meta:
+        model = Job
+        fields = ['company', 'department','title','position','reporting_manager','location','no_of_vacancies','deadline']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+           
+            'deadline': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'salary': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+class JobRequestProcessForm(forms.Form):
+    STATUS_CHOICES = [
+        ('SUBMITTED', 'Submitted'),
+        ('REVIEWED', 'Reviewed'),
+        ('APPROVED', 'Approved'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    approval_status = forms.ChoiceField(choices=STATUS_CHOICES, widget=forms.Select)
+
+    remarks = forms.CharField(
+        widget=forms.Textarea(
+            attrs={
+                'class': 'form-control custom-textarea',
+                'rows': 5, 
+                'style': 'height: 100px;',  
+            }
+        ),
+        required=False
+    )
+
+
+# HR/hiring manager use below form to launch recruitment process and update rest of the fields
+class JobForm(forms.ModelForm):
+    class Meta:
+        model = Job
+        exclude = [
+            'is_active','job_code','requester','status','approval_data',
+            'requester_approval_status','reviewer_approval_status','approver_approval_status',
+            'Requester_remarks','approver_remarks','reviewer_remarks'
+
+            ]
+       
 
 
 class CommonDocumentForm(forms.ModelForm):
@@ -103,21 +148,9 @@ class skillsForm(forms.ModelForm):
 
         
 
-class JobForm(forms.ModelForm):
-    class Meta:
-        model = Job
-        exclude = ['user', 'is_active','job_code']
-        widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-           
-            'deadline': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'salary': forms.NumberInput(attrs={'class': 'form-control'}),
-        }
-
 
 from.models import JobCategory
+
 class JobCategoryForm(forms.ModelForm):
     class Meta:
         model = JobCategory

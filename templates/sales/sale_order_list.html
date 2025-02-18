@@ -40,36 +40,22 @@
                     <tr>
                    
                         <th>Request Order Number</th>
-                        <th>Sale Order Number</th>
-                    
-                        <th>Total amount</th> 
-                                      
-                        <th>Status</th>
-                     
-
+                        <th>Sale Order Number</th>                    
+                        <th>Total amount</th>                                       
+                        <th>Status</th>                    
                         <th>Prepared by</th>
-
-                        <th>Items requested</th>
-                       
-
+                        <th>Items requested</th>                      
                         <th>Submission</th>
                         <th>Reviewed</th>
-                        <th>Approval</th>
-
-               
+                        <th>Approval</th>               
                         <th>Create Parent Schedule</th>
                         <th>Add child schedule</th>
                         <th style="background-color: rgb(235, 109, 12);">Update Shipment</th> 
                         <th>Delivered Items</th>
-
-                        <th>QC Dashboard</th>
-                        
+                        <th>QC Dashboard</th>                        
                         <th>Create Invoice</th>
-
-                        <th">Make payment</th>
-                        
+                        <th>Make payment</th>                        
                         <th>Invoice</th>
-
                         <th>Upload signed invoice</th>
                         <th>Upload payment Doc</th>
                         <th>View invoice</th>
@@ -166,7 +152,7 @@
 
                         <td style="background-color: aquamarine;">
                             {% if order.approver_approval_status != 'APPROVED' %}
-                                <span>Approval Pending</span>>
+                                <span>Approval Pending</span>
                                 {% elif order.sale_shipment.first.sale_shipment_dispatch.first.status|item_list:'DELIVERED,REACHED,OBI' %}
                                 <i class="fas fa-check" style="color:green;font-weight: bold;">Delivered</i>
                             {% else %}

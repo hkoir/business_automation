@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <div class="container">
+  <div class="container-fluid main-content">
     <h2>Exam Results for {{ candidate.full_name }}</h2>
     <p><strong>Exam:</strong> {{ exam.title }}</p>
     <p><strong>Job Post:</strong> {{ exam.job.title }}</p>
@@ -39,5 +39,6 @@
     </table>
 
     <a href="{% url 'recruitment:take_exam' exam.id candidate.id %}" class="btn btn-primary">Retake Exam</a>
+    <h4 style="height:10px"></h4>
   </div>
 {% endblock %}

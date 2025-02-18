@@ -6,7 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 
-<div class="container-fluid main-content">
+<div class="container-fluid main-content my-3">
     <div class="row">   
         
         <div class="col-12">           
@@ -35,10 +35,10 @@
         </form>
         </div> 
         
-        <div class="col-12 mt-4">
+        <div class="col-12">
             <h4 class="text-center mb-4">
                 <span style="color:blue;font-weight: bold;">Performance over the years for:</span>
-                <span style="color:rgb(7, 176, 18);font-weight: bold;"> {{employee_name}} :Department-{{department}}</span>
+                <span style="color:rgb(176, 7, 49);font-weight: bold;"> {{employee_name}} :Department-{{department}}</span>
             </h4>
             <div class="container-fluid">
                 <div class="row">
@@ -85,10 +85,10 @@
                         </div>
 
                     </div>
-                    <div class="col-3 bg-light">                      
+                    <div class="col-4 bg-light">                      
                         <canvas id="barChart"></canvas>                        
                     </div>
-                    <div class="col-7 bg-light">
+                    <div class="col-4 bg-light">
                         {% if has_data  %}
                         <canvas id="lineChart" width="400" height="200"></canvas>
                         {% else %}
@@ -102,6 +102,7 @@
 
 
     </div>
+    <h4 style="height:10px"></h4>
 </div>
 
 <div style="height:800px"></div>
@@ -135,52 +136,52 @@
                 ...totalScoreData,       
             ) * 1.2;
     // Bar Chart
-    // new Chart(barCtx, {
-    //     type: 'bar',
-    //     data: {
-    //         labels: labels,
-    //         datasets: [
-    //             {
-    //                 label: 'Total Score',
-    //                 data: totalScoreData,
-    //                 borderColor: 'rgba(75, 192, 192, 1)',
-    //                 backgroundColor: 'rgba(75, 192, 192, 0.6)',
-    //                 fill: false,
-    //             }
-    //         ]
-    //     },
-    //     options: {
-    //         responsive: true,
-    //         plugins: {
-    //             legend: {
-    //                 display: true,
-    //                 position: 'top'
-    //             },
-    //             tooltip: {
-    //                 mode: 'index',
-    //                 intersect: false,
-    //             },
-    //         },
-    //         scales: {
-    //             x: {
-    //                 display: true,
-    //                 title: {
-    //                     display: true,
-    //                     text: 'Year'
-    //                 }
-    //             },
-    //             y: {
-    //                 display: true,
-    //                 title: {
-    //                     display: true,
-    //                     text: 'Total Score'
-    //                 },
-    //                 beginAtZero: true,
-    //                  max:maxYValue
-    //             }
-    //         }
-    //     }
-    // });
+    new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Total Score',
+                    data: totalScoreData,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    fill: false,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                },
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Year'
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Total Score'
+                    },
+                    beginAtZero: true,
+                     max:maxYValue
+                }
+            }
+        }
+    });
 
     // Line Chart
     const lineCtx = document.getElementById('lineChart').getContext('2d');
@@ -193,7 +194,7 @@
                     label: '% Score',
                     data: totalScoreData, // Match data with bar chart
                     borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.8)',
                     borderWidth: 2,
                     tension: 0.4,
                     fill: false

@@ -26,6 +26,8 @@ SHARED_APPS = [
     'django.contrib.humanize',
     'commonapp',
     'django.contrib.sites',
+   
+   
   
 
 ]
@@ -76,13 +78,14 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware', 
     'django.contrib.auth.middleware.AuthenticationMiddleware', 
     'django_tenants.middleware.TenantMiddleware',  
-    'django.contrib.messages.middleware.MessageMiddleware',  
-      'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'clients.middleware.TenantValidationMiddleware',      
-    'clients.middleware.CustomGeneralPurposeMiddleWare',
-  
      
+    'django.contrib.messages.middleware.MessageMiddleware',  
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'clients.middleware.TenantValidationMiddleware', 
+    'clients.middleware.TenantSessionMiddleware',         
+    'clients.middleware.CustomGeneralPurposeMiddleWare',  
+       
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -218,9 +221,9 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media/")
 
 
-LOGIN_REDIRECT_URL = '/accounts/tenant_expire_check/'
+LOGIN_REDIRECT_URL = '/clients/tenant_expire_check/'
 LOGIN_URL = 'accounts:login'
-# LOGIN_URL = "/accounts/login/"
+
 
 
 
@@ -241,6 +244,8 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     # Add other backends if you have any
 ]
+
+
 
     
 

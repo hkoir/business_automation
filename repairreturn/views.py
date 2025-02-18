@@ -582,6 +582,8 @@ def process_scrap_order(request, order_id):
         form = PurchaseStatusForm()
     return render(request, 'purchase/purchase_order_approval_form.html', {'form': form, 'order': order})
 
+
+
 @login_required
 def scrap_confirmation(request, order_id):
     request_instance = get_object_or_404(ScrappedOrder, id=order_id)

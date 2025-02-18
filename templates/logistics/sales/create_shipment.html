@@ -4,15 +4,21 @@
 
 
 
+<div class="container-fluid main-content my-5">
+    <div class="row">
+        <div class="col-12">
+            <h4>Create Shipment for {{ sale_order }}</h4>
 
-
-<h4>Create Shipment for {{ sale_order }}</h4>
-
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Create Shipment</button>
-</form>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">Create Shipment</button>
+            </form>
+            
+            
+        </div>
+    </div>
+</div>
 
 
 

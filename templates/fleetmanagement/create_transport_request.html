@@ -1,57 +1,84 @@
 {% extends "base.html" %}
 
 {% block content %}
-     
+     <style>
+        .table tr td {
+            line-height: 5px;
+        }
+     </style>
 
 <div class="container-fluid main-content">
     <div class="row">
+        <h6 class="text-center text-warning fw-bold">Transport Requisition</h6>
         <div class="col-12">
-            <form method="get" class="mb-4">
+            <form method="get">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <label for="start_date">Start Date:</label>
                         <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class=" col-6 col-md-3">
                         <label for="end_date">End Date:</label>
                         <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class=" col-6 col-md-3">
                         <label for="end_date">Vehicle Reg number:</label>
                         <input type="text" id="vehicle_number" name="vehicle_number" class="form-control" value="{{ vehicle_number }}">
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
+                    <div class=" col-6 col-md-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary">Filter</button>
                     </div>
                 </div>
             </form>
             
         </div>
-        <div class="col-4 mb-4">
-            <div class="card shadow-lg" style="background-color: aliceblue;">
-                <!-- Card Header -->
-                <div class="card-header bg-primary text-white text-center">
-                    <h3 class="mb-0">{% if instance %} Update {% else %} Create new {% endif %}</h3>
-                </div> 
-                <div class="card shadow-sm mb-4">                    
-                    <div class="card-body">                                          
-                
-                        <form method="post" enctype="multipart/form-data" action="" id="add_transport_request">
-                            {% csrf_token %}
-                            {{ form.as_p }}
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    Submit Request
-                                </button>
-                            </div>
-                        </form>
+       
+
+    <div class="col-12 my-2">  
+                                               
+        <div class="card shadow" style="padding:10px;background-color:aliceblue;">
+             <!-- Card Header -->
+             <div class="card-header bg-primary text-white text-center">
+                <h3 class="mb-0"> Create/Update transport request</h3>
+            </div> 
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="add_category" autocomplete="off">
+                    {% csrf_token %} 
+                <div class="container">                       
+                    <div class="row">
+                       
+                        <div class="col-6 col-md-3 form-group">
+                            Vehicle {{ form.vehicle }}
+                         </div>
+                         <div class="col-6 col-md-3 form-group">
+                            transport type {{ form.transport_type }}
+                         </div>
+                        <div class="col-6 col-md-3 form-group">
+                            item description: {{ form.item_description }}
+                        </div>
+                        <div class="col-6 col-md-3 form-group">
+                            request datetime: {{ form.request_datetime }}
+                         </div>
+                        <div class="col-6 col-md-3 form-group">
+                            return datetime: {{ form.return_datetime }}
+                         </div>
+                         <div class="col-6 col-md-3 form-group">
+                            purpose {{ form.purpose }}
+                         </div>
+                         
+                        
+                         <div class="col-6 col-md-3">
+                            <button type="submit" name="add_to_basket" class="btn btn btn-primary mt-4">Submit</button>
+                         </div>
+                      
+
+                        </div>
                     </div>
-                </div>
-                
+                </form>
+            </div>
         </div>
-    </div>
-    <div class="col-8">
-        <h2>Requisition List</h2>
+</div>
+    <div class="col-12">       
         
         {% if page_obj %}
           
@@ -59,21 +86,21 @@
             <thead class="table-dark">
                     <tr>
                         <th>Actions</th>
-                        <th class="text-center p-2">Requisition Approval</th>
-                        <th class="text-center p-2">Time extension </th>
-                        <th class="text-center p-2">Usage Log </th>    
-                        <th class="text-center p-2">Update booking </th>  
-                        <th class="text-center p-2">Status</th>                   
-                        <th class="text-center p-2">Vehicle code</th>
-                        <th class="text-center p-2">Vehicle Reg Number</th>
-                        <th class="text-center p-2">Vehicle Ownership</th>
-                        <th class="text-center p-2">Mileage</th>
-                        <th class="text-center p-2">Requester</th>      
-                        <th class="text-center p-2">Requisition Date</th>                     
-                        <th class="text-center p-2">Return date</th>
-                        <th class="text-center p-2">Purpose</th>
-                        <th class="text-center p-2">Created</th>
-                        <th class="text-center p-2">Updated</th>
+                        <th>Requisition Approval</th>
+                        <th>Time extension </th>
+                        <th>Usage Log </th>    
+                        <th>Update booking </th>  
+                        <th>Status</th>                   
+                        <th>Vehicle code</th>
+                        <th>Vehicle Reg Number</th>
+                        <th>Vehicle Ownership</th>
+                        <th>Mileage</th>
+                        <th>Requester</th>      
+                        <th>Requisition Date</th>                     
+                        <th>Return date</th>
+                        <th>Purpose</th>
+                        <th>Created</th>
+                        <th>Updated</th>
                     
                       
                     </tr>
@@ -83,7 +110,7 @@
                         <tr>
                                                            
                                     <td class="text-center">
-                                       
+                                        <a href="{% url 'transport:create_transport_request' %}" class="btn btn-sm btn-info">New</a>
                                         <a href="{% url 'transport:update_transport_request' data.id %}" class="btn btn-sm btn-info">Edit</a>
                                         <a href="#" 
                                             class="btn btn-danger btn-sm" 
@@ -95,7 +122,7 @@
                                             </a>
                                     </td>
 
-                                    <td class="text-center p-1">
+                                    <td>
                                         {% if data.request_approval.first.status == 'APPROVED' %}
                                         <i class="fas fa-check text-success">Approved</i>
                                         {% elif data.request_approval.first.status == 'REJECTED' %}
@@ -129,7 +156,7 @@
                                 <a href="{% url 'transport:update_booking' data.id %}">Update Booking</a>
                                 {% endif %}
                             </td>
-                            <td class="text-center p-1">
+                            <td>
                                 {% if data.status == 'IN-USE' %}
                                 <i class="fas fa-truck text-primary">&nbsp;{{ data.get_status_display}}</i>
                                 {% elif data.status == 'PENALIZED' %}
@@ -142,16 +169,16 @@
                                 <i class="fas fa-times text-warning">&nbsp;{{ data.get_status_display}}</i>
                                 {% endif %}
                             </td> 
-                            <td class="text-center p-1">{{ data.vehicle.vehicle_code }}</td>
-                            <td class="text-center p-1">{{ data.vehicle.vehicle_registration_number }}</td>  
-                            <td class="text-center p-1">{{ data.vehicle.get_vehicle_ownership_display }}</td>  
-                            <td class="text-center p-1">{{ data.vehicle.vehicle_mileage}}</td>    
-                            <td class="text-center p-1">{{ data.staff.username}}</td>
-                            <td class="text-center p-1">{{ data.request_datetime}}</td>   
-                            <td class="text-center p-1">{{ data.return_datetime}}</td>   
-                            <td class="text-center p-1">{{ data.purpose}}</td>                      
-                            <td class="text-center p-2" style="white-space: nowrap;">{{data.created_at}}</td>
-                            <td class="text-center p-2" style="white-space: nowrap;">{{data.updated_at}}</td>
+                            <td>{{ data.vehicle.vehicle_code }}</td>
+                            <td>{{ data.vehicle.vehicle_registration_number }}</td>  
+                            <td>{{ data.vehicle.get_vehicle_ownership_display }}</td>  
+                            <td>{{ data.vehicle.vehicle_mileage}}</td>    
+                            <td>{{ data.staff.username}}</td>
+                            <td>{{ data.request_datetime}}</td>   
+                            <td>{{ data.return_datetime}}</td>   
+                            <td>{{ data.purpose}}</td>                      
+                            <td style="white-space: nowrap;">{{data.created_at}}</td>
+                            <td style="white-space: nowrap;">{{data.updated_at}}</td>
                             
                             
                         </tr>
@@ -186,6 +213,7 @@
     </div>
 
 </div>
+<h4 style="height:10px"></h4>
 </div>
 <div style="height:1000px"></div>
     
@@ -235,23 +263,23 @@
 
 
 <script>
-   $(document).ready(function () {
-    function toggleFields() {
-        var entityType = $('#id_transport_type').val();
-
-        if (entityType === 'Goods') {
-            $('#id_item_description').closest('p').show();                
-        } else if (entityType === 'Staff') {
-            $('#id_item_description').closest('p').hide();
+    $(document).ready(function() {
+        function toggleFields() {
+            var entityType = $('#id_transport_type').val();
+            if (entityType === 'Goods') {
+                $('#id_item_description').closest('.form-group').show();
+               
+            } else {
+                $('#id_item_description').closest('.form-group').hide();
+               
+            }
         }
-    }
 
-    toggleFields(); // Initial call
-    $('#id_transport_type').change(function () {
-        toggleFields(); // Update fields on change
+        toggleFields(); // Initial call
+        $('#id_transport_type').change(function() {
+            toggleFields(); // Update fields on change
+        });
     });
-});
-
 </script>
 
 

@@ -333,8 +333,8 @@ def tasks_list(request):
         if start_date and end_date:
            tasks = tasks.filter(created_at__range=(start_date, end_date))  
         else:            
-            seven_days_ago = timezone.now() - timedelta(days=15)
-            tasks = tasks.filter(created_at__gte=seven_days_ago)   
+            x_days_ago = timezone.now() - timedelta(days=30)
+            tasks = tasks.filter(created_at__gte=x_days_ago)   
         if department:
             tasks = tasks.filter(department__name=department)
 
@@ -766,7 +766,7 @@ def create_qualitative_evaluation(request, task_id):
         form = QualitativeEvaluationForm(initial={'task': task})
     return render(request, 'tasks/qualitative_evaluation_form.html', {'form': form, 'task': task})
 
-
+from django.db.models import Case, When, Value, FloatField
 taskaggregated_report = []
 def aggregated_report_sheet(request):
     global taskaggregated_report
@@ -803,127 +803,165 @@ def aggregated_report_sheet(request):
             taskaggregated_report = evaluations.values(
                 'month', 'year', 'employee__id', 'employee__name', 'department__name', 'position__name'
             ).annotate(
-                 avg_quantitative_score=ExpressionWrapper(
-                Sum('obtained_quantitative_number') / Sum('assigned_quantitative_number') * 100,
-                output_field=FloatField()
-            ),
-            avg_manager_given_quantitative_score=ExpressionWrapper(
-                Sum('given_quantitative_number') / Sum('assigned_quantitative_number') * 100,
-                output_field=FloatField()
-            ),
-            avg_qualitative_score=ExpressionWrapper(
-                Sum('obtained_qualitative_number') / Sum('assigned_qualitative_number') * 100,
-                output_field=FloatField()
-            ),
-            total_assigned_quantitative_number=Sum('assigned_quantitative_number'),
-            total_assigned_qualitative_number=Sum('assigned_qualitative_number'),
-            total_assigned_number=ExpressionWrapper(
-                Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number'),
-                output_field=FloatField()
-            ),
-            total_obtained_number=ExpressionWrapper(
-                Sum('obtained_quantitative_number') + Sum('obtained_qualitative_number'),
-                output_field=FloatField()
-            ),
-            total_given_number=ExpressionWrapper(
-                Sum('given_quantitative_number') + Sum('obtained_qualitative_number'),
-                output_field=FloatField()
-            ),
-            over_all_obtained_score=ExpressionWrapper(
-                (Sum('obtained_quantitative_number') + Sum('obtained_qualitative_number')) /
-                (Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number')) * 100,
-                output_field=FloatField()
-            ),
-            over_all_given_score=ExpressionWrapper(
-                (Sum('given_quantitative_number') + Sum('obtained_qualitative_number')) /
-                (Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number')) * 100,
-                output_field=FloatField()
-            ),
+                total_assigned_quantitative=Sum('assigned_quantitative_number'),
+                total_obtained_quantitative=Sum('obtained_quantitative_number'),
+                total_given_quantitative=Sum('given_quantitative_number'),
+                total_assigned_qualitative=Sum('assigned_qualitative_number'),
+                total_obtained_qualitative=Sum('obtained_qualitative_number'),
+                
+                avg_quantitative_score=Case(
+                    When(total_assigned_quantitative=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_obtained_quantitative') * 100.0 / F('total_assigned_quantitative'),
+                        output_field=FloatField()
+                    )
+                ),
+                
+                avg_manager_given_quantitative_score=Case(
+                    When(total_assigned_quantitative=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_given_quantitative') * 100.0 / F('total_assigned_quantitative'),
+                        output_field=FloatField()
+                    )
+                ),
+
+                avg_qualitative_score=Case(
+                    When(total_assigned_qualitative=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_obtained_qualitative') * 100.0 / F('total_assigned_qualitative'),
+                        output_field=FloatField()
+                    )
+                ),
+
+                total_assigned_number=F('total_assigned_quantitative') + F('total_assigned_qualitative'),
+                total_obtained_number=F('total_obtained_quantitative') + F('total_obtained_qualitative'),
+                total_given_number=F('total_given_quantitative') + F('total_obtained_qualitative'),
+
+                over_all_obtained_score=Case(
+                    When(total_assigned_number=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_obtained_number') * 100.0 / F('total_assigned_number'),
+                        output_field=FloatField()
+                    )
+                ),
+
+                over_all_given_score=Case(
+                    When(total_assigned_number=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_given_number') * 100.0 / F('total_assigned_number'),
+                        output_field=FloatField()
+                    )
+                ),
             ).order_by('year', 'month')
            
         elif aggregation_type == 'quarter_wise':
             taskaggregated_report = evaluations.values(
                 'quarter', 'year', 'employee__id', 'employee__name', 'department__name', 'position__name'
             ).annotate(
-                avg_quantitative_score=ExpressionWrapper(
-                Sum('obtained_quantitative_number') / Sum('assigned_quantitative_number') * 100,
-                output_field=FloatField()
-            ),
-            avg_manager_given_quantitative_score=ExpressionWrapper(
-                Sum('given_quantitative_number') / Sum('assigned_quantitative_number') * 100,
-                output_field=FloatField()
-            ),
-            avg_qualitative_score=ExpressionWrapper(
-                Sum('obtained_qualitative_number') / Sum('assigned_qualitative_number') * 100,
-                output_field=FloatField()
-            ),
-            total_assigned_quantitative_number=Sum('assigned_quantitative_number'),
-            total_assigned_qualitative_number=Sum('assigned_qualitative_number'),
-            total_assigned_number=ExpressionWrapper(
-                Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number'),
-                output_field=FloatField()
-            ),
-            total_obtained_number=ExpressionWrapper(
-                Sum('obtained_quantitative_number') + Sum('obtained_qualitative_number'),
-                output_field=FloatField()
-            ),
-            total_given_number=ExpressionWrapper(
-                Sum('given_quantitative_number') + Sum('obtained_qualitative_number'),
-                output_field=FloatField()
-            ),
-            over_all_obtained_score=ExpressionWrapper(
-                (Sum('obtained_quantitative_number') + Sum('obtained_qualitative_number')) /
-                (Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number')) * 100,
-                output_field=FloatField()
-            ),
-            over_all_given_score=ExpressionWrapper(
-                (Sum('given_quantitative_number') + Sum('obtained_qualitative_number')) /
-                (Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number')) * 100,
-                output_field=FloatField()
-            ),
+                total_assigned_quantitative=Sum('assigned_quantitative_number'),
+                total_obtained_quantitative=Sum('obtained_quantitative_number'),
+                total_given_quantitative=Sum('given_quantitative_number'),
+                total_assigned_qualitative=Sum('assigned_qualitative_number'),
+                total_obtained_qualitative=Sum('obtained_qualitative_number'),
+                
+                avg_quantitative_score=Case(
+                    When(total_assigned_quantitative=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_obtained_quantitative') * 100.0 / F('total_assigned_quantitative'),
+                        output_field=FloatField()
+                    )
+                ),
+                
+                avg_manager_given_quantitative_score=Case(
+                    When(total_assigned_quantitative=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_given_quantitative') * 100.0 / F('total_assigned_quantitative'),
+                        output_field=FloatField()
+                    )
+                ),
+
+                avg_qualitative_score=Case(
+                    When(total_assigned_qualitative=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_obtained_qualitative') * 100.0 / F('total_assigned_qualitative'),
+                        output_field=FloatField()
+                    )
+                ),
+
+                total_assigned_number=F('total_assigned_quantitative') + F('total_assigned_qualitative'),
+                total_obtained_number=F('total_obtained_quantitative') + F('total_obtained_qualitative'),
+                total_given_number=F('total_given_quantitative') + F('total_obtained_qualitative'),
+
+                over_all_obtained_score=Case(
+                    When(total_assigned_number=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_obtained_number') * 100.0 / F('total_assigned_number'),
+                        output_field=FloatField()
+                    )
+                ),
+
+                over_all_given_score=Case(
+                    When(total_assigned_number=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_given_number') * 100.0 / F('total_assigned_number'),
+                        output_field=FloatField()
+                    )
+                ),
             ).order_by('year', 'quarter')
 
         elif aggregation_type == 'year_wise':
             taskaggregated_report = evaluations.values(
                 'year', 'employee__id', 'employee__name', 'department__name', 'position__name'
             ).annotate(
-                 avg_quantitative_score=ExpressionWrapper(
-                Sum('obtained_quantitative_number') / Sum('assigned_quantitative_number') * 100,
-                output_field=FloatField()
-            ),
-            avg_manager_given_quantitative_score=ExpressionWrapper(
-                Sum('given_quantitative_number') / Sum('assigned_quantitative_number') * 100,
-                output_field=FloatField()
-            ),
-            avg_qualitative_score=ExpressionWrapper(
-                Sum('obtained_qualitative_number') / Sum('assigned_qualitative_number') * 100,
-                output_field=FloatField()
-            ),
-            total_assigned_quantitative_number=Sum('assigned_quantitative_number'),
-            total_assigned_qualitative_number=Sum('assigned_qualitative_number'),
-            total_assigned_number=ExpressionWrapper(
-                Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number'),
-                output_field=FloatField()
-            ),
-            total_obtained_number=ExpressionWrapper(
-                Sum('obtained_quantitative_number') + Sum('obtained_qualitative_number'),
-                output_field=FloatField()
-            ),
-            total_given_number=ExpressionWrapper(
-                Sum('given_quantitative_number') + Sum('obtained_qualitative_number'),
-                output_field=FloatField()
-            ),
-            over_all_obtained_score=ExpressionWrapper(
-                (Sum('obtained_quantitative_number') + Sum('obtained_qualitative_number')) /
-                (Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number')) * 100,
+                total_assigned_quantitative=Sum('assigned_quantitative_number'),
+                total_obtained_quantitative=Sum('obtained_quantitative_number'),
+                total_given_quantitative=Sum('given_quantitative_number'),
+                total_assigned_qualitative=Sum('assigned_qualitative_number'),
+                total_obtained_qualitative=Sum('obtained_qualitative_number'),
                 
-                output_field=FloatField()
-            ),
-            over_all_given_score=ExpressionWrapper(
-                (Sum('given_quantitative_number') + Sum('obtained_qualitative_number')) /
-                (Sum('assigned_quantitative_number') + Sum('assigned_qualitative_number')) * 100,
-                output_field=FloatField()
-            ),
+                avg_quantitative_score=Case(
+                    When(total_assigned_quantitative=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_obtained_quantitative') * 100.0 / F('total_assigned_quantitative'),
+                        output_field=FloatField()
+                    )
+                ),
+                
+                avg_manager_given_quantitative_score=Case(
+                    When(total_assigned_quantitative=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_given_quantitative') * 100.0 / F('total_assigned_quantitative'),
+                        output_field=FloatField()
+                    )
+                ),
+
+                avg_qualitative_score=Case(
+                    When(total_assigned_qualitative=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_obtained_qualitative') * 100.0 / F('total_assigned_qualitative'),
+                        output_field=FloatField()
+                    )
+                ),
+
+                total_assigned_number=F('total_assigned_quantitative') + F('total_assigned_qualitative'),
+                total_obtained_number=F('total_obtained_quantitative') + F('total_obtained_qualitative'),
+                total_given_number=F('total_given_quantitative') + F('total_obtained_qualitative'),
+
+                over_all_obtained_score=Case(
+                    When(total_assigned_number=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_obtained_number') * 100.0 / F('total_assigned_number'),
+                        output_field=FloatField()
+                    )
+                ),
+
+                over_all_given_score=Case(
+                    When(total_assigned_number=0, then=Value(0.0)),
+                    default=ExpressionWrapper(
+                        F('total_given_number') * 100.0 / F('total_assigned_number'),
+                        output_field=FloatField()
+                    )
+                ),
             ).order_by('year')
     
     form=CommonFilterForm()
@@ -941,7 +979,6 @@ def aggregated_report_sheet(request):
         'employee':employee,
         'form_data':form_data
             })
-
 
 
 
@@ -994,27 +1031,32 @@ def employee_performance_chart(request):
     employee=None
     department=None
     has_data=False
+    evaluations_by_date = PerformanceEvaluation.objects.all().order_by('-evaluation_date')
+   
 
-    form = CommonFilterForm(request.GET)
+    form = CommonFilterForm(request.GET or None)
 
-    if form.is_valid():
-        employee = form.cleaned_data.get('employee_name') 
-        department = form.cleaned_data.get('department') 
-        start_date = form.cleaned_data.get('start_date')
-        end_date = form.cleaned_data.get('end_date')
+    if request.method == 'GET':
+        form = CommonFilterForm(request.GET or None)
+        if form.is_valid():
+            employee = form.cleaned_data.get('employee_name')
+            department = form.cleaned_data.get('department') 
+            start_date = form.cleaned_data.get('start_date')
+            end_date = form.cleaned_data.get('end_date')
+           
+           
+            if start_date and end_date:
+                evaluations_by_date = evaluations_by_date.filter(evaluation_date__range=(start_date, end_date)).distinct()
+               
+            if department:
+                evaluations_by_date = evaluations_by_date.filter(department__name__icontains=department)
+               
+            if employee:
+                evaluations_by_date = evaluations_by_date.filter(employee=employee)                                   
+        else:
+            print(form.errors)  
 
-        evaluations_by_date =PerformanceEvaluation.objects.none().order_by('-evaluation_date')
-
-        if start_date and end_date:
-            evaluations_by_date=PerformanceEvaluation.objects.filter(evaluation_date__range=(start_date,end_date)).distinct()       
-
-        if department:
-            evaluations_by_date = evaluations_by_date.filter(department__name__icontains=department)
-       
-        if employee:
-            evaluations_by_date = evaluations_by_date.filter(employee__name__icontains=employee)            
-        
-             
+                      
         evaluations_by_date = evaluations_by_date.values('evaluation_date').annotate(
         assigned_quantitative_number=Sum('assigned_quantitative_number'),
         assigned_qulaitative_number=Sum('assigned_qualitative_number'),
@@ -1034,7 +1076,7 @@ def employee_performance_chart(request):
             employee_scores.append({
                 'created_at': eval_date['evaluation_date'].strftime('%Y-%m-%d'),
                 'total_score': total_score,
-                'employee_name': employee.name if employee else 'unknown'
+                'employee_name': employee.name if employee else 'Unknown'
             })
             has_data=bool(employee_scores)
 
@@ -1044,13 +1086,14 @@ def employee_performance_chart(request):
                 messages.error(request, f"Error in {field}: {error}")
 
     chart_data = json.dumps( employee_scores)
-
+    
+    form = CommonFilterForm()
     paginator = Paginator(employee_scores, 6)  
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number) 
 
 
-    form = CommonFilterForm() 
+  
     return render(request, 'tasks/employee_performance_chart.html', {
         'chart_data': chart_data,
         'employee_scores': employee_scores,
@@ -1077,9 +1120,9 @@ def team_performance_chart(request):
         start_date = form.cleaned_data.get('start_date')
         end_date = form.cleaned_data.get('end_date')
 
-        teams = Team.objects.none().order_by('created_at')
+        teams = Team.objects.all().order_by('created_at')
         if start_date and end_date:            
-            teams=Team.objects.filter(team_ev__evaluation_date__range=(start_date,end_date)).distinct()
+            teams= teams.filter(team_ev__evaluation_date__range=(start_date,end_date)).distinct()
         if team_name:
             teams = teams.filter(name__icontains=team_name)
         if department:
@@ -1135,29 +1178,31 @@ def team_performance_chart(request):
 
 
 def year_month_performance_chart(request):
-    year = None
-    employee_name = None
-    form = CommonFilterForm(request.GET)
+    year = None   
+    employee = None
+    form = MonthlyQuarterlyTrendForm(request.GET)
     report_data = []
     has_data=None
     department=None
 
-    if form.is_valid():
-        department = form.cleaned_data['department']
-        employee_name = form.cleaned_data['employee_name']
+    if form.is_valid():       
+        department = form.cleaned_data.get('department')
+        employee = form.cleaned_data.get('employee')
         year = form.cleaned_data.get('year')
+       
+        employees = Employee.objects.all()
 
-        employee = None
-        if employee_name and department:
-            employee = Employee.objects.filter(
-                name__icontains=employee_name,
-                department__name__icontains=department
+        if employee and department:
+            employees = employees.filter(
+               name=employee.name,            
+                department=department
             ).first()
 
-        if employee_name:
-            employee = Employee.objects.filter(
-               name__icontains=employee_name               
+        if employee:
+            employees = employees.filter(
+               name=employee.name               
             ).first()
+      
        
         if employee:
             evaluations = PerformanceEvaluation.objects.filter(
@@ -1194,6 +1239,9 @@ def year_month_performance_chart(request):
                     'created_at': month_name,  
                     'total_score': total_score,
                 })
+    else:
+        print(form.errors)
+        form = MonthlyQuarterlyTrendForm()
 
     chart_labels = [data['created_at'] for data in report_data]  
     total_scores = [data['total_score'] for data in report_data]
@@ -1211,11 +1259,11 @@ def year_month_performance_chart(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)   
 
-    form = CommonFilterForm()
+    form = MonthlyQuarterlyTrendForm()
     return render(request, 'tasks/year_month_performance_chart.html', {
         'form': form,
         'year': year,
-        'employee_name': employee_name if employee_name else '',
+        'employee_name': employee.name if employee else '',
         'report_data': report_data,
         'chart_data_json': chart_data_json,
         'page_obj':page_obj,
@@ -1228,22 +1276,22 @@ def year_month_performance_chart(request):
 
 def year_quarter_performance_chart(request):
     year=None
-    employee_name = None
+    employee_name = None   
+    employee = None
     form = MonthlyQuarterlyTrendForm(request.GET)
     report_data = {}  
     has_data=None
     department=None
+    employees = Employee.objects.all()
 
-    if form.is_valid():
+    if form.is_valid():       
         department = form.cleaned_data.get('department')
-        employee_name = form.cleaned_data['employee']
-        year = form.cleaned_data.get('year')
+        employee = form.cleaned_data.get('employee')
+        year = form.cleaned_data.get('year')  
 
         if department:
-            employee = Employee.objects.filter(name__icontains=employee_name,department__name=department).first()
-        else:
-            employee = Employee.objects.filter(name__icontains=employee_name).first()
-
+            employee = employees.filter(name=employee.name, department=department).first()                  
+       
         evaluations = PerformanceEvaluation.objects.filter(
             evaluation_date__year=year,
             employee=employee
@@ -1269,7 +1317,8 @@ def year_quarter_performance_chart(request):
             report_data[quarter_name] = {               
                 'total_score': total_score,
             }
-   
+    else:
+        print("Form errors:", form.errors)
 
     chart_labels = list(report_data.keys())   
     total_scores = [data['total_score'] for data in report_data.values()]
@@ -1296,7 +1345,8 @@ def year_quarter_performance_chart(request):
         'chart_data_json': chart_data_json,  
         'page_obj':page_obj,
         'has_data':has_data,
-        'department':department
+        'department':department,
+        'employee':employee
     })
 
 
@@ -1304,15 +1354,15 @@ def year_quarter_performance_chart(request):
 
 def yearly_performance_trend(request):
     employee_scores = {}
-    chart_data = {}
-    employee_name = None
+    chart_data = {}   
+    employee = None
     department = None
     has_data=None
 
     form = YearlyTrendForm(request.GET)
 
     if form.is_valid():
-        employee_name = form.cleaned_data.get('employee_name')
+        employee= form.cleaned_data.get('employee_name')
         start_year = form.cleaned_data.get('start_year')
         end_year = form.cleaned_data.get('end_year')
         department = form.cleaned_data.get('department')
@@ -1328,9 +1378,9 @@ def yearly_performance_trend(request):
 
         employees = Employee.objects.all()
         if department:
-            employees = employees.filter(department__name__icontains=department)
-
-        employee = employees.filter(name__icontains=employee_name).first() if employee_name else None
+            employees = employees.filter(department=department)
+        if employee:
+            employee = employees.filter(name=employee.name).first() if employee else None
 
         if employee:
             evaluations = PerformanceEvaluation.objects.filter(
@@ -1379,7 +1429,7 @@ def yearly_performance_trend(request):
         'form': form,
         'chart_data': chart_data,
         'employee_scores': employee_scores,
-        'employee_name': employee_name,
+        'employee_name':employee,
         'department': department,
         'page_obj': page_obj,
         'has_data':has_data
@@ -1494,20 +1544,6 @@ def group_performance_chart(request):
 
 
 
-def get_employees(appraisal_category, employee_id=None, department_name=None, position_name=None):
-    if appraisal_category == 'BY_EMPLOYEE' and employee_id:
-        return Employee.objects.filter(id=employee_id)
-    elif appraisal_category == 'BY_DEPARTMENT' and department_name:
-        return Employee.objects.filter(department__name=department_name)
-    elif appraisal_category == 'BY_POSITION' and position_name:
-        return Employee.objects.filter(position__name=position_name)
-    elif appraisal_category == 'BY_COMPANY':
-        return Employee.objects.all()
-    return Employee.objects.none()
-
-
-
-
 def increment_promotion_check(request):
     task_counts=[]
     weighted_scores=[] 
@@ -1553,7 +1589,6 @@ def increment_promotion_check(request):
     month_name_to_num = {month.upper(): num for num, month in enumerate(calendar.month_name[1:], 1)}
 
     if request.method == 'POST' and form.is_valid():  
-
         appraisal_year = form.cleaned_data['appraisal_year']
         appraisal_type = form.cleaned_data['appraisal_type']
         quarter_name = form.cleaned_data['quarter']
@@ -1564,10 +1599,8 @@ def increment_promotion_check(request):
         eligible_score_for_promotion = form.cleaned_data['eligible_score_for_promotion']
         max_promotion_limit = form.cleaned_data['max_promotion_limit']
         promotional_increment_percentage = form.cleaned_data['promotional_increment_percentage']
-
        
         base_evaluations = PerformanceEvaluation.objects.all()
-
         if appraisal_year:
             base_evaluations = base_evaluations.filter(year=appraisal_year)
             performance_evaluations = None 
@@ -1595,21 +1628,16 @@ def increment_promotion_check(request):
             if month_name:
                 month_num = month_name_to_num.get(month_name.upper())
                 if month_num:
-                    performance_evaluations = base_evaluations.filter(evaluation_date__month=month_num)
-                  
+                    performance_evaluations = base_evaluations.filter(evaluation_date__month=month_num)                  
         else:
-            print("No specific filter selected")      
-       
-     
-
+            print("No specific filter selected")       
         if performance_evaluations and performance_evaluations.exists(): 
             distinct_employees = performance_evaluations.values('employee').distinct() 
             for employee in distinct_employees:
                 employee_id = employee['employee'] 
                 employee=get_object_or_404(Employee,id=employee_id)                            
                                                        
-                employee_evaluations = performance_evaluations.filter(employee=employee)                 
-
+                employee_evaluations = performance_evaluations.filter(employee=employee)                
                 task_count_for_employee = employee_evaluations.count()
                 task_counts.append(task_count_for_employee)          
                             
@@ -1621,7 +1649,6 @@ def increment_promotion_check(request):
                         final_score = (total_obtained / total_assigned) * 100
                         task_factor = task_count_for_employee / max_task_count
                         weighted_final_score = final_score * task_factor
-
                 else:
                     weighted_final_score = 0
 
@@ -1631,10 +1658,8 @@ def increment_promotion_check(request):
                         "weighted_final_score": weighted_final_score,
                         "task_count_employee": task_count_for_employee,
                         "final_score": final_score,
-                    }
-                )  
-
-               
+                        }
+                    )                 
 
             eligible_employees = [
                 score for score in weighted_scores if score["weighted_final_score"] >= eligible_score_for_promotion
@@ -1762,6 +1787,8 @@ def calculate_task_count(year=None, quarter=None, half_year=None, month=None):
         task_queryset = task_queryset.filter(quarter=quarter)
     elif half_year:
         task_queryset = task_queryset.filter(half_year=half_year)
+    elif year:
+        task_queryset = task_queryset.filter(year=year)
    
     max_task_count = (
         task_queryset.values('employee')
@@ -1775,6 +1802,19 @@ def calculate_task_count(year=None, quarter=None, half_year=None, month=None):
         .aggregate(avg_task_count=Avg('task_count'))['avg_task_count']    )
 
     return max_task_count or 0, avg_task_count or 0 
+
+
+def get_employees(appraisal_category, employee_id=None, department_name=None, position_name=None):
+    if appraisal_category == 'BY_EMPLOYEE' and employee_id:
+        return Employee.objects.filter(id=employee_id)
+    elif appraisal_category == 'BY_DEPARTMENT' and department_name:
+        return Employee.objects.filter(department__name=department_name)
+    elif appraisal_category == 'BY_POSITION' and position_name:
+        return Employee.objects.filter(position__name=position_name)
+    elif appraisal_category == 'BY_COMPANY':
+        return Employee.objects.all()
+    return Employee.objects.none()
+
 
 
 # below view is for final appraisal submission
@@ -1805,9 +1845,10 @@ def increment_promotion(request):
     effective_date=None
     obtained_promotion_recommendation=None
  
-    form = IncrementPromotionForm(request.POST or None)
+    
     month_name_to_num = {month.upper(): num for num, month in enumerate(calendar.month_name[1:], 1)}
-
+    
+    form = IncrementPromotionForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
 
         appraisal_year = form.cleaned_data.get('appraisal_year')
@@ -1842,7 +1883,8 @@ def increment_promotion(request):
         performance_evaluations = PerformanceEvaluation.objects.all()
 
         if appraisal_category == 'BY_EMPLOYEE' and employee_name:
-            employees = get_employees(appraisal_category, employee_id=employee_name.id)
+            employee= get_object_or_404(Employee,name = employee_name)
+            employees = get_employees(appraisal_category, employee_id=employee.id)
         else:
             employees = get_employees(appraisal_category, department_name=department_name, position_name=position_name)
 

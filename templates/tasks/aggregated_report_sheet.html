@@ -57,7 +57,7 @@
                 </a>
                 Report Type:{{ aggregation_type }}  
             </h4>
-            <p>Aggregation Type: {{ form.cleaned_data.aggregation_type }}</p>
+            
 
             {% if aggregated_report %}
             <table class="table table-hover">
@@ -74,17 +74,16 @@
                             <th>Qualitative score</th> 
                             
                             <th>Assigned Quantitative number</th>
-                            <th>Assigned Qualitative number</th>
-                            
+                            <th>Assigned Qualitative number</th>                            
                             <th>Total assigned number</th>
+
                             <th>Total obtained number</th>
                             <th>Total given number</th>
 
                             <th>Overall Obtained Score</th>
                             <th>Overall given score</th>
                             
-                            
-                        </tr>
+                     </tr>
                     </thead>
                     <tbody>
                         {% for report in aggregated_report %}
@@ -109,13 +108,14 @@
                                 <td>{{ report.avg_manager_given_quantitative_score|floatformat:'2' }}%</td>                               
                                 <td>{{ report.avg_qualitative_score|floatformat:'2' }}%</td>
 
-                                <td>{{ report.total_assigned_quantitative_number|floatformat:'2'}}</td>
-                                <td>{{ report.total_assigned_qualitative_number|floatformat:'2'}}</td>
-
+                                <td>{{ report.total_assigned_quantitative|floatformat:'2'}}</td>
+                                <td>{{ report.total_assigned_qualitative|floatformat:'2'}}</td>
                                  <td>{{ report.total_assigned_number|floatformat:'2'}}</td>
-                                <td>{{ report.total_obtained_number|floatformat:'2'}}</td>
-                                <td>{{ report.total_given_number|floatformat:'2'}}</td>
-
+                                
+                                 <td>{{ report.total_obtained_number|floatformat:'2'}}</td>
+                                 <td>{{ report.total_given_number|floatformat:'2'}}</td>
+                                                            
+                              
                                 <td>{{ report.over_all_obtained_score|floatformat:'2'}}%</td>
                                 <td>{{ report.over_all_given_score|floatformat:'2'}}%</td>
                                 

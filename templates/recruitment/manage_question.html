@@ -11,7 +11,7 @@
             <div class="card shadow-lg" style="background-color: aliceblue;">
                  <!-- Card Header -->
                  <div class="card-header bg-primary text-white text-center">
-                    <h3 class="mb-0"> {% if update_instance %} Update exam {% else %} Create exam {% endif %}</h3>
+                    <h3 class="mb-0"> {% if update_instance %} Update Question {% else %} Create Question answer{% endif %}</h3>
                 </div>              
                 <form method="POST" enctype="multipart/form-data" class="p-2 m-4">
                     {% csrf_token %}
@@ -124,7 +124,7 @@
         </div>
     </div>
 
-    
+    <h4 style="height:10px"></h4>
 </div>
 
 <div style="height:1000px"></div>

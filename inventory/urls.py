@@ -21,7 +21,7 @@ urlpatterns = [
     path('complete_quality_control/<int:qc_id>/', views.complete_quality_control, name='complete_quality_control'),    
    # path('complete_sale_quality_control/<int:qc_id>/', views.complete_sale_quality_control, name='complete_sale_quality_control'),
 
-    path('all_inventory/', views.all_inventory, name='all_inventory'),
+ 
     path('inventory_list/', views.inventory_list, name='inventory_list'),
     path('inventory_aggregate_list/', views.inventory_aggregate_list, name='inventory_aggregate_list'),
     path('inventory_executive_sum/', views.inventory_executive_sum, name='inventory_executive_sum'),
@@ -37,6 +37,9 @@ urlpatterns = [
 
  path('inventory_transaction_report/', views.inventory_transaction_report, name='inventory_transaction_report'),
 
+ path('create_warehouse_reorder_level/', views.manage_warehouse_reorder_level, name='create_warehouse_reorder_level'),
+ path('update_warehouse_reorder_level/<int:id>/', views.manage_warehouse_reorder_level, name='update_warehouse_reorder_level'),
+  path('delete_warehouse_reorder_level/', views.delete_warehouse_reorder_level, name='delete_warehouse_reorder_level'),
   
   
 ]

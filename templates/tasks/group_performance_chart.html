@@ -5,7 +5,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 
-<div class="container-fluid"> 
+<div class="container-fluid main-content my-3"> 
         <form method="get" action="{% url 'tasks:group_performance_chart' %}" class="mb-2">
             <label class="p-1"> Position</label>
             {{ form.position}}
@@ -19,7 +19,7 @@
         </form>       
     
         <div class="row"> 
-        <h4 class="text-center" style="color:green;font-weight: bolder;"> Employee's Group Performance</h4>
+        <h4 class="text-center" style="color:rgb(224, 19, 122);font-weight: bolder;"> Employee's Group Performance</h4>
        <div class="col-12 col-md-3"> 
         <table class="table table-hover">
             <thead class="table-dark">
@@ -80,7 +80,7 @@
     </div>
 </div>
 
-<div style="height:800px"></div>
+<div style="height:1200px"></div>
 
 
 

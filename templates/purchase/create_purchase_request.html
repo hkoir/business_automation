@@ -82,7 +82,6 @@
 <div style="height:800px"></div>
 
 
-
 <script>
     $(document).ready(function() {
         $('#id_product,#id_category').select2({
@@ -110,15 +109,20 @@
                 },
                 cache: true
             },
-            minimumInputLength: 1,
+            minimumInputLength: 1,            
             placeholder: 'Search',
-            allowClear: true
+            allowClear: true,
+            language: {
+            inputTooShort: function () {
+                return "";  
+            }
+        }
+            
         });
     });
 
 
     </script>
-
 
 
 {% endblock %}

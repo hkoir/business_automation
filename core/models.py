@@ -146,15 +146,15 @@ class CompanyPolicy(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     policy_code = models.CharField(max_length=30,null=True,blank=True)
     company = models.ForeignKey(Company, on_delete=models.CASCADE,null=True,blank=True)
-    hra_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=40.00,null=True, blank=True)
-    medical_allowance_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00,null=True, blank=True)
-    conveyance_allowance_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00,null=True, blank=True)
-    performance_bonus_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00,null=True, blank=True)
-    festival_bonus_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00,null=True, blank=True)
-    provident_fund_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=12.00,null=True, blank=True)
-    professional_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,null=True, blank=True)
-    grauity_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=12.00,null=True, blank=True)
-    leave_travel_allowance_performance = models.DecimalField(max_digits=5, decimal_places=2, default=12.00,null=True, blank=True)
+    hra_percentage = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
+    medical_allowance_percentage = models.DecimalField(max_digits=5, decimal_places=2,null=True,blank=True)
+    conveyance_allowance_percentage = models.DecimalField(max_digits=5,decimal_places=2, null=True, blank=True)
+    performance_bonus_percentage = models.DecimalField(max_digits=5,decimal_places=2, null=True, blank=True)
+    festival_bonus_percentage = models.DecimalField(max_digits=5,decimal_places=2,null=True, blank=True)
+    provident_fund_percentage = models.DecimalField(max_digits=5,decimal_places=2,null=True, blank=True)
+    professional_tax = models.DecimalField(max_digits=10,decimal_places=2,null=True, blank=True)
+    grauity_percentage = models.DecimalField(max_digits=5,decimal_places=2,null=True, blank=True)
+    leave_travel_allowance_performance = models.DecimalField(max_digits=5,decimal_places=2,null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -248,10 +248,11 @@ class SalaryStructure(models.Model):
         ).exists()
     
     def is_performance_bonus_month(self):   
-        return Festival.objects.filter(
+        return PerformanceBonus.objects.filter(
             company_policy=self.company_policy,
             month=datetime.now().month
         ).exists()
+
     
 
     def gross_salary(self):
@@ -259,7 +260,9 @@ class SalaryStructure(models.Model):
             self.basic_salary
             + self.hra
             + self.medical_allowance
-            + self.conveyance_allowance         
+            + self.conveyance_allowance        
+             + self.performance_bonus  
+             + self.festival_allowance  
         )
     
         if self.is_festival_month():
@@ -299,8 +302,9 @@ class Employee(models.Model):
     email = models.EmailField(null=True, blank=True)
     father_name = models.CharField(max_length=100,null=True, blank=True,default="Nome") 
     mother_name = models.CharField(max_length=100,null=True, blank=True,default="Nome") 
+
     
-    user_profile = models.ForeignKey(UserProfile,on_delete=models.CASCADE,null=True, blank=True)   
+    user_profile = models.ForeignKey(UserProfile,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_user_profile')   
              
     company = models.ForeignKey(Company,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_company')    
     department = models.ForeignKey(Department,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_department')   
@@ -339,7 +343,7 @@ class Employee(models.Model):
 
             
     def __str__(self):
-        return f'{self.name}-{self.employee_code}'
+        return f'{self.first_name} {self.last_name}'
 
 
 
@@ -463,6 +467,7 @@ class AttendanceModel(models.Model):
 
     ]
     attendance_status= models.CharField(max_length=50,choices= attendance_status_choices,default='None')
+    is_late = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -499,4 +504,117 @@ class MonthlySalaryReport(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+#################################### Leave management #####################################
 
+from django.utils.timezone import now
+
+class LeaveType(models.Model):  
+    LEAVE_TYPES = [
+        ('ANNUAL', 'Annual Leave'),
+        ('SICK', 'Sick Leave'),
+        ('CASUAL', 'Casual Leave'),
+        ('MATERNITY', 'Maternity Leave'),
+        ('PATERNITY', 'Paternity Leave'),
+        ('EARNED', 'Earned Leave'),
+        ('COMPENSATORY', 'Compensatory Leave'),
+        ('UNPAID', 'Unpaid Leave'),
+        ('BEREAVEMENT', 'Bereavement Leave'),
+        ('STUDY', 'Study Leave'),
+        ('HALF-DAY', 'Half-Day Leave'),
+        ('MARRIAGE', 'Marriage Leave'),
+        ('SPECIAL', 'Special Leave'),
+    ]
+
+    name = models.CharField(max_length=50, choices=LEAVE_TYPES,null=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    annual_allowance = models.PositiveIntegerField(default=0)
+    allow_carry_forward = models.BooleanField('? is carry forwardable',default=False)
+    max_carry_forward_limit = models.PositiveIntegerField(default=0, blank=True, null=True)  # New field
+    accrues_monthly = models.BooleanField('Is monthly accurable',default=False)  # New Field
+    accrual_rate = models.DecimalField(max_digits=5, decimal_places=2,null=True,blank=True) 
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.accrues_monthly and self.annual_allowance > 0:
+            self.accrual_rate = self.annual_allowance / 12
+        else:
+            self.accrual_rate = 0
+        super().save(*args, **kwargs)
+
+   
+    def __str__(self):
+        return self.name
+
+
+class LeaveApplication(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE,null=True, blank=True)
+    leave_type = models.ForeignKey(LeaveType, on_delete=models.CASCADE,null=True, blank=True)
+    applied_start_date = models.DateField()
+    applied_end_date = models.DateField()
+    applied_no_of_days=models.PositiveBigIntegerField(null=True, blank=True)
+    applied_reason = models.TextField(null=True, blank=True)
+    attachment = models.FileField(upload_to='leave_attachments/', blank=True, null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=[('PENDING', 'Pending'), ('APPROVED', 'Approved'), ('REJECTED', 'Rejected')],
+        default='PENDING'
+    )
+    applied_on = models.DateTimeField(auto_now_add=True)
+    approved_start_date = models.DateField(null=True, blank=True)
+    approved_end_date = models.DateField(null=True, blank=True)
+    approved_no_of_days=models.PositiveBigIntegerField(null=True, blank=True)
+    approved_on = models.DateTimeField(default=timezone.now)
+    rejection_reason = models.TextField(null=True, blank=True)
+   
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.applied_end_date and self.applied_start_date:
+            self.applied_no_of_days = (self.applied_end_date - self.applied_start_date).days
+
+        if self.approved_end_date and self.approved_start_date:
+            self.approved_no_of_days = (self.approved_end_date - self.approved_start_date).days
+       
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.employee} - {self.leave_type.name}"
+
+
+
+class EmployeeLeaveBalance(models.Model):    
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE,null=True, blank=True)
+    leave_type = models.ForeignKey(LeaveType, on_delete=models.CASCADE,related_name='leave_balance',null=True, blank=True)
+    balance = models.PositiveIntegerField(default=0,null=True, blank=True)  
+    carry_forward = models.PositiveIntegerField(default=0) 
+    year = models.PositiveIntegerField(default=timezone.now().year) 
+    total_available = models.PositiveIntegerField(null=True, blank=True)
+    last_accrued_month = models.IntegerField(default=0,null=True, blank=True) 
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.balance and self.carry_forward:
+            self.total_available= (self.balance - self.carry_forward)
+        elif not self.carry_forward :
+            self.total_available = self.balance 
+       
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.employee} - {self.leave_type} - {self.year}"
+    
+
+
+class LeaveBalanceHistory(models.Model):
+    employee = models.ForeignKey('Employee', on_delete=models.CASCADE)
+    leave_type = models.ForeignKey('LeaveType', on_delete=models.CASCADE)
+    change = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)  # e.g., -1 for deduction, +1 for accrual
+    reason = models.CharField(max_length=255, blank=True, null=True)
+    date = models.DateField(default=now)
+
+    def __str__(self):
+        return f"{self.employee} | {self.leave_type} | {self.change} | {self.date}"

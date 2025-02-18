@@ -4,57 +4,12 @@
 
 {% block content %}
 
-<style>
-  @keyframes glow {
-        0% { text-shadow: 0 0 5px deepskyblue, 0 0 10px deepskyblue, 0 0 15px deepskyblue; }
-        50% { text-shadow: 0 0 5px greenyellow, 0 0 10px greenyellow, 0 0 15px greenyellow; }
-        100% { text-shadow: 0 0 5px gold, 0 0 10px gold, 0 0 15px gold; }
-      
-    }
-
-
-
-    .main-content {   
-    overflow-y: auto;
-    margin-left: 0px;
-    position: absolute;
-    width: 100%;
-    left: 0;
-    top: 100px;
-}
-</style>
-    
   
                
 
-<div class="container-fluid main-content">
-   
-    <div class="row"> 
-        <div class="col-12">
-            <div class="container-fluid" >
-                <div class="row">
-                    <div class="col-12 col-md-4">
-                        <p class="text-center animate">
-                            The Right Job, The Right Place, The Right You
-                        </p>     
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <p class="text-center animate">
-                            Join Our Thriving Community <br>
-                            Work with Passion and Purpose
-                        </p>     
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <p class="text-center animate">
-                            Elevate Your Career with Simplicity & Excellence
-                        </p>     
-                    </div>
-                </div>
-                
-            </div>   
-        </div>     
-    
-      
+<div class="container-fluid main-content">   
+    <div class="row">         
+          
          <div class="col-12">            
             <table class="table table-hover">   
                 <div class="container-fluid">
@@ -74,23 +29,46 @@
                 <thead class="table-dark">
                     
                     <tr>
-                        <th class="text-center p-2">Exam waiting room</th> 
-                        <th class="text-center p-2">Status</th>   
-                        <th class="text-center p-2">Confirmation</th>   
-                        <th class="text-center p-2">Joining</th>                                 
-                        <th class="text-center p-2">Application</th>                       
                         <th class="text-center p-2">Job Post</th>    
                         <th class="text-center p-2">No of vacancies</th>                    
                         <th class="text-center p-2">Job Description</th>
                         <th class="text-center p-2">company</th>
-                        <th class="text-center p-2">Deadline</th>                                     
+                        <th class="text-center p-2">Deadline</th> 
+                        <th class="text-center p-2">Application</th>  
+
+                        <th class="text-center p-2">Exam waiting room</th> 
+                        <th class="text-center p-2">Status</th>   
+                        <th class="text-center p-2">Confirmation</th>   
+                        <th class="text-center p-2">Joining</th>                                 
+                                            
+                                                          
                         
                     </tr>
                 </thead>
                 <tbody>
                     {% for data in page_obj %}
                         <tr>      
-                            
+                             
+                            <td class="text-center p-1">{{ data.position }}</td>   
+                            <td class="text-center p-1">{{ data.no_of_vacancies }}</td>  
+                            <td>
+                               <a href="{% url 'customerportal:position_details' data.position.id %}" class="btn btn-sm btn-primary text-white">click</a>
+                              </td>                         
+                            <td class="text-center p-2" style="white-space: nowrap;">{{data.company.name}}</td>
+                            <td class="text-center p-2" style="white-space: nowrap;">{{data.deadline}}</td>  
+                               
+                            <td>
+                                {% if data.id in applied_jobs %}
+                                    <span class="text-danger"><i class="fas fa-times"></i> Already Applied</span>
+                                {% elif data.is_active %}
+                                    <a href="{% url 'customerportal:job_application' data.id %}" class="btn btn-primary">Apply Now</a>
+                                {% else %}
+                                    <span class="text-muted"><i class="fas fa-times text-danger fw-bold"></i> Expired</span>
+                                {% endif %}
+                            </td>
+                                                    
+
+
                             <td>
                                 {% if data.job_exam.first %}                               
                                         
@@ -144,24 +122,7 @@
                                 </td>
 
                                  
-                            
-                            <td>
-                                {% if data.id in applied_jobs %}
-                                    <span class="text-danger"><i class="fas fa-times"></i> Already Applied</span>
-                                {% elif data.is_active %}
-                                    <a href="{% url 'customerportal:job_application' data.id %}" class="btn btn-primary">Apply Now</a>
-                                {% else %}
-                                    <span class="text-muted"><i class="fas fa-times text-danger fw-bold"></i> Expired</span>
-                                {% endif %}
-                            </td>
-                            
-                            <td class="text-center p-1">{{ data.position }}</td>   
-                            <td class="text-center p-1">{{ data.no_of_vacancies }}</td>  
-                            <td>
-                               <a href="{% url 'customerportal:position_details' data.position.id %}" class="btn btn-sm btn-primary text-white">click</a>
-                              </td>                         
-                            <td class="text-center p-2" style="white-space: nowrap;">{{data.company.name}}</td>
-                            <td class="text-center p-2" style="white-space: nowrap;">{{data.deadline}}</td>                                                     
+                                                   
                            
                         </tr>
                         {% empty %}

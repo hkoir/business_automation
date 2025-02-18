@@ -2,79 +2,75 @@
 
 {% block content %}
 
+<style>
+    .form-group {
+    margin-bottom: 0px !important; 
+}
 
+.card-body .row > div {
+    padding: 0 !important; 
+}
+
+form .form-control {
+    height: 5px;  
+    padding: 0; 
+    font-size: 14px;  
+}
+
+</style>
 
 
 
 <div class="container-fluid main-content">
     <div class="row">  
-        <div class="col-12">   
-        
-            <div class="col-12">                            
-                <div class="card shadow" style="padding:10px;background-color:aliceblue;">
+
+        <div class="col-12">  
+                                               
+                <div class="card shadow" style="background-color:aliceblue;">
                      <!-- Card Header -->
                      <div class="card-header bg-primary text-white text-center">
-                        <h3 class="mb-0"> Create/Update Task</h3>
+                        <h4 class="mb-0"> Create/Update Task</h4>
                     </div> 
                     <div class="card-body">
-                       
-                        <form method="post" enctype="multipart/form-data" id="add_category">
-                            {% csrf_token %} 
-                            <div class="container">
-                                <div class="row">
-                                    <div class="col-6 col-md-3">
-                                        Department: {{ form.department }}
-                                     </div>
-                                     <div class="col-6 col-md-3">
-                                        Task type: {{ form.task_type }}
-                                     </div>
-                                    <div class="col-6 col-md-3">
-                                       Task Title: {{ form.title }}
+                        <div class="container">
+                            <form method="post" enctype="multipart/form-data" id="add_category">
+                                {% csrf_token %} 
+                                <div class="row g-1"> <!-- g-1 reduces gutter spacing between rows -->
+                                    <div class="col-6 col-md-3 form-group">Department: {{ form.department }}</div>
+                                    <div class="col-6 col-md-3 form-group">Task type: {{ form.task_type }}</div>
+                                    <div class="col-6 col-md-3 form-group">Task Title: {{ form.title }}</div>
+                                    <div class="col-6 col-md-3 form-group">Ticket: {{ form.ticket }}</div>
+                                    <div class="col-6 col-md-3 form-group">Assigned type: {{ form.assigned_to }}</div>
+                                    <div class="col-6 col-md-3 form-group">Team: {{ form.assigned_to_team }}</div>
+                                    <div class="col-6 col-md-3 form-group">Member: {{ form.assigned_to_employee }}</div>
+                                    <div class="col-6 col-md-3 form-group">Task Manager: {{ form.task_manager }}</div>
+                                    <div class="col-6 col-md-3 form-group">Assigned score: {{ form.assigned_number }}</div>
+                                    <div class="col-6 col-md-3 form-group">Assigned date: {{ form.assigned_datetime }}</div>
+                                    <div class="col-6 col-md-3 form-group">Due date: {{ form.due_datetime }}</div>
+                                    <div class="col-6 col-md-3 form-group">Priority: {{ form.priority }}</div>
+                                    <div class="col-6 col-md-3 form-group">Remarks: {{ form.remarks }}</div>
+                                    <div class="col-6 col-md-3 form-group">
+                                        <button type="submit" name="add_to_basket" class="btn btn-primary mt-2">Submit</button>
                                     </div>
-                                    <div class="col-6 col-md-3">
-                                        Ticket: {{ form.ticket }}
-                                     </div>
-                                    <div class="col-6 col-md-3">
-                                        Assigned type: {{ form.assigned_to }}
-                                     </div>
-                                     <div class="col-6 col-md-3">
-                                        Team: {{ form.assigned_to_team }}
-                                     </div>
-                                     <div class="col-6 col-md-3">
-                                        member: {{ form.assigned_to_employee }}
-                                     </div>
-                                     <div class="col-6 col-md-3 p-1">
-                                        Task Manager: {{ form.task_manager }}
-                                     </div>
-                                     <div class="col-6 col-md-3">
-                                        Assigned score: {{ form.assigned_number }}
-                                     </div>
-                                     <div class="col-6 col-md-3">
-                                        Assigned date: {{ form.assigned_datetime}}
-                                     </div>
-                                     <div class="col-6 col-md-3">
-                                        Due date: {{ form.due_datetime}}
-                                     </div>
-                                     <div class="col-6 col-md-3">
-                                        Priority {{ form.priority }}
-                                     </div>
-                                     <div class="col-6 col-md-3">
-                                        remarks {{ form.remarks }}
-                                     </div>
-                                     <div class="col-6 col-md-3">
-                                        <button type="submit" name="add_to_basket" class="btn btn btn-primary mt-4">Submit</button>
-                                     </div>
-                                    </form>
                                 </div>
-                            </div>
-                            
-                           
+                            </form>
+                        </div>
+                    </div>
+                    
+
+                    </div>
+                </div>
+        </div>
                        
-                     </div>
-                </div>        
-            </div>
+                        
+                            
+
+                                                
+                     
+                     
+            
         
-        <div class="col-12">    
+        <div class="col-12 my-3">    
             <h2 class="mt-4">Tasks List</h2>   
             <form method="get">
                 <label for="start_date">Start Date:</label>
@@ -131,7 +127,7 @@
 
         </div>  
 
-    </div>
+   
     <!-- Pagination Controls -->
       <div class="pagination">
         <span class="step-links">

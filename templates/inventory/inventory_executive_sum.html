@@ -6,11 +6,11 @@
 
 
 
-<div class="container main-content" style="margin-left: 50px;">
+<div class="container main-content">
     <h4 class="text-center" style="color:blue;font-weight: bold;">DOPS Inventory Summary</h4>
     <div class="row">
 
-        <h4 class="text-center" style="margin-top: 20px; color: yellow;font-weight: bold;">
+        <h4 class="text-center" style="margin-top: 20px; color: green;font-weight: bold;">
             Current Stock Value: {{ grand_total_stock_value|add_commas }}&nbsp;&nbsp;
            
             <span style="font-size: 14px;">
@@ -93,6 +93,17 @@ new Chart(ctx, {
     },
     options: {
         responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    font: {
+                        size: 18
+                    },
+                    color: '#333' // Ensures label text is readable
+                }
+            }
+        },
         scales: {
             y: {
                 beginAtZero: true
@@ -139,19 +150,14 @@ new Chart(pieChartCtx, {
     options: {
         responsive: true,
         plugins: {
-            datalabels: {
-                formatter: (value, context) => {
-                    let total = context.chart.getDatasetMeta(0).total;
-                    let percentage = ((value / total) * 100).toFixed(2);
-                    return percentage + '%';  // Display percentage inside the pie chart
-                },
-                color: '#fff',  // Text color
-                font: {
-                    weight: 'bold',  // Make the text bold
-                    size: 14  // Adjust text size
-                },
-                align: 'center',
-                anchor: 'center'
+            legend: {
+                position: 'top',
+                labels: {
+                    font: {
+                        size: 18
+                    },
+                    color: '#333' // Ensures label text is readable
+                }
             }
         }
     }

@@ -6,7 +6,9 @@
 
 {% block content %}
 <style>
-
+ul li {
+    line-height: 10px;
+}
 
 </style>
 
@@ -20,21 +22,51 @@
                         <div class="col"> Start Date: {{ form.start_date }} </div>
                         <div class="col"> End Date: {{ form.end_date }} </div>
                         <div class="col"> No of days {{ form.days }} </div>
+                        <div class="col"> Vehicle number: {{ form.vehicle_number }} </div>
+                        <div class="col"> Month {{ form.month }} </div>
+                        <div class="col"> Year {{ form.year }} </div>
                         <div class="col"> <button type="submit" class='btn btn-primary'>Generate Data</button></div>
                     </div>
                 </div>
             </form>               
         </div>
-        <div class="col-12 my-3">
+        <div class="col-12">
             <div class="container">
                 <div class="row">
-                    <div class="col-3"></div>
-                    <div class="col-6">
+                    <div class="col-12 col-md-4 mt-2">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body" style="background-color: aqua;">
+                               Filter applied:
+                                    
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Start date:<span>{{ Start_date }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                       End date:<span>{{ end_date }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        days:<span>{{ No_of_candidate_fail }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Month:<span>{{ month_name }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Year<span>{{ year }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Vehicle<span>{{ vehicle_number }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-8">
                         <div id="chart-container">
                             <canvas id="incrementChart"></canvas>
                         </div>
                     </div>
-                    <div class="col-3"></div>
+                   
                 </div>
             </div>
             

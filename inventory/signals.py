@@ -22,7 +22,7 @@ def handle_custom_notification(sender, instance, user, action, **kwargs):
     user = kwargs.get("user")
     message = kwargs.get("message")
     if user and message:
-        create_notification(user=user, message=message)
+        create_notification(user=user, message=message,notification_type='WAREHOUSE-LOW-STOCK')
 
 
 
@@ -163,15 +163,15 @@ def update_inventory_status(sender, instance, **kwargs):
     if warehouse_wise_low_stock:
         # send_warehouse_low_stock_alert(warehouse_wise_low_stock)  
         if user:
-            create_notification(user, 'Inventory low alert')
+            create_notification(user, message='Inventory low alert',notification_type='WAREHOUSE-LOW-STOCK')
     if low_stock_products:
         # send_total_low_stock_alert(low_stock_products)  
         if user:
-            create_notification(user, 'Inventory low alert')
+            create_notification(user, message='Inventory low alert',notification_type='WAREHOUSE-LOW-STOCK')
     if low_stock_alerts:
         # send_lead_time_alert(low_stock_alerts)  
         if user:
-            create_notification(user, 'Inventory low alert')
+            create_notification(user, message='Inventory low alert',notification_type='WAREHOUSE-LOW-STOCK')
 
 
 

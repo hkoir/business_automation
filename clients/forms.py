@@ -3,6 +3,23 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 
 from .models import Tenant,Subscription
 
+from django import forms
+from .models import DemoRequest
+
+
+
+
+class DemoRequestForm(forms.ModelForm):
+    class Meta:
+        model = DemoRequest
+        fields = ['name', 'email', 'company', 'job_title', 'company_size', 'phone_number', 'message']  
+        widgets={
+            'message':forms.Textarea(attrs={
+                'class':'form-control',
+                'row':2,
+                'style':'height:100px'
+            })
+        }
 
 
 class TenantApplicationForm(forms.ModelForm):
@@ -11,6 +28,7 @@ class TenantApplicationForm(forms.ModelForm):
         fields = ['name', 'subdomain','email','phone_number', 'address','logo']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 4, 'cols': 40}),
+           
         }
 
 

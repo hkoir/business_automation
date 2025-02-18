@@ -23,14 +23,18 @@ class PurchaseRequestOrder(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_request_user')
     order_date = models.DateField(null=True, blank=True)
     STATUS_CHOICES = [
-    ('CREATED', 'Created'), 
-     ('IN_PROCESS', 'In Process'),
-    ('IN_TRANSIT', 'In Transit'),
-    ('DELIVERED', 'Delivered'),
-    ('PARTIAL_DELIVERED', 'Partial Delivered'),
-    ('CANCELLED','Cancelled'),
+        ('IN_PROCESS', 'In Process'),
+        ('READY_FOR_QC', 'Ready for QC'),
+        ('DISPATCHED', 'Dispatched'),
+        ('ON_BOARD', 'On Board'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('CUSTOM_CLEARANCE_IN_PROCESS', 'Custom Clearance In Process'),   
+        ('REACHED', 'Reached'),         
+        ('OBI','OBI done'),
+        ('DELIVERED', 'Delivered'),     
+        ('CANCELLED', 'Cancelled'),
         ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
 
     STATUS_CHOICES = [
     ('SUBMITTED', 'Submitted'),
@@ -132,12 +136,18 @@ class PurchaseOrder(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchase_supplier')
     order_date = models.DateField(null=True, blank=True)
     ORDER_STATUS_CHOICES = [
-    ('PENDING', 'Pending'),
-    ('IN_PROCESS', 'In Process'),
-    ('DELIVERED', 'Delivered'),
-    ('CANCELLED', 'Cancelled'),
+        ('IN_PROCESS', 'In Process'),
+        ('READY_FOR_QC', 'Ready for QC'),
+        ('DISPATCHED', 'Dispatched'),
+        ('ON_BOARD', 'On Board'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('CUSTOM_CLEARANCE_IN_PROCESS', 'Custom Clearance In Process'),   
+        ('REACHED', 'Reached'),         
+        ('OBI','OBI done'),
+        ('DELIVERED', 'Delivered'),     
+        ('CANCELLED', 'Cancelled'),
         ]
-    status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='IN_PROCESS',null=True,blank=True)   
+    status = models.CharField(max_length=50, choices=ORDER_STATUS_CHOICES, default='IN_PROCESS',null=True,blank=True)   
     APPROVAL_STATUS_CHOICES = [
     ('SUBMITTED', 'Submitted'),
      ('REVIEWED', 'Reviewed'),
@@ -213,14 +223,16 @@ class PurchaseOrderItem(models.Model):
     prepared_by = models.ForeignKey(User, related_name='prepared_purchases', on_delete=models.CASCADE, null=True, blank=True)
     approved_by = models.ForeignKey(User, related_name='approved_purchases', on_delete=models.CASCADE, null=True, blank=True)
     status = models.CharField(
-    max_length=30,
+    max_length=50,
     choices=[
         ('IN_PROCESS', 'In Process'),
+        ('READY_FOR_QC', 'Ready for QC'),
+        ('DISPATCHED', 'Dispatched'),
         ('ON_BOARD', 'On Board'),
         ('IN_TRANSIT', 'In Transit'),
-        ('REACHED', 'Reached'),
-        ('IN_CUSTOM', 'In Custom'),     
-        ('OBI', 'OBI'),
+        ('CUSTOM_CLEARANCE_IN_PROCESS', 'Custom Clearance In Process'),   
+        ('REACHED', 'Reached'),         
+        ('OBI','OBI done'),
         ('DELIVERED', 'Delivered'),     
         ('CANCELLED', 'Cancelled'),
     ],

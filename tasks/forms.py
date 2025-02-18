@@ -102,7 +102,7 @@ class TicketForm(forms.ModelForm):
     class Meta:
         model = Ticket
 
-        fields = ['ticket_type','sales','operations', 'production', 'subject', 'priority','description','status']
+        fields = ['ticket_type','sales','operations', 'production','repair_return', 'subject', 'priority','description','status']
         widgets={
             'description':forms.Textarea(attrs={
                 'row':3,
@@ -354,6 +354,61 @@ class GroupTrendForm(forms.Form):
 
 
 
+class IncrementPromotionCheckForm(forms.Form):
+    INCREMENT_TYPE_CHOICES = [
+        ('MONTHLY', 'Monthly'),
+        ('QUARTERLY', 'Quarterly'),
+        ('HALF-YEARLY', 'Half Yearly'),
+        ('YEARLY', 'Yearly'),
+    ]
+
+    INCREMENT_CATEGORY_CHOICES=[
+        ('BY_EMPLOYEE','By Employee'),
+        ('BY_DEPARTMENT','By department'),
+        ('BY_POSITION','By Position'),
+        ('BY_COMPANY','By Company')]
+
+    MONTH_CHOICES = [
+        ('JANUARY', 'January'),
+        ('FEBRUARY', 'February'),
+        ('MARCH', 'March'),
+        ('APRIL', 'April'),
+        ('MAY', 'May'),
+        ('JUNE', 'June'),
+        ('JULY', 'July'),
+        ('AUGUST', 'August'),
+        ('SEPTEMBER', 'September'),
+        ('OCTOBER', 'October'),
+        ('NOVEMBER', 'November'),
+        ('DECEMBER', 'December'),
+    ]
+
+    QUARTER_CHOICES = [
+        ('1ST-QUARTER', '1st Quarter'),
+        ('2ND-QUARTER', '2nd Quarter'),
+        ('3RD-QUARTER', '3rd Quarter'),
+        ('4TH-QUARTER', '4th Quarter'),
+    ]
+
+    HALF_YEAR_CHOICES = [
+        ('1ST-HALF-YEAR', 'First Half Year'),
+        ('2ND-HALF-YEAR', 'Second Half Year'),
+    ]
+    appraisal_year= forms.IntegerField(required=False)
+    appraisal_type = forms.ChoiceField(required=False,choices=INCREMENT_TYPE_CHOICES) 
+
+    year= forms.IntegerField(required=False)     
+    month=forms.ChoiceField(required=False,choices=MONTH_CHOICES)
+    quarter=forms.ChoiceField(required=False,choices=QUARTER_CHOICES)
+    half_year=forms.ChoiceField(required=False,choices=HALF_YEAR_CHOICES)
+
+    eligible_score_for_promotion= forms.FloatField(required=False) 
+    eligible_score_for_promotion= forms.FloatField(required=False)
+    max_promotion_limit = forms.FloatField(required=False)
+    salary_increment_percentage = forms.FloatField(required=False)
+    promotional_increment_percentage = forms.FloatField(required=False)
+
+
 class IncrementPromotionForm(forms.ModelForm):  
     effective_date = forms.DateField(
         label='Effective Date',
@@ -398,7 +453,6 @@ class IncrementPromotionFinalDataForm(forms.ModelForm):
 
 
 class DownloadIncrementPromotionForm(forms.Form):
-
     INCREMENT_TYPE_CHOICES = [
         ('MONTHLY', 'Monthly'),
         ('QUARTERLY', 'Quarterly'),
@@ -450,7 +504,6 @@ class DownloadIncrementPromotionForm(forms.Form):
 
    
 class GenerateIncrementPromotionPdfForm(forms.Form):
-
     INCREMENT_TYPE_CHOICES = [
         ('MONTHLY', 'Monthly'),
         ('QUARTERLY', 'Quarterly'),
@@ -553,58 +606,5 @@ class GenerateIncrementPromotionGeneralPdfForm(forms.Form):
     appraisal_category = forms.ChoiceField(required=False,choices=INCREMENT_CATEGORY_CHOICES)
    
 
-class IncrementPromotionCheckForm(forms.Form):
-
-    INCREMENT_TYPE_CHOICES = [
-        ('MONTHLY', 'Monthly'),
-        ('QUARTERLY', 'Quarterly'),
-        ('HALF-YEARLY', 'Half Yearly'),
-        ('YEARLY', 'Yearly'),
-    ]
-
-    INCREMENT_CATEGORY_CHOICES=[
-        ('BY_EMPLOYEE','By Employee'),
-        ('BY_DEPARTMENT','By department'),
-        ('BY_POSITION','By Position'),
-        ('BY_COMPANY','By Company')]
-
-    MONTH_CHOICES = [
-        ('JANUARY', 'January'),
-        ('FEBRUARY', 'February'),
-        ('MARCH', 'March'),
-        ('APRIL', 'April'),
-        ('MAY', 'May'),
-        ('JUNE', 'June'),
-        ('JULY', 'July'),
-        ('AUGUST', 'August'),
-        ('SEPTEMBER', 'September'),
-        ('OCTOBER', 'October'),
-        ('NOVEMBER', 'November'),
-        ('DECEMBER', 'December'),
-    ]
-
-    QUARTER_CHOICES = [
-        ('1ST-QUARTER', '1st Quarter'),
-        ('2ND-QUARTER', '2nd Quarter'),
-        ('3RD-QUARTER', '3rd Quarter'),
-        ('4TH-QUARTER', '4th Quarter'),
-    ]
-
-    HALF_YEAR_CHOICES = [
-        ('1ST-HALF-YEAR', 'First Half Year'),
-        ('2ND-HALF-YEAR', 'Second Half Year'),
-    ]
-    appraisal_year= forms.IntegerField(required=False)
-    appraisal_type = forms.ChoiceField(required=False,choices=INCREMENT_TYPE_CHOICES)   
-    year= forms.IntegerField(required=False)      
-      
-    month=forms.ChoiceField(required=False,choices=MONTH_CHOICES)
-    quarter=forms.ChoiceField(required=False,choices=QUARTER_CHOICES)
-    half_year=forms.ChoiceField(required=False,choices=HALF_YEAR_CHOICES)
-    eligible_score_for_promotion= forms.FloatField(required=False) 
-    eligible_score_for_promotion= forms.FloatField(required=False)
-    max_promotion_limit = forms.FloatField(required=False)
-    salary_increment_percentage = forms.FloatField(required=False)
-    promotional_increment_percentage = forms.FloatField(required=False)
 
        

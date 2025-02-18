@@ -46,6 +46,8 @@
             {% endif %} 
         </span>   
 
+        {% if page_obj %}
+
         <h4 class="text-center" style="color:blue;font-weight: bold;"></h4>
         <h4 class="text-center" style="color: rgb(231, 51, 11);font-weight: bold;">
            <span style="color: rgb(6, 37, 216);font-weight: bold;">Product: {{ product_name }}</span> :Total Stock Value: {{ grand_total_stock_value|add_commas }}&nbsp;&nbsp;
@@ -56,16 +58,17 @@
         
         </span>
     </h4>
+   
 
         <div class="col-12" style="margin-bottom: 20px;">
             <div class="container-fluid">
                 <div class="row">
-                    <div class="col-8 bg-light">
-                        <canvas id="barChart" ></canvas>
+                    <div class="col-9 bg-light">
+                        <canvas id="barChart" height="100" ></canvas>
                         <div id="warehouseNames"></div>
                     </div>
-                    <div class="col-4 bg-light">
-                        <canvas id="doughnutChart"></canvas>
+                    <div class="col-3 bg-light">
+                        <canvas id="doughnutChart" height="30"></canvas>
                     </div>
 
                 </div>
@@ -147,8 +150,9 @@
                 </div>
             </div>
         </div>
-
-
+        {% else %}
+        <span class="text-center" style="color:yellow;font-weight:bold ;">No record found. Please choose filter</span>
+        {% endif %}
 
        <!-- Pagination Controls -->
         <div class="pagination">
@@ -261,7 +265,7 @@
         ...totalTransferOut,
         ...totalReplacementOut,
         ...totalStock,
-    ) * 1.6;
+    ) * 1.1;
 
     // Bar chart
     const ctxBar = document.getElementById('barChart').getContext('2d');
@@ -396,6 +400,13 @@
         },
         options: {
         responsive: true,
+        scales: {
+                y: {
+                    beginAtZero: true,
+                    max: maxYValue,
+                    min: 0,
+                }
+            },
         plugins: {
             legend: {
                 position: 'top',

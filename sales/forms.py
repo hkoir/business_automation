@@ -195,6 +195,22 @@ class QualityControlForm(forms.ModelForm):
             if good_quantity + bad_quantity > total_quantity:
                 raise forms.ValidationError("Good and bad quantities cannot exceed the total quantity.")
         return cleaned_data
+    
+
+
+
+
+    def clean(self):
+        cleaned_data = super().clean()
+        total_quantity = cleaned_data.get("total_quantity")
+        good_quantity_by_customer = cleaned_data.get("good_quantity_by_customer")
+        bad_quantity_by_customer = cleaned_data.get("bad_quantity_by_customer")
+
+        if good_quantity_by_customer and bad_quantity_by_customer and total_quantity:
+            if good_quantity_by_customer + bad_quantity_by_customer > total_quantity:
+                raise forms.ValidationError("Good and bad quantities cannot exceed the total quantity.")
+        return cleaned_data
+
 
 
 
@@ -246,4 +262,11 @@ class SalesReportForm(forms.Form):
         min_value=1,
         required=False
     )
+
+    product_name = forms.ModelChoiceField(
+        queryset=Product.objects.all(),
+        label='Product',      
+        required=False
+    )
+   
    

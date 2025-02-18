@@ -5,19 +5,503 @@ from utils import create_notification
 from django.utils import timezone
 from datetime import datetime, timedelta
 from collections import defaultdict
-
-from tasks.forms import CustomerUpdateTicketForm,TicketForm
-from core.forms import CommonFilterForm
-from tasks.models import TeamMember,PerformanceEvaluation,TaskMessageReadStatus,Ticket,Task
-
-from recruitment.models import Job,Candidate,TakeExam,Exam
-from recruitment.forms import SearchApplicationForm,CandidateForm,TakeExamForm
 from django.utils.timezone import localtime
 from django.urls import reverse
 from django.db.models import Q
-from repairreturn.forms import RepairReturnCustomerFeedbackForm
-from.forms import TicketCustomerFeedbackForm
-from tasks.models import Ticket
+from django.contrib.auth.decorators import login_required
+from utils import update_sale_order,update_sale_shipment_status,update_sale_request_order
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+
+
+from repairreturn.models import ReturnOrRefund
+from repairreturn.forms import ReturnOrRefundForm,RepairReturnCustomerFeedbackForm
+
+from recruitment.models import Job,Candidate,TakeExam,Exam
+from recruitment.forms import SearchApplicationForm,CandidateForm,TakeExamForm
+
+from tasks.forms import CustomerUpdateTicketForm,TicketForm
+from tasks.models import TeamMember,PerformanceEvaluation,TaskMessageReadStatus,Ticket,Task
+
+from.forms import QualityControlFormByCustomer
+from sales.models import SaleOrder,SaleOrderItem
+
+from.forms import FilterForm,TicketCustomerFeedbackForm
+from core.forms import CommonFilterForm
+from logistics.models import SaleDispatchItem,SaleShipment
+
+
+
+def customer_landing_page(request):
+    return render(request,'customerportal/customer_landing_page.html')
+
+
+@login_required
+def sale_order_list(request):
+    sale_order_number=None
+    form = CommonFilterForm(request.GET or None)
+    sale_orders = SaleOrder.objects.all().order_by('-created_at')
+        
+    if request.user.is_authenticated:
+        if request.user.groups.filter(name='Customer').exists():
+            sale_orders = sale_orders.filter(user = request.user)
+        else:
+            sale_orders = sale_orders
+
+
+    if form.is_valid():
+        sale_order_number = form.cleaned_data['sale_order_id']
+        if sale_order_number:
+            sale_orders = sale_orders.filter(order_id = sale_order_number)
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
+
+    paginator = Paginator(sale_orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    form=CommonFilterForm()
+
+    return render(request, 'customerportal/sale_order_list.html',
+        {
+            'sale_orders':sale_orders,
+            'form':form,
+            'sale_order_number':sale_order_number,
+            'page_obj':page_obj,
+            'sale_order_number':sale_order_number
+        })
+
+
+
+
+def item_dispatched(request,sale_order_id):
+    sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
+    dispatch_items = SaleDispatchItem.objects.filter(dispatch_item__sale_order=sale_order)
+
+    product_wise_totals = defaultdict(lambda: {
+        'order_quantity': 0,
+        'dispatch_quantity': 0,
+        'good_quantity_by_customer': 0,
+        'bad_quantity_by_customer': 0
+    })
+
+    shipments = {}
+    qc_quantities = {} 
+
+    for dispatch_item in dispatch_items:
+        shipment = dispatch_item.sale_shipment
+        product_name = dispatch_item.dispatch_item.product.name
+        if shipment not in shipments:
+            shipments[shipment] = []
+        shipments[shipment].append(dispatch_item)
+
+        product_wise_totals[product_name]['order_quantity'] += dispatch_item.dispatch_item.quantity or 0
+        product_wise_totals[product_name]['dispatch_quantity'] += dispatch_item.dispatch_quantity or 0
+
+        qc_entry = dispatch_item.sale_quality_control.first()
+        if qc_entry:
+            good_quantity = qc_entry.good_quantity_by_customer or 0
+            bad_quantity = qc_entry.bad_quantity_by_customer or 0
+
+            product_wise_totals[product_name]['good_quantity_by_customer'] += good_quantity
+            product_wise_totals[product_name]['bad_quantity_by_customer'] += bad_quantity
+
+            qc_quantities[dispatch_item.id] = {
+                'good_quantity_by_customer': good_quantity,
+                'bad_quantity_by_customer': bad_quantity,
+                'created_at': qc_entry.created_at
+            }
+          
+        else:
+            product_wise_totals[product_name]['good_quantity_by_customer'] += 0
+            product_wise_totals[product_name]['bad_quantity_by_customer'] += 0
+
+    context = {
+        'sale_order': sale_order,
+        'shipments': shipments,
+        'product_wise_totals': dict(product_wise_totals),
+        'qc_quantities': qc_quantities,    }
+    return render(request, 'customerportal/item_dispatch.html', context)
+
+
+
+@login_required
+def sale_dispatch_item_list(request, sale_order_id):  
+    sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
+    dispatch_items = SaleDispatchItem.objects.filter(dispatch_item__sale_order=sale_order)
+
+    product_wise_totals = defaultdict(lambda: {
+        'order_quantity': 0,
+        'dispatch_quantity': 0,
+        'good_quantity_by_customer': 0,
+        'bad_quantity_by_customer': 0
+    })
+
+    shipments = {}
+    qc_quantities = {} 
+
+    for dispatch_item in dispatch_items:
+        shipment = dispatch_item.sale_shipment
+        product_name = dispatch_item.dispatch_item.product.name
+        if shipment not in shipments:
+            shipments[shipment] = []
+        shipments[shipment].append(dispatch_item)
+
+        product_wise_totals[product_name]['order_quantity'] += dispatch_item.dispatch_item.quantity or 0
+        product_wise_totals[product_name]['dispatch_quantity'] += dispatch_item.dispatch_quantity or 0
+
+        qc_entry = dispatch_item.sale_quality_control.first()
+        if qc_entry:
+            good_quantity = qc_entry.good_quantity_by_customer or 0
+            bad_quantity = qc_entry.bad_quantity_by_customer or 0
+
+            product_wise_totals[product_name]['good_quantity_by_customer'] += good_quantity
+            product_wise_totals[product_name]['bad_quantity_by_customer'] += bad_quantity
+
+            qc_quantities[dispatch_item.id] = {
+                'good_quantity_by_customer': good_quantity,
+                'bad_quantity_by_customer': bad_quantity,
+                'created_at': qc_entry.created_at
+            }
+          
+        else:
+            product_wise_totals[product_name]['good_quantity_by_customer'] += 0
+            product_wise_totals[product_name]['bad_quantity_by_customer'] += 0
+
+    context = {
+        'sale_order': sale_order,
+        'shipments': shipments,
+        'product_wise_totals': dict(product_wise_totals),
+        'qc_quantities': qc_quantities,    }
+    return render(request, 'customerportal/dispatch_item_list.html', context)
+
+
+
+
+@login_required
+def update_sale_dispatch_status(request, dispatch_item_id):
+    dispatch_item = get_object_or_404(SaleDispatchItem, id=dispatch_item_id)  
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('new_status')
+        old_status = dispatch_item.status
+        dispatch_item.status = new_status
+        dispatch_item.save()
+        create_notification(request.user, message=f'Product: {dispatch_item.dispatch_item.product} status updated from {old_status} to {new_status}',notification_type='SHIPMENT-NOTIFICATION')     
+
+    shipment = dispatch_item.sale_shipment
+    shipment.update_shipment_status()
+    try:
+        shipment = SaleShipment.objects.get(id=shipment.id)
+
+        total_dispatch_items = shipment.sale_shipment_dispatch.count()
+        reached_items_count = shipment.sale_shipment_dispatch.filter(status__in=['REACHED', 'OBI']).count()
+
+        all_items_reached = reached_items_count == total_dispatch_items
+
+        if all_items_reached:
+            shipment.status = 'REACHED'
+            shipment.sales_order.status = 'REACHED'
+            shipment.save()            
+
+            print(f"Shipment {shipment.id} marked as REACHED.")
+
+            for dispatch_item in shipment.sale_shipment_dispatch.filter(status__in=['REACHED', 'OBI']):
+                create_notification(request.user, message=f'Item { dispatch_item.dispatch_item.product} has just reached',notification_type='SHIPMENT-NOTIFICATION')
+
+    except SaleShipment.DoesNotExist:
+        print(f"Shipment {shipment.id} not found.")   
+    return redirect('customerportal:sale_dispatch_item_list', sale_order_id=shipment.sales_order.id)
+
+
+
+
+@login_required
+def customer_qc_dashboard(request, sale_order_id=None):
+    if sale_order_id:
+        pending_items = SaleDispatchItem.objects.filter(
+            sale_shipment__sales_order=sale_order_id,
+            status__in=['REACHED', 'OBI']
+        )
+        if not pending_items:
+             messages.info(request, "No items pending for quality control inspection.No new goods arrived yet")
+            
+        sale_order = get_object_or_404(SaleOrder, id=sale_order_id)
+    else:
+        pending_items = SaleDispatchItem.objects.filter(status__in=['REACHED', 'OBI'])
+        sale_order = None
+        if not pending_items:
+            messages.info(request, "No items pending for quality control inspection.No new goods arrived yet")               
+    return render(request, 'customerportal/customer_qc_dashboard.html', {'pending_items': pending_items, 'sale_order': sale_order})
+
+
+
+
+@login_required
+def customer_qc_inspect_item(request, item_id):
+    sale_dispatch_item = get_object_or_404(SaleDispatchItem, id=item_id)   
+    sale_order = sale_dispatch_item.dispatch_item.sale_order
+    sale_request_order = sale_order.sale_request_order
+    sale_shipment = sale_dispatch_item.sale_shipment   
+    sale_order_item = sale_dispatch_item.dispatch_item
+    sale_request_item = sale_order_item.sale_request_item
+   
+
+    if not sale_shipment:
+        messages.error(request, "No shipment found for this order item.")
+        return redirect('sales:customer_qc_dashboard')  
+    if not sale_dispatch_item.status in ['REACHED','OBI']:
+        messages.error(request, "Goods not arrived yet found for this order item.")
+        return redirect('sales:customer_qc_dashboard')  
+    
+    if sale_shipment.status != 'REACHED':
+                messages.info(request, "Cannot inspect due to delivery has not been done yet.")
+                return redirect('sales:customer_qc_dashboard')
+
+    if request.method == 'POST':
+        form = QualityControlFormByCustomer(request.POST)
+        if form.is_valid():           
+            qc_entry = form.save(commit=False)
+            qc_entry.sale_dispatch_item = sale_dispatch_item
+            qc_entry.user = request.user 
+            qc_entry.quality_check_by = 'BY-CUSTOMER' 
+            qc_entry.inspection_date = timezone.now()
+            qc_entry.save()
+
+            sale_dispatch_item.status = 'OBI'
+            sale_dispatch_item.save()   
+            
+            sale_order.status = 'DELIVERED'
+            sale_order.save()
+
+            sale_order_item.status ='DELIVERED'
+            sale_order_item.save()
+
+            sale_request_order.status ='DELIVERED'
+            sale_request_order.save()
+
+            sale_request_item.status ='DELIVERED'
+            sale_request_item.save()
+
+            update_sale_order(sale_order.id)      
+            update_sale_shipment_status(sale_shipment.id)
+            update_sale_request_order(sale_request_order.id)         
+                 
+            messages.success(request, "Quality control inspection recorded successfully.")
+            return redirect('sales:customer_qc_dashboard')
+        else:
+            messages.error(request, "Error saving QC inspection.")
+    else:
+        form = QualityControlFormByCustomer(initial={'total_quantity': sale_dispatch_item.dispatch_quantity})    
+    return render(request, 'customerportal/customer_qc_inspect_item.html', {'form': form, 'sale_dispatch_item': sale_dispatch_item})
+
+######################### Supplier ###################################################
+from purchase.models import PurchaseOrder
+from purchase.forms import PurchaseOrderSearchForm
+from purchase.models import QualityControl
+from django.db.models import Sum
+
+
+@login_required
+def purchase_order_list(request):
+    purchase_order = None
+    purchase_orders = PurchaseOrder.objects.all().order_by("-created_at")
+
+    form = CommonFilterForm(request.GET or None)
+    if form.is_valid():
+        purchase_order = form.cleaned_data['purchase_order_id']
+        if purchase_order:
+            purchase_orders = purchase_orders.filter(order_id=purchase_order)
+    
+   
+    paginator = Paginator(purchase_orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'customerportal/purchase/purchase_order_list.html', {
+        'purchase_orders': purchase_orders,           
+        'user': request.user,
+        'form': form,
+        'page_obj': page_obj,
+        'purchase_order': purchase_order,
+       
+    })
+
+@login_required
+def purchase_order_items(request,order_id):
+    order_instance = get_object_or_404(PurchaseOrder,id=order_id)
+    return render(request,'customerportal/purchase/purchase_order_items.html',{'order_instance':order_instance})
+
+
+
+@login_required
+def dispatch_item_list(request, purchase_order_id):
+    purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)
+    dispatch_items = PurchaseDispatchItem.objects.filter(dispatch_item__purchase_order=purchase_order)
+
+    product_wise_totals = defaultdict(lambda: {
+        'order_quantity': 0,
+        'dispatch_quantity': 0,
+        'good_quantity': 0,
+        'bad_quantity': 0
+    })
+
+    shipments = {}
+    qc_quantities = {} 
+
+    for dispatch_item in dispatch_items:
+        shipment = dispatch_item.purchase_shipment
+        product_name = dispatch_item.dispatch_item.product.name
+        if shipment not in shipments:
+            shipments[shipment] = []
+        shipments[shipment].append(dispatch_item)
+
+        product_wise_totals[product_name]['order_quantity'] += dispatch_item.dispatch_item.quantity or 0
+        product_wise_totals[product_name]['dispatch_quantity'] += dispatch_item.dispatch_quantity or 0
+
+        qc_entry = QualityControl.objects.filter(purchase_dispatch_item=dispatch_item).first()
+        if qc_entry:
+            good_quantity = qc_entry.good_quantity or 0
+            bad_quantity = qc_entry.bad_quantity or 0
+
+            product_wise_totals[product_name]['good_quantity'] += good_quantity
+            product_wise_totals[product_name]['bad_quantity'] += bad_quantity
+
+            qc_quantities[dispatch_item.id] = {
+                'good_quantity': good_quantity,
+                'bad_quantity': bad_quantity,
+                'created_at': qc_entry.created_at
+            }
+        else:
+            product_wise_totals[product_name]['good_quantity'] += 0
+            product_wise_totals[product_name]['bad_quantity'] += 0
+
+    context = {
+        'purchase_order': purchase_order,
+        'shipments': shipments,
+        'product_wise_totals': dict(product_wise_totals),
+        'qc_quantities': qc_quantities,    }
+
+    return render(request, 'customerportal/purchase/dispatch_item_list.html', context)
+
+from logistics.models import PurchaseDispatchItem
+from shipment.models import PurchaseShipment
+
+@login_required
+def update_dispatch_status(request, dispatch_item_id):
+    dispatch_item = get_object_or_404(PurchaseDispatchItem, id=dispatch_item_id)
+    if request.method == 'POST':
+        new_status = request.POST.get('new_status')
+        old_status = dispatch_item.status
+        dispatch_item.status = new_status
+        dispatch_item.save()  
+        create_notification(request.user, message=f'Product: {dispatch_item.dispatch_item.product} status updated from {old_status} to {new_status}',notification_type='SHIPMENT-NOTIFICATION')     
+
+    shipment = dispatch_item.purchase_shipment
+    shipment.update_shipment_status()
+
+    try:
+        shipment = PurchaseShipment.objects.get(id=shipment.id)
+
+        total_dispatch_items = shipment.shipment_dispatch_item.count()
+        reached_items_count = shipment.shipment_dispatch_item.filter(status__in=['REACHED', 'OBI']).count()
+
+        all_items_reached = reached_items_count == total_dispatch_items
+
+        if all_items_reached:
+            shipment.status = 'REACHED'
+            shipment.purchase_order.status = 'REACHED'
+            shipment.save()
+
+            for dispatch_item in shipment.shipment_dispatch_item.filter(status__in=['REACHED', 'OBI']):
+                create_notification(request.user, message=f'Item {dispatch_item.dispatch_item.product} has just reached',notification_type='SHIPMENT-NOTIFICATION')
+
+    except PurchaseShipment.DoesNotExist:
+        print(f"Shipment {shipment.id} not found.")
+
+
+    return redirect('customerportal:dispatch_item_list', purchase_order_id=shipment.purchase_order.id)
+
+
+
+
+def cancel_dispatch_item(request, dispatch_item_id):
+    dispatch_item = get_object_or_404(PurchaseDispatchItem, id=dispatch_item_id)
+
+    if request.method == "POST":
+        dispatch_item.status = 'CANCELLED'
+        dispatch_item.save()
+        messages.success(request, "Dispatch item successfully cancelled.")
+
+        return redirect('logistics:dispatch_item_list', purchase_order_id=dispatch_item.dispatch_item.purchase_order.id)
+    return render(request, 'logistics/purchase/cancel_order_item.html', {'dispatch_item': dispatch_item})
+
+
+
+from finance.models import PurchaseInvoice
+from finance.forms import PurchaseInvoiceForm,PurchaseInvoiceAttachmentForm
+
+@login_required
+def create_purchase_invoice(request, order_id):
+    purchase_shipment = get_object_or_404(PurchaseShipment, id=order_id) 
+
+    if purchase_shipment.shipment_invoices.count() > 0:
+        if purchase_shipment.shipment_invoices.filter(status__in=['SUBMITTED', 'PARTIALLY_PAYMENT', 'FULLY_PAYMENT']).count() == purchase_shipment.shipment_invoices.count():
+            messages.error(request, "All invoices for this shipment have already been submitted or paid.")
+            return redirect('customerportal:purchase_order_list')
+    else:
+         pass     
+
+    try:       
+        if purchase_shipment.status != 'DELIVERED':
+            messages.error(request, "Cannot create an invoice: Shipment status is not 'Delivered yet'.")
+            return redirect('purchase:purchase_order_list') 
+    except PurchaseShipment.DoesNotExist:
+        messages.error(request, "Cannot create an invoice: No shipment found for this order.")
+        return redirect('customerportal:purchase_order_list') 
+
+    initial_data = {
+        'purchase_shipment': purchase_shipment,
+        'amount_due': purchase_shipment.purchase_order.total_amount
+    }
+
+    if request.method == 'POST':
+        form = PurchaseInvoiceForm(request.POST)
+        if form.is_valid():
+            invoice = form.save(commit=False)
+            invoice.user = request.user
+            invoice.status ='SUBMITTED'
+            invoice.save()
+            messages.success(request, "Invoice created and submitted successfully.")
+            return redirect('customerportal:purchase_order_list')  
+        else:
+            messages.error(request, "Error creating invoice.")
+    else:
+        form = PurchaseInvoiceForm(initial=initial_data)
+    return render(request, 'customerportal/purchase/create_invoice.html', {'form': form})
+
+
+@login_required
+def add_purchase_invoice_attachment(request, invoice_id):
+    invoice = get_object_or_404(PurchaseInvoice, id=invoice_id)    
+    if request.method == 'POST':
+        form = PurchaseInvoiceAttachmentForm(request.POST, request.FILES)
+        if form.is_valid():
+            attachment = form.save(commit=False)
+            attachment.purchase_invoice = invoice  
+            attachment.user=request.user
+            attachment.save()
+            return redirect('customerportal:purchase_order_list')
+    else:
+        form = PurchaseInvoiceAttachmentForm()
+
+    return render(request, 'customerportal/purchase/add_invoice_attachment.html', {'form': form, 'invoice': invoice})
+
+
+
+#######################################################################################
 
 
 def create_ticket(request):    
@@ -28,8 +512,7 @@ def create_ticket(request):
             ticket= form.save(commit=False)
             ticket.created_by = request.user
             ticket.user=request.user
-            ticket.save()
-           
+            ticket.save()           
 
             task = Task.objects.create(
                 ticket=ticket,  
@@ -53,7 +536,7 @@ def create_ticket(request):
     return render(request, 'customerportal/create_ticket.html', {'form': form})
 
 
-from.forms import FilterForm
+
 
 def ticket_list(request):   
     form = FilterForm(request.GET)
@@ -70,8 +553,7 @@ def ticket_list(request):
             tickets = tickets.filter(user = request.user)
         else:
             tickets = tickets
-    for ticket in tickets:
-        print(ticket.id, ticket.progress_by_customer)
+
 
     if request.method == 'GET':
         form = FilterForm(request.GET)
@@ -268,43 +750,6 @@ def ticket_customer_feedback(request,ticket_id):
         })
 
 
-# repair return sold product
-from django.contrib.auth.decorators import login_required
-from sales.models import SaleOrder,SaleOrderItem
-from repairreturn.forms import ReturnOrRefundForm
-from repairreturn.models import ReturnOrRefund
-
-@login_required
-def sale_order_list(request):
-    sale_order_number=None
-    form = CommonFilterForm(request.GET or None)
-    sale_orders = SaleOrder.objects.all().order_by('-created_at')
-
-    if form.is_valid():
-        sale_order_number = form.cleaned_data['sale_order_id']
-        if sale_order_number:
-            sale_orders = sale_orders.filter(order_id = sale_order_number)
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                messages.error(request, f"{field.capitalize()}: {error}")
-
-    paginator = Paginator(sale_orders, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    form=CommonFilterForm()
-
-    return render(request, 'customerportal/sale_order_list.html',
-        {
-            'sale_orders':sale_orders,
-            'form':form,
-            'sale_order_number':sale_order_number,
-            'page_obj':page_obj,
-            'sale_order_number':sale_order_number
-        })
-
-from django.db import transaction
 
 @login_required
 def create_return_request(request, sale_order_id):
@@ -419,8 +864,6 @@ def customer_return_request_list(request):
 
 
 
-
-
 def repair_return_customer_feedback(request,return_id):
     returns = ReturnOrRefund.objects.all().order_by('-created_at')
     return_instance =get_object_or_404(ReturnOrRefund,id=return_id)     
@@ -458,6 +901,11 @@ def repair_return_customer_feedback(request,return_id):
 
 
 from recruitment.models import  Candidate
+
+def job_landing_page(request):
+    return render(request,'customerportal/recruitment/job_landing_page.html')
+
+
 
 def job_list_candidate_view(request): 
     jobs = Job.objects.all().order_by('-created_at')
@@ -835,3 +1283,10 @@ def search_applications(request):
         'candidates': candidates,
     })
 
+from clients.models import SubscriptionPlan
+
+def public_landing_page(request):
+    plans = SubscriptionPlan.objects.all().order_by('duration')
+    for plan in plans:
+        plan.features_list = plan.features.split(',') if plan.features else [] 
+    return render(request,'customerportal/public_landing_page.html',{'plans':plans})
