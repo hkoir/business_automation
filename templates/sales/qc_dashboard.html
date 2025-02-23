@@ -5,7 +5,7 @@
 
 
 
-<div class="container-fluid main-content my-5">
+<div class="container-fluid main-content">
     <div class="row">
         <div class="col-12">
                 
@@ -38,7 +38,7 @@
                         
                         
                         <td>
-                            {% if item.status == 'DISPATCHED' %}
+                            {% if item.status == 'READY_FOR_DISPATCH' %}
                                 <a href="{% url 'sales:qc_inspect_item' item.id %}" class="btn btn-primary">Inspect</a>
                             {% else %}
                                 <span>Goods not Ready</span>
@@ -59,9 +59,6 @@
     </div>
     <h4 style="height:20px"></h4>
 </div>
-
-<div style="height:2000px"></div>
-
 
 
 

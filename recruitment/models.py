@@ -4,14 +4,14 @@ from core.models import Company,Employee
 from django.contrib.auth.models import User 
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-
+from accounts.models import CustomUser
 
 from django.db import models
 
 
 
 class Project(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     name=models.CharField(max_length=20,null=True,blank=True)
     company = models.ForeignKey(Company,on_delete=models.CASCADE,null=True,blank=True)
     description = models.TextField(null=True,blank=True)
@@ -23,7 +23,7 @@ class Project(models.Model):
 
 
 class ScoreCard(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)  
@@ -32,7 +32,7 @@ class ScoreCard(models.Model):
     
 
 class JobCategory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     description= models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -54,7 +54,7 @@ class Job(models.Model):
         ('CLOSED', 'Close'),
     ]
 
-    requester = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='requested_jobs')  # User who submits the request
+    requester = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='requested_jobs')  # User who submits the request
     job_code = models.CharField(max_length=30, blank=True, null=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, related_query_name='project_job')
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
@@ -97,7 +97,7 @@ class Job(models.Model):
 
 
 class Experience(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     score_card = models.ForeignKey(ScoreCard, on_delete=models.CASCADE,related_name='score_experience')
     year_of_experience = models.PositiveIntegerField()  
     area_of_experience = models.CharField(max_length=100,null=True,blank=True)  
@@ -111,7 +111,7 @@ class Experience(models.Model):
 
 
 class Education(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     score_card = models.ForeignKey(ScoreCard, on_delete=models.CASCADE,related_name='score_education')
     degree_awarded = models.CharField(max_length=50,null=True,blank=True)
     score = models.DecimalField(max_digits=10, decimal_places=2)
@@ -123,7 +123,7 @@ class Education(models.Model):
 
 
 class EducationalInstitution(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     score_card = models.ForeignKey(ScoreCard, on_delete=models.CASCADE,related_name='score_institution')
     institution_name = models.CharField(max_length=100)
     score = models.DecimalField(max_digits=10, decimal_places=2)
@@ -135,7 +135,7 @@ class EducationalInstitution(models.Model):
 
 
 class EducationalSubject(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     score_card = models.ForeignKey(ScoreCard, on_delete=models.CASCADE,related_name='score_esubject')
     subject = models.CharField(max_length=100)
     score = models.DecimalField(max_digits=10, decimal_places=2)
@@ -147,7 +147,7 @@ class EducationalSubject(models.Model):
 
 
 class Age(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     score_card = models.ForeignKey(ScoreCard, on_delete=models.CASCADE,related_name='score_age')
     age = models.PositiveIntegerField()
     score = models.DecimalField(max_digits=10, decimal_places=2)
@@ -159,7 +159,7 @@ class Age(models.Model):
 
 
 class Certification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     score_card = models.ForeignKey(ScoreCard, on_delete=models.CASCADE,related_name='score_certification')
     certificate_name = models.CharField(max_length=100)
     score = models.DecimalField(max_digits=10, decimal_places=2)
@@ -171,7 +171,7 @@ class Certification(models.Model):
 
 
 class Skills(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     score_card = models.ForeignKey(ScoreCard, on_delete=models.CASCADE,related_name='score_skills')
     skill_name = models.CharField(max_length=100)
     score = models.DecimalField(max_digits=10, decimal_places=2)
@@ -183,7 +183,7 @@ class Skills(models.Model):
     
     
 class Language(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     score_card = models.ForeignKey(ScoreCard, on_delete=models.CASCADE,related_name='score_language')
     name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -193,7 +193,7 @@ class Language(models.Model):
 
 
 class LanguageSkillLevel(models.Model):  
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)  
     language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name="skill_levels")
     level = models.CharField(
         max_length=40,
@@ -209,7 +209,7 @@ class LanguageSkillLevel(models.Model):
 
 
 class Candidate(models.Model):   
-    candidate = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True,related_name='candidate')
+    candidate = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True,related_name='candidate')
     applied_job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="candidates",null=True, blank=True)    
     full_name = models.CharField(max_length=255,null=True, blank=True)
     email = models.EmailField()
@@ -331,7 +331,7 @@ class Candidate(models.Model):
     
 
 class Exam(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)   
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)   
     job = models.ForeignKey(Job,on_delete=models.CASCADE,related_name='job_exam')
     title = models.CharField(max_length=255) 
     total_marks = models.IntegerField() 
@@ -359,7 +359,7 @@ class Exam(models.Model):
 
 class Question(models.Model):
     name=models.CharField(max_length=30,null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="questions")
     text = models.TextField()
     marks = models.IntegerField(default=1,blank=True, null=True)
@@ -382,7 +382,7 @@ class Question(models.Model):
 
 
 class TakeExam(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name="answers")
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="exam_attempts",null=True,blank=True)
     obtained_marks = models.IntegerField(blank=True, null=True) 
@@ -411,7 +411,7 @@ class TakeExam(models.Model):
 
 
 class Panel(models.Model):
-     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
      name=models.CharField(max_length=20,null=True,blank=True) 
      job = models.ManyToManyField(Job,blank=True,related_name='job_panel')
      exam= models.ManyToManyField(Exam, blank=True,related_name='exam_panel')
@@ -426,7 +426,7 @@ class Panel(models.Model):
 
 
 class PanelMember(models.Model): 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     panel=models.ManyToManyField(Panel,blank=True,related_name='panel_member_panel')    
     panel_member=models.ForeignKey(Employee,on_delete=models.CASCADE)    
     is_active=models.BooleanField(default=True)
@@ -498,7 +498,7 @@ class InterviewScore(models.Model):
 
 
 class CandidateScreeningHistory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
     status = models.CharField(max_length=50)
     threshold_score = models.DecimalField(max_digits=5, decimal_places=2)
@@ -513,7 +513,7 @@ class CandidateScreeningHistory(models.Model):
     
 
 class ExamScreeningHistory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
     status = models.CharField(max_length=50)
     threshold_score = models.DecimalField(max_digits=5, decimal_places=2)
@@ -528,7 +528,7 @@ class ExamScreeningHistory(models.Model):
     
 
 class InterviewScreeningHistory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
     status = models.CharField(max_length=50)
     threshold_score = models.DecimalField(max_digits=5, decimal_places=2)
@@ -544,7 +544,7 @@ class InterviewScreeningHistory(models.Model):
 
 
 class CommonDocument(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=255)
     file = models.FileField(upload_to='common_documents/') 
     document_type = models.CharField(max_length=100, choices=[('policy', 'Policy'), ('handbook', 'Handbook'), ('contract', 'Contract')])
@@ -556,7 +556,7 @@ class CommonDocument(models.Model):
 
 
 class CandidateDocument(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=255)
     file = models.FileField(upload_to='candidate_documents/')
     candidate = models.ForeignKey(Candidate, related_name='documents', on_delete=models.CASCADE)

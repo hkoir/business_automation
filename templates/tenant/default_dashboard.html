@@ -1,4 +1,4 @@
-{% extends 'sub_base.html' %}  
+{% extends 'public_portal_base.html' %}  
 
 
 {% load static %}
@@ -6,6 +6,115 @@
 {% block content %}
 <style>
     
+
+    .hero-section {
+    position: relative;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(255, 255, 255, 1)),
+                url('https://source.unsplash.com/1600x900/?office,teamwork') no-repeat center center/cover;
+    height: 70vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    overflow: hidden;
+    padding: 0 15px;
+    border-bottom: 1px solid #eee; /* Optional: A light border for a clean separation */
+}
+
+
+    .hero-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6); /* Darker and more professional */
+        z-index: 1;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 800px;
+        margin: 0 auto;
+        text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.6); /* Subtle shadow for contrast */
+        animation: fadeInUp 10s ease-out infinite;
+    }
+
+    .hero-section h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+    }
+
+    .hero-section p {
+        font-size: 1.3rem;
+        font-weight: 300;
+        opacity: 0.95;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Optional Animation */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(40px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Optional Button */
+    .hero-btn {
+        background-color: #fcb900;
+        color: #333;
+        padding: 12px 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-btn:hover {
+        background-color: #f5a623;
+        color: #fff;
+        transform: translateY(-3px);
+    }
+
+
+
+.custom-shape-divider-bottom-hero {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    }
+.custom-shape-divider-bottom-hero svg {
+        position: relative;
+        display: block;
+        width: calc(115% + 1.3px);
+        height: 80px;
+    }
+.custom-shape-divider-bottom-hero .shape-fill {
+        fill: #ffffff;
+    }
+
+
+
+
+
+
 ul.custom-arrow-list li::before {
     content: "\21D2";  
     color: blue;  
@@ -45,11 +154,15 @@ ul.custom-arrow-list li {
 .module-card {
     transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
     overflow: hidden; /* Needed for inner shadow effect */
+    left: 0;
+    width:100%;
 }
 
 .module-card:hover {
     transform: translateY(-5px); /* Move card up slightly */
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
+    left: 0;
+    width:100%
 }
 
 .module-card::before { /* Inner shadow on hover */
@@ -91,80 +204,188 @@ ul.custom-arrow-list li {
     border: 1px solid #eee; /* Light border */
     border-radius: 8px; /* Rounded corners */
     transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
+    
+    color: #333 !important; /* Set a visible color */
   
    
 }
 
 
-.feature-box:hover,.price_card:hover {
+.feature-box:hover,.price_card:hover{
     transform: translateY(-5px); /* Move box up slightly */
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); /* Subtler shadow */
     border-color: #ddd; /* Slightly darker border on hover */
     background-color: rgba(0, 0, 0, 0.1); /* Semi-transparent black on hover */
+    color: #333 !important; /* Set a visible color */
    
 }
 
 
 
 .feature-box h4 {
-    margin-bottom: 10px; /* Space between title and text */
+    margin-bottom: 10px;
 }
 
-/* Optional: Add a more distinct hover effect */
-.feature-box:hover {
-    transform: translateY(-8px);  /* Increased lift */
-    box-shadow: 0 12px 20px rgba(0,0,0,0.2); /* More prominent shadow */
+
+
+.feature-box2{
+    padding: 20px; /* Add some padding around the content */
+    border: 1px solid #eee; /* Light border */
+    border-radius: 8px; /* Rounded corners */
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
+    
+    color: #333 !important; /* Set a visible color */
+  
+   
 }
+
+
+.feature-box2:hover{
+    transform: translateY(-5px); /* Move box up slightly */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); /* Subtler shadow */
+    border-color: #ddd; /* Slightly darker border on hover */
+    background-color:gray;
+    color: #333 !important; /* Set a visible color */
+   
+}
+
+
+@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+       }
+   
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+   }
+
+
+.live_demo_box {
+    padding: 20px; /* Add some padding around the content */
+    border: 1px solid #eee; /* Light border */
+    border-radius: 8px; /* Rounded corners */
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
+    cursor: pointer;
+    animation: shake 5s ease-in-out infinite;
+}
+
+.live_demo_box:hover {
+    transform: translateY(-5px); /* Move box up slightly */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); /* Subtler shadow */
+    border-color: #ddd; /* Slightly darker border on hover */
+    background-color: rgba(0, 0, 0, 0.1); /* Semi-transparent black on hover */
+}
+
+.circle-card {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background-color: white; /* Normal background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+    animation: shake 5s ease-in-out infinite; 
+}
+
+.circle-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    background-color:	#f0f8ff; /* Light blue shade, feel free to change */
+    color: #000; /* Optional: to make text stand out */
+}
+
+
+.circle-link {
+    text-decoration: none;
+    color: #333;
+    font-weight: 600;
+    text-align: center;
+    display: block;
+    transition: color 0.3s ease;
+    animation: shake 5s ease-in-out infinite; 
+}
+
+.circle-link:hover {
+    color: #007bff; /* Bootstrap primary color */
+}
+
+
+
+h4 {
+    margin: 0;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
 
 
 </style>
 
-<div class="container my-5">
-    <div class="row">
-        <div class="co-12">
-            <!-- Hero Section -->
-            <div class="container text-center py-5">
+<div class="container-fluid main-content">
+    <div class="row">                 
+      
+        <section class="hero-section">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
                 <h1>Business Process Automation Platform</h1>
                 <p>Streamline Your Operations with Smart Integrated Solutions</p>
-                <a href="#free_trial" class="btn btn-primary btn-lg">Start Free Trial</a>
+              
+                <a href="{% url 'clients:demo_request' %}" class="btn btn-primary btn-lg">
+                    <h4><i class="fas fa-laptop-code me-2"></i> Request Live Demo</h4>
+                </a>
+               
+                <a href="#free_trial" class="btn btn-primary btn-lg">
+                    <h4><i class="fas fa-play-circle me-2"></i> Start Free Trial</h4>
+                </a>
+                
             </div>
+            <div class="custom-shape-divider-bottom-hero">
+                <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                    <path d="M0,0V46.29c47.6,15.4,98.5,27.4,150,24.67,49.6-2.6,97.1-20.73,146.6-27.27,64.5-8.53,129.6,1.84,194,9.39,65.1,7.6,130.8,10.9,196.5,2.53,65.8-8.27,128.9-27.47,192.2-31.1,51.5-3,103.7,4.72,155.2,13.11,51.5,8.4,103.2,17.6,155.5,20.44,45.5,2.51,91.3-.53,136.8-5.39V0Z" fill="#ffffff"></path>
+                </svg>
+            </div>
+        </section>
 
             <!-- Modules Showcase -->
-            <div class="container mt-4">
-                <div class="row">   
-                    <div class="col-md-4 mb-4" id="{{ module.name|slugify }}">
+            <div class="container-fluid my-5">
+                <div class="row"> <!-- Bootstrap gutter spacing -->
+                    <div class="col-md-4" id="{{ module.name|slugify }}">
                         <div class="card text-center shadow-sm module-card">
                             <div class="card-body">
                                 <i class="fas fa-truck fa-3x mb-3 text-primary"></i>
                                 <h5 class="card-title">Supply Chain Management Automation</h5>
                                 <p class="card-text">Gain real-time insights into your entire supply chain, from procurement to delivery, instant stock valuation and more...</p>
-                                  <a href="#scm_automation" class="btn btn-outline-primary">More ...</a>                                   
-                                    <!-- <button class="btn btn-outline-secondary" disabled>Start</button>                                 -->
+                                <a href="#scm_automation" class="btn btn-outline-primary">More ...</a>
                             </div>
                         </div>
-                    </div>                
-                        <div class="col-md-4 mb-4" id="{{ module.name|slugify }}">
-                            <div class="card text-center shadow-sm module-card">
-                                <div class="card-body">
-                                    <i class="fas fa-cogs fa-3x mb-3 text-primary"></i>
-                                    <h5 class="card-title">Core HR management</h5>
-                                    <p class="card-text">Automate Core HR management,Maintain employee database, generate multiple documents on demand...</p>
-                                      <a href="#core_hr_automation" class="btn btn-outline-primary">More ...</a>                                   
-                                                                   
-                                </div>
+                    </div>             
+                    <div class="col-md-4" id="{{ module.name|slugify }}">
+                        <div class="card text-center shadow-sm module-card">
+                            <div class="card-body">
+                                <i class="fas fa-cogs fa-3x mb-3 text-primary"></i>
+                                <h5 class="card-title">Core HR Management</h5>
+                                <p class="card-text">Automate Core HR management, Maintain employee database, generate multiple documents on demand...</p>
+                                <a href="#core_hr_automation" class="btn btn-outline-primary">More ...</a>
                             </div>
-                        </div>  
-                        <div class="col-md-4 mb-4" id="{{ module.name|slugify }}">
-                            <div class="card text-center shadow-sm module-card">
-                                <div class="card-body">
-                                    <i class="fas fa-users fa-3x mb-3 text-primary"></i>
-                                    <h5 class="card-title">Recruitment Process automation</h5>
-                                    <p class="card-text"><strong style="color:green">Say Goodbye to paper based in-efficient recruitment process.</strong> Automate entire process of recruitment starting from job creation, job posting till candidate onboarding....</p>
-                                    <a href="#recruitment_automation"  class="btn btn-outline-primary">More ...</a>                                   
-                                                                      
-                                </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4" id="{{ module.name|slugify }}">
+                        <div class="card text-center shadow-sm module-card">
+                            <div class="card-body">
+                                <i class="fas fa-users fa-3x mb-3 text-primary"></i>
+                                <h5 class="card-title">Recruitment Process Automation</h5>
+                                <p class="card-text"><strong style="color:green">Say Goodbye to paper-based recruitment.</strong> Automate the entire process starting from job posting till candidate onboarding...</p>
+                                <a href="#recruitment_automation" class="btn btn-outline-primary">More ...</a>
                             </div>
-                        </div>      
+                        </div>
+                    </div>   
                         <div class="col-md-4 mb-4" id="{{ module.name|slugify }}">
                             <div class="card text-center shadow-sm module-card">
                                 <div class="card-body">
@@ -192,7 +413,7 @@ ul.custom-arrow-list li {
                                 <div class="card-body">
                                     <i class="fas fa-bus fa-3x mb-3 text-primary"></i>
                                     <h5 class="card-title">Transport pool management system.</h5>
-                                    <p class="card-text">Track and monitor entire pool transport system efficiently, maintain transport log, transport fuel consumtion and daily expenses.... </p>
+                                    <p class="card-text">Track and monitor entire pool transport system efficiently, maintain transport log, fuel consumtion and daily expenses.... </p>
                                       <a href="#transport_automation" class="btn btn-outline-primary">More ...</a>                                   
                                                                      
                                 </div>
@@ -225,7 +446,8 @@ ul.custom-arrow-list li {
                                 <div class="card-body">
                                     <i class="fas fa-cogs fa-3x mb-3 text-primary"></i>
                                     <h5 class="card-title">Business process integration</h5>
-                                    <p class="card-text">Smooth and smartly integrate Supply chain,Employee performance, leave management, transport pool management, recruitment process and work efficiently with this integrated system that create ecosystem among all departments.... </p>
+                                    <p class="card-text">Integrate Supply chain,Employee performance, leave management, transport pool management, recruitment process, 
+                                        save time, reduce operational cost, get errorless data driven reports </p>
                                       <a href="#integration_automation" class="btn btn-outline-primary">More ...</a>                                   
                                                                      
                                 </div>
@@ -233,19 +455,42 @@ ul.custom-arrow-list li {
                         </div>                                                               
                 </div>
             </div>   
+
+           
+           
+          
+
+            <div class="container-fluid py-5" style="background:lightskyblue;">
+                <div class="row text-center">
+                    <div class="col-md-4 mb-4">
+                        <div class="circle-card shadow-lg">
+                            <a href="{% url 'clients:demo_request' %}" class="circle-link">
+                                <h4><i class="fas fa-play-circle me-2"></i> Start Free Trial</h4>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="circle-card shadow-lg">
+                            <a href="{% url 'clients:demo_request' %}" class="circle-link">
+                                <h4><i class="fas fa-laptop-code me-2"></i> Request Live Demo</h4>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="circle-card shadow-lg">
+                            <a href="{% url 'clients:demo_request' %}" class="circle-link">
+                                <h4><i class="fas fa-headset me-2"></i> 24/7 Support</h4>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             
-
-
-
-
-
-
-
-
+            
 
             <!-- Features Section -->
-            <div class="feature-section">
+            <div class="feature-section ">
                 <div class="container">
                     <h2 class="text-center mb-5">Key Features</h2>
                     <div class="row">
@@ -264,11 +509,24 @@ ul.custom-arrow-list li {
                             </ul>
                         </div>
                         <div class="col-md-6 feature-box">
-                            <h4>Tracking, updating and generating multiple reports for SCM process.</h4>
-                            <a href="{% static 'images/scm/scm_stock.jpg' %}" target="_blank">
-                            <img src="{% static 'images/scm/scm_stock.jpg' %}"  alt="HR Automation"
-                            style="object-fit: cover;width:100%">
-                        </a>
+                            <div class="container-fluid">
+                                <div class="row">   
+                                    <div class="col-12">                         
+                                        <h4>Tracking, updating and generating multiple reports for SCM process.</h4>
+                                        <a href="{% static 'images/scm/scm_stock.jpg' %}" target="_blank">
+                                            <img src="{% static 'images/scm/scm_grand_sum.png' %}"  alt="HR Automation"
+                                            style="object-fit: cover;width:100%">
+                                        </a>
+                                    </div>
+                                    <div class="col-12">                         
+                                        <h4>Tracking, updating and generating multiple reports for SCM process.</h4>
+                                        <a href="{% static 'images/scm/scm_stock.jpg' %}" target="_blank">
+                                            <img src="{% static 'images/scm/report_scm.png' %}"  alt="HR Automation"
+                                            style="object-fit: cover;width:100%">
+                                        </a>
+                                    </div>
+                                 </div>
+                             </div>
                         </div>
 
                         <div class="col-md-6 feature-box" id="core_hr_automation">
@@ -363,11 +621,24 @@ ul.custom-arrow-list li {
                             </ul>
                         </div>
                         <div class="col-md-6 feature-box">
-                            <h4>Transport Pool process automation.</h4>
-                            <a href="{% static 'images/transport/transport_view.jpg' %}" target="_blank">
-                            <img src="{% static 'images/transport/transport_view.jpg' %}"  alt="HR Automation"
-                            style="object-fit: cover;width:100%">
-                        </a>
+                            <p>Transport Pool process automation.</p>
+                            <div class="container-fluid">
+                                <div class="row d-flex justify-content-center align-items-center text-center">
+                                    <div class="col-12">
+                                        <a href="{% static 'images/transport/transport_view.jpg' %}" target="_blank">
+                                            <img src="{% static 'images/transport/transport_view.jpg' %}"  alt="Trans Automation"
+                                            style="height:150px;width:80%">
+                                        </a>
+                                    </div>
+                                    <div class="col-12">
+                                        <a href="{% static 'images/transport/transport_view.jpg' %}" target="_blank">
+                                            <img src="{% static 'images/transport/transport_sum.PNG' %}"  alt="Transport Automation"
+                                            style="height:150px;width:80%">
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>                          
+                          
                         </div>
                     </div>
                     <!-- Repeat similar blocks for other modules -->
@@ -375,14 +646,182 @@ ul.custom-arrow-list li {
             </div>
 
             <!-- CTA Section -->
-            <div class="cta-section feature-box"> 
-                <h2>Ready to Transform Your Business?</h2>
-                <a href="#" class="btn btn-primary btn-lg">Get Started Today</a>
+            <div class="cta-section feature-box2"> 
+                <h2 style="color:white">Ready to Transform Your Business?</h2>
+                <a href="#free_trial" class="btn btn-primary btn-lg">Get Started Today</a>
             </div>
+       
+
+
+            <!-- Procee outline  Section -->
+            <div class="feature-section">
+                <div class="container">
+                    <h2 class="text-center mb-5">Automate Software Process outlines</h2>
+                    <div class="row">
+                        <div class="col-md-6 feature-box">
+                            <h4>SCM Process Outline</h4>
+                            <img src="{% static 'images/scm_outline/Slide1.JPG' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+                        <div class="col-md-6 feature-box">
+                            <h4>SCM Process Outline</h4>
+                            <img src="{% static 'images/scm_outline/Slide2.JPG' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+                        <div class="col-md-6 feature-box">
+                            <h4>SCM Process Outline</h4>
+                            <img src="{% static 'images/scm_outline/Slide3_2.jpg' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+                        <div class="col-md-6 feature-box">
+                            <h4>SCM Process Outline</h4>
+                            <img src="{% static 'images/scm_outline/Slide4.JPG' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+                        <div class="col-md-6 feature-box">
+                            <h4>SCM Process Outline</h4>
+                            <img src="{% static 'images/scm_outline/Slide5.JPG' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+                        <div class="col-md-6 feature-box">
+                            <h4>SCM Process Outline</h4>
+                            <img src="{% static 'images/scm_outline/Slide6.JPG' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+                        <div class="col-md-6 feature-box">
+                            <h4>Performance appraisal tracking and evaluation  Process Outline</h4>
+                            <img src="{% static 'images/appraisal_outlines/Slide2.JPG' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+                        <div class="col-md-6 feature-box">
+                            <h4>Performance appraisal tracking and evaluation  Process Outline</h4>
+                            <img src="{% static 'images/appraisal_outlines/Slide3.JPG' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+
+                        <div class="col-md-6 feature-box">
+                            <h4>Recruitment Process automation Outline</h4>
+                            <img src="{% static 'images/recruitment_outlines/Slide2.JPG' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+                        <div class="col-md-6 feature-box">
+                            <h4>Recruitment Process automation Outline</h4>
+                            <img src="{% static 'images/recruitment_outlines/Slide3.JPG' %}" 
+                                class="img-fluid" 
+                                style="object-fit: cover; width: 100%; height: auto;">
+                        </div>
+                        <div class="col-md-6 feature-box" style="border:2px solid rgb(54, 215, 226)">
+                            <h4 style="color:blue">Leave management Process automation</h4>
+                           <p>
+                            Leave management involves:
+                            <ul>
+                                <li> Managing leave policies and entitlements that vary by employee type and tenure</li>
+                                <li> Fielding leave requests and obtaining approvals</li>
+                                <li>Ensuring adherence to complex absence rules and minimum staffing requirements</li>
+                                <li>Tracking late in and adjusting leave due to frequently late in employee as per policy</li>
+                                <li>Tracking leave accruals, balances and expiration</li>
+                                <li>Integrating leave data with payroll systems</li>
+                                <li>Producing absence analytics and reports</li>
+                            </ul>                 
+                            
+                           </p>
+                        </div>
+
+                        <div class="col-md-6 feature-box" style="border:2px solid rgb(64, 228, 237)">
+                            <h4 style="color:blue">HR Basic process autoation</h4>
+                           <p>
+                            The challenging job for HR is performance appraisal and recruitment process hence we have seperately dealed with these two process. 
+                            Except these two issues, our Core HR module involve:
+                            <ul>
+                                <li> Employee database record maintenance, updating and viewing current status with basic communication attributes as a VCARD view model</li>
+                                <li> Generatting payslip, Salary certificate, Experience certificate and mothly payroll</li>
+                                <li>Creating Company level policies involve Salaray structure policy, leave policy etc.</li>                               
+                                <li>Keep tracking employee record changes over time and analytics employee history</li>
+                            </ul>                 
+                            
+                           </p>
+                        </div>
+
+                        <div class="col-md-6 feature-box" style="border:2px solid rgb(64, 228, 237)">
+                            <h4 style="color:blue">Transport Pool management process</h4>
+                           <p>
+                           Transport Pool management process involve:
+                            <ul>
+                                <li>Creating and updating all transport database</li>
+                                <li> Creating and updating all fuel pump station database</li>
+                                <li>Applying for transport, obtained approval and availing transport</li>   
+                                <li> Keep track of travelling history</li>                            
+                                <li>Keep record of travelling vehicle log, fuel consumption and fault status of transport</li>
+                                <li>Generating vehicle status report, fuel consumption report, overtime report, fuel pump's payment record ects</li>
+                            </ul>                 
+                            
+                           </p>
+                        </div>
+
+                        <div class="col-md-6 feature-box" style="border:2px solid rgb(64, 228, 237)">
+                            <h4 style="color:blue">Conclusion</h4>
+                            This application integrate business process of the following  area. 
+                            <div class="container-fluid">
+                                <div class="row d-flex justify-content-center align-items-center text-center">
+                            
+                                    <div class="col-4 m-2 p-2 d-flex align-items-center justify-content-center text-center"
+                                        style="border:1px solid blue; border-radius:10px; height:80px;">
+                                        Supply Chain Management
+                                    </div>
+                            
+                                    <div class="col-4 m-2 p-2 d-flex align-items-center justify-content-center text-center"
+                                        style="border:1px solid blue; border-radius:10px; height:80px;">
+                                        KPI based appraisal
+                                    </div>
+                            
+                                    <div class="col-4 m-2 p-2 d-flex align-items-center justify-content-center text-center"
+                                        style="border:1px solid blue; border-radius:10px; height:80px;">
+                                        Recruitment automation
+                                    </div>                                
+                            
+                                    <div class="col-4 m-2 p-2 d-flex align-items-center justify-content-center text-center"
+                                        style="border:1px solid blue; border-radius:10px; height:80px;">
+                                        Basic HR record maintenance
+                                    </div>
+                            
+                                    <div class="col-4 m-2 p-2 d-flex align-items-center justify-content-center text-center"
+                                        style="border:1px solid blue; border-radius:10px; height:80px;">
+                                       leave and payroll management
+                                    </div>                                
+                            
+                                    <div class="col-4 m-2 p-2 d-flex align-items-center justify-content-center text-center"
+                                        style="border:1px solid blue; border-radius:10px; height:80px;">
+                                        Transport pool management
+                                    </div>
+                            
+                                </div>
+                            </div>
+                            
+                          
+                                       
+                            
+                           
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+
+           <!-- CTA Section -->
+           <div class="cta-section feature-box2"> 
+            <h2 style="color:white">Do you need live demo???</h2>
+            <a href="#free_trial" class="btn btn-primary btn-lg">We are here for any assistance</a>
         </div>
-
-
-        
+   
        
         <div class="col-12 mt-4">
             <div class="container-fluid">
@@ -463,7 +902,6 @@ ul.custom-arrow-list li {
 
 
 
-<div style="height:1200px"></div>
 
 
 

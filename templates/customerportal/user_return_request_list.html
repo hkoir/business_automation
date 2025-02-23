@@ -1,4 +1,4 @@
-{% extends 'customer_portal_base.html' %}
+{% extends 'partner_portal_base.html' %}
 
 {% block content %}
 
@@ -36,10 +36,10 @@
                 </div>
             </div>
 
-        </div>      
-        <hr class="mt-2">
-
-        <div class="col">
+        </div>     
+     
+        <div class="col-12">
+            {% if page_obj %}
 
                 <h2 class="text-white">Return/Refund Requests</h2>
                 <table class="bg-light">
@@ -206,11 +206,14 @@
                     {% endif %}
                 </span>
             </div>
+            {% else %}
+            <span>No records available</span>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<div style="height:800px"></div>
+
 
 <script>
     $(document).ready(function() {

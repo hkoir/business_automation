@@ -22,7 +22,9 @@
         <hr>
         </div>
         <div class="col-12">
-            <h4>Product List</h4>
+            <h4>Product List:
+                &nbsp;<a href="{% url 'product:create_category' %}">Add new category</a>
+                &nbsp;<a href="{% url 'product:create_product' %}">Add new product</a></h4>
             <table class="table table-hover">
                 <thead class="table-dark">
                     <tr>
@@ -59,7 +61,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'product:update_product' product.id %}">Update product</a>
+                            <a href="{% url 'product:update_product' product.id %}" >Update product</a>
                         </td>
                       
                         <td>
@@ -100,9 +102,6 @@
 
     </div>
 </div>
-
-
-<div style="height:1000px"></div>
 
 
 

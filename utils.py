@@ -50,7 +50,7 @@ def update_purchase_order(purchase_order_id):
             
             if shipments.exists(): 
                 all_shipments_delivered = (
-                    shipments.filter(status__in=['DELIVERED','REACHED']).count()
+                    shipments.filter(status__in=['DELIVERED','REACHED','OBI']).count()
                     == shipments.count()
                 )
                 if all_shipments_delivered:
@@ -170,7 +170,7 @@ def get_warehouse_stock(warehouse, product):
     ).values('transaction_type').annotate(total=Sum('quantity'))
 
     inbound = sum(t['total'] for t in transactions if t['transaction_type'] in ['INBOUND', 'TRANSFER_IN','MANUFACTURE_IN','REPLACEMENT_IN','EXISTING_ITEM_IN'])
-    outbound = sum(t['total'] for t in transactions if t['transaction_type'] in ['OUTBOUND', 'TRANSFER_OUT','REPLACEMENT_OUT','OPERATIONS_OUT'])
+    outbound = sum(t['total'] for t in transactions if t['transaction_type'] in ['OUTBOUND', 'TRANSFER_OUT','REPLACEMENT_OUT','OPERATIONS_OUT','MANUFACTURE_OUT'])
 
     return inbound - outbound
 

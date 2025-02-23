@@ -737,7 +737,7 @@ def qc_inspect_item(request, item_id):
             qc_entry.inspection_date = timezone.now()
             qc_entry.save()
             
-            sale_dispatch_item.status = 'DISPATCHED'
+            sale_dispatch_item.status = 'DISPATCHED' # status changed from "READY-FOR-DISPATCH"
             sale_dispatch_item.save()
 
             good_quantity = qc_entry.good_quantity
@@ -823,8 +823,7 @@ def qc_inspect_item(request, item_id):
                 sale_request_order.status = 'DELIVERED'
                 sale_request_order.save()
 
-            update_sale_order(sale_order.id)
-            update_sale_shipment_status(shipment.id)
+            update_sale_order(sale_order.id)          
             update_sale_request_order(sale_request_order.id)
 
             create_notification(request.user, message=f'Sale request order number: {sale_request_order} has been dispatched', notification_type='SALES-NOTIFICATION')

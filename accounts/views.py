@@ -41,140 +41,212 @@ from django.contrib.auth.models import Group
 from tasks.models import Ticket,Task
 from django_tenants.utils import schema_context
 
+from .tokens import account_activation_token
+from django.contrib.sites.shortcuts import get_current_site
+from django.http import HttpResponse, HttpResponseRedirect
+from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from.models import CustomUser
+from django.core.mail import send_mail
+
+
+
 
 def home(request):
     return render(request,'accounts/home.html')
 
 
+def send_tenant_email(email, username, password, subdomain):
+    subject = "Your Credentials for login"
+    message = (
+        f"Welcome to our platform!\n\n"
+        f"Your account has been created successfully.\n\n"
+        f"Username: {username}\n"
+        f"Password: {password}\n"
+        f"Subdomain: {subdomain}\n"
+        f"Login URL: http://{subdomain}.localhost:8000\n\n"
+        f"Thank you for using our service!"
+    )
+    send_mail(subject, message, 'your-email@example.com', [email])
 
-@login_required
-def register_view(request):
+
+
+def register_view(request):   
     current_tenant = None
     if hasattr(connection, 'tenant'):
-        current_tenant = connection.tenant.schema_name
-
+        current_schema = connection.tenant.schema_name   
+        current_tenant = connection.tenant  # or request.tenant or request.user.tenant form model tenant
+    
     if request.method == 'POST':
-        form = TenantUserRegistrationForm(request.POST, request.FILES, tenant=current_tenant)
-        if form.is_valid():
-            with transaction.atomic():    
-                user = form.save(commit=False)
-                user.email = form.cleaned_data['email']
+        registerForm= TenantUserRegistrationForm(request.POST, request.FILES, tenant=current_tenant)
+        if registerForm.is_valid():
+            with transaction.atomic():  
+                user = registerForm.save(commit=False)
+                user.email = registerForm.cleaned_data['email']
+                user.set_password(registerForm.cleaned_data['password1'])
+                user.is_active = False
+                user.tenant = current_tenant
                 user.save()
+
+                current_site = get_current_site(request)
+                if connection.tenant.schema_name == 'public':
+                    subdomain = ''  # Empty for public domain
+                    domain = current_site.domain  # e.g., "localhost"
+                else:
+                    subdomain = connection.tenant.schema_name  # e.g., "demo1"
+                    domain = current_site.domain  # e.g., "localhost"
+                subject = 'Activate your Account'
+                message = render_to_string('accounts/registration/account_activation_email.html', {
+                    'user': user,
+                    'domain': domain,
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'token': account_activation_token.make_token(user),
+                    'subdomain':subdomain
+                })
+                user.email_user(subject=subject, message=message)
                 UserProfile.objects.create(
-                    user=user,
-                    tenant=Client.objects.filter(schema_name=current_tenant).first(),
-                    profile_picture=form.cleaned_data.get('profile_picture'),
-                )
-
-            messages.success(request, "User registered successfully!")
-            return redirect('accounts:login')
-        else:
-            messages.error(request, "There was an error with your registration.")
+                        user=user,
+                        tenant=Client.objects.filter(schema_name=current_tenant).first(),
+                        profile_picture=registerForm.cleaned_data.get('profile_picture'),
+                    )
+            return render(request, 'accounts/registration/register_email_confirm.html', {'form': registerForm})
     else:
-        form = TenantUserRegistrationForm(tenant=current_tenant)
-    return render(request, 'accounts/registration/register.html', {'form': form})
+        registerForm = TenantUserRegistrationForm(tenant=current_tenant)
+    return render(request, 'accounts/registration/register.html', {'form': registerForm})
+
+
+
+
+def account_activate(request, uidb64, token):
+    user = None  
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = CustomUser.objects.get(pk=uid)  
+    except (TypeError, ValueError, OverflowError):
+        pass  
+    except CustomUser.DoesNotExist:
+        pass  
+    if user is not None and account_activation_token.check_token(user, token):
+        user.is_active = True
+        user.save()
+        login(request, user,backend='accounts.backends.TenantAuthenticationBackend')
+        return redirect('clients:tenant_expire_check')
+    else:
+        return render(request, 'accounts/registration/activation_invalid.html')
 
 
 
 
 
-def register_public(request):
+def register_public(request):   
     current_tenant = None
     if hasattr(connection, 'tenant'):
-        current_tenant = connection.tenant.schema_name
-
+        current_tenant_schema = connection.tenant.schema_name   
+        current_tenant = request.tenant
+       
+    
     if request.method == 'POST':
-        form = TenantUserRegistrationForm(request.POST, request.FILES, tenant=current_tenant)
-        if form.is_valid():
-            with transaction.atomic():    
-                user = form.save(commit=False) 
-                user.email = form.cleaned_data['email']
-                user.save() 
+        registerForm= TenantUserRegistrationForm(request.POST, request.FILES, tenant=current_tenant)
+        if registerForm.is_valid():
+            with transaction.atomic():
+                user = registerForm.save(commit=False)
+                user.email = registerForm.cleaned_data['email']
+                user.set_password(registerForm.cleaned_data['password1'])
+                user.is_active = False
+                user.tenant = current_tenant
+                user.save()
 
-                customer_group, created = Group.objects.get_or_create(name='public')
-                user.groups.add(customer_group)  
-
+                current_site = get_current_site(request)
+               
+                if connection.tenant.schema_name == 'public':
+                    subdomain = ''  # Empty for public domain
+                    domain = current_site.domain  # e.g., "localhost"
+                else:
+                    subdomain = connection.tenant.schema_name  # e.g., "demo1"
+                    domain = current_site.domain  # e.g., "localhost"
+                subject = 'Activate your Account'
+                message = render_to_string('accounts/registration/account_activation_email.html', {
+                    'user': user,
+                    'domain': domain,
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'token': account_activation_token.make_token(user),
+                    'subdomain':subdomain
+                })
+                user.email_user(subject=subject, message=message)
                 UserProfile.objects.create(
-                    user=user,
-                    tenant=Client.objects.filter(schema_name=current_tenant).first(),
-                    profile_picture=form.cleaned_data.get('profile_picture'),
-                )
-
-            messages.success(request, "User registered successfully!")
-            return redirect('accounts:login')
-        else:
-            messages.error(request, "There was an error with your registration.")
+                        user=user,
+                        tenant=Client.objects.filter(schema_name=current_tenant).first(),
+                        profile_picture=registerForm.cleaned_data.get('profile_picture'),
+                    )
+            return render(request, 'accounts/registration/register_email_confirm.html', {'form': registerForm})
     else:
-        form = TenantUserRegistrationForm(tenant=current_tenant)
-
-    return render(request, 'accounts/registration/register_public.html', {'form': form})
-
+        registerForm = TenantUserRegistrationForm(tenant=current_tenant)
+    return render(request, 'accounts/registration/register.html', {'form': registerForm})
 
 
-def register_customer_support(request):
-    current_tenant = None
-    if hasattr(connection, 'tenant'):
-        current_tenant = connection.tenant.schema_name
 
+
+
+
+
+from.forms import PartnerJobSeekerRegistrationForm
+
+
+def register_partner_job_seeker(request):   
+    current_tenant = None    
+    if hasattr(connection, 'tenant'):       
+        current_tenant_schema = connection.tenant.schema_name   
+        current_tenant = request.tenant  #current_tenant = request.user.tenant # from model     
+
+    registerForm=  PartnerJobSeekerRegistrationForm(request.POST, request.FILES, tenant=current_tenant)
+    
     if request.method == 'POST':
-        form = TenantUserRegistrationForm(request.POST, request.FILES, tenant=current_tenant)
-        if form.is_valid():
-            with transaction.atomic():    
-                user = form.save(commit=False) 
-                user.email = form.cleaned_data['email']
-                user.save() 
+        registerForm=  PartnerJobSeekerRegistrationForm(request.POST, request.FILES, tenant=current_tenant)
+        if registerForm.is_valid():
+            with transaction.atomic():
+                user = registerForm.save(commit=False)
+                user.email = registerForm.cleaned_data['email']
+                user.set_password(registerForm.cleaned_data['password1'])
+                user.is_active = False
+                user.tenant = current_tenant
+                user.save()
 
-                customer_group, created = Group.objects.get_or_create(name='Customer')
-                user.groups.add(customer_group)  
+                user_type = registerForm.cleaned_data['user_type']
+                if user_type == 'register-as_business-parner':
+                    partner_group, created = Group.objects.get_or_create(name='partner')
+                    user.groups.add(partner_group)
 
+                elif user_type == 'register-as-job-seeker':
+                    job_seeker_group, created = Group.objects.get_or_create(name='job_seeker')
+                    user.groups.add(job_seeker_group)
+
+                current_site = get_current_site(request)
+               
+                if connection.tenant.schema_name == 'public':
+                    subdomain = ''  # Empty for public domain
+                    domain = current_site.domain  # e.g., "localhost"
+                else:
+                    subdomain = connection.tenant.schema_name  # e.g., "demo1"
+                    domain = current_site.domain  # e.g., "localhost"
+                subject = 'Activate your Account'
+                message = render_to_string('accounts/registration/account_activation_email.html', {
+                    'user': user,
+                    'domain': domain,
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'token': account_activation_token.make_token(user),
+                    'subdomain':subdomain
+                })
+                user.email_user(subject=subject, message=message)
                 UserProfile.objects.create(
-                    user=user,
-                    tenant=Client.objects.filter(schema_name=current_tenant).first(),
-                    profile_picture=form.cleaned_data.get('profile_picture'),
-                )
-
-            messages.success(request, "User registered successfully!")
-            return redirect('accounts:login')
-        else:
-            messages.error(request, "There was an error with your registration.")
+                        user=user,
+                        tenant=Client.objects.filter(schema_name=current_tenant).first(),
+                        profile_picture=registerForm.cleaned_data.get('profile_picture'),
+                    )
+            return render(request, 'accounts/registration/register_email_confirm.html', {'form': registerForm})
     else:
-        form = TenantUserRegistrationForm(tenant=current_tenant)
-
-    return render(request, 'accounts/registration/register_customer_support.html', {'form': form})
-
-
-
-
-def register_job_seeker(request):
-    current_tenant = None
-    if hasattr(connection, 'tenant'):
-        current_tenant = connection.tenant.schema_name
-
-    if request.method == 'POST':
-        form = TenantUserRegistrationForm(request.POST, request.FILES, tenant=current_tenant)
-        if form.is_valid():
-            with transaction.atomic():    
-                user = form.save(commit=False) 
-                user.email = form.cleaned_data['email']
-                user.save() 
-
-                job_seekers, created = Group.objects.get_or_create(name='job_seekers')
-                user.groups.add(job_seekers) 
-                UserProfile.objects.create(
-                    user=user,
-                    tenant=Client.objects.filter(schema_name=current_tenant).first(),
-                    profile_picture=form.cleaned_data.get('profile_picture'),
-                )
-
-            messages.success(request, "User registered successfully!")
-            return redirect('accounts:login')
-        else:
-            messages.error(request, "There was an error with your registration.")
-    else:
-        form = TenantUserRegistrationForm(tenant=current_tenant)
-
-    return render(request, 'accounts/registration/register_job_seeker.html', {'form': form})
-
+        registerForm = PartnerJobSeekerRegistrationForm(tenant=current_tenant)
+    return render(request, 'accounts/registration/register.html', {'form': registerForm})
 
 
 
@@ -214,146 +286,120 @@ def update_profile_picture(request):
 
 from clients.models import Subscription
 from django.utils import timezone
+from django_tenants.utils import get_public_schema_name
+
+
 
 def login_view(request):
+
     current_tenant = None
     if hasattr(connection, 'tenant'):
-
-        # Update subscribtion status every time user login
-        current_tenant = connection.tenant.schema_name 
+        current_tenant = connection.tenant.schema_name        
         subscriptions = Subscription.objects.all()
         current_date = timezone.now().date()
         for subscription in subscriptions:
-            if subscription.expiration_date < current_date:
-                subscription.is_expired = 'active'
-                subscription.save()
-
+            if subscription.expiration_date:
+                if subscription.expiration_date > current_date:
+                    subscription.is_expired = True
+                    subscription.save()
+    form = CustomLoginForm(initial={'tenant': current_tenant})   
 
     if request.method == 'POST':
         form = CustomLoginForm(data=request.POST)
         if form.is_valid():
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
-            tenant = form.cleaned_data['tenant']            
+                    
             user = authenticate(request, username=username, password=password)
-           
-            if user:            
-                login(request, user)
-                messages.success(request, "Login successful!")               
-                tenant_url = f"http://{tenant}.localhost:8000/clients/tenant_expire_check/"
-                return redirect(tenant_url)
-            
+            tenant = current_tenant
+            if user:                  
+                login(request, user,backend='accounts.backends.TenantAuthenticationBackend')
+                current_schema=request.tenant.schema_name == get_public_schema_name()
+                if not current_schema:   
+                    messages.success(request, "Login successful!")                      
+                    tenant_url = f"http://{tenant}.localhost:8000/clients/tenant_expire_check/"
+                    return redirect(tenant_url)       
+                else:
+                    messages.success(request, "Login successful!")                      
+                    tenant_url = f"http://localhost:8000/clients/tenant_expire_check/"
+                    return redirect(tenant_url)     
+
             else:
                 messages.error(request, "Invalid username or password.")
         else:
+            print(form.errors)
             messages.error(request, "Invalid form")
     else:
         form = CustomLoginForm(initial={'tenant': current_tenant})    
+    
+    form = CustomLoginForm(initial={'tenant': current_tenant})    
     return render(request, 'accounts/registration/login.html', {'form': form})
 
 
 
 
 
-# def login_public(request):
-#     current_tenant = None
-#     if hasattr(connection, 'tenant'):
-#         current_tenant = connection.tenant.schema_name 
+def login_public(request):
+    form = CustomLoginForm(request.POST)
+    current_tenant = None
+    if hasattr(connection, 'tenant'):
+        current_tenant = connection.tenant.schema_name    
+        
+    if request.method == 'POST':
+        form = CustomLoginForm(data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            tenant = form.cleaned_data['tenant']  # The tenant schema entered by the user
 
-#     if request.method == 'POST':
-#         form = CustomLoginForm(data=request.POST)
-#         if form.is_valid():
-#             username = form.cleaned_data.get('username')
-#             password = form.cleaned_data.get('password')
-#             tenant = form.cleaned_data['tenant']  # The tenant schema entered by the user
-
-#             user = authenticate(request, username=username, password=password)
-#             if user is not None:             
-#                 if hasattr(user, 'user_profile'):
-#                     user_tenant = user.user_profile.tenant
-#                     if user_tenant and user_tenant.schema_name == tenant:
-#                         login(request, user)
-                        
-#                         # Redirect based on user group
-#                         if user.groups.filter(name='public').exists():
-#                             return redirect('clients:dashboard') 
-#                         else:
-#                             messages.success(request, "Login successful!")
-#                             return redirect('clients:tenant_expire_check')  
-#                     else:
-#                         messages.error(request, "Invalid tenant. You are not allowed to log in to this tenant.")
-#                 else:
-#                     messages.error(request, "User profile is missing. Contact admin for support.")
-#             else:
-#                 messages.error(request, "Invalid username or password.")
-#     else:
-#         form = CustomLoginForm(initial={'tenant': current_tenant})    
-#     return render(request, 'accounts/registration/login_public.html', {'form': form})
-
-
-# def login_customer_support_view(request):
-#     current_tenant = None
-#     if hasattr(connection, 'tenant'):
-#         current_tenant = connection.tenant.schema_name 
-
-#     if request.method == 'POST':
-#         form = CustomLoginForm(data=request.POST)
-#         if form.is_valid():
-#             username = form.cleaned_data.get('username')
-#             password = form.cleaned_data.get('password')
-#             tenant = form.cleaned_data['tenant'] 
-
-#             user = authenticate(request, username=username, password=password)
-#             if user is not None:             
-#                 if hasattr(user, 'user_profile'):
-#                     user_tenant = user.user_profile.tenant
-#                     if user_tenant and user_tenant.schema_name == tenant:
-#                         login(request, user)
-                        
-#                         # Redirect based on user group
-#                         if user.groups.filter(name='Customer').exists():
-#                             return redirect('customerportal:ticket_list') 
-#                         else:
-#                             messages.success(request, "Login successful!")
-#                             return redirect('clients:tenant_expire_check')  
-#                     else:
-#                         messages.error(request, "Invalid tenant. You are not allowed to log in to this tenant.")
-#                 else:
-#                     messages.error(request, "User profile is missing. Contact admin for support.")
-#             else:
-#                 messages.error(request, "Invalid username or password.")
-#     else:
-#         form = CustomLoginForm(initial={'tenant': current_tenant})    
-#     return render(request, 'accounts/registration/login_customer_support.html', {'form': form})
+            user = authenticate(request, username=username, password=password)
+          
+            if user:            
+                login(request, user,backend='accounts.backends.TenantAuthenticationBackend')
+                messages.success(request, "Login successful!")                      
+                tenant_url = f"http://localhost:8000/clients/tenant_expire_check/"
+                return redirect(tenant_url)     
+                                        
+            else:
+                messages.error(request, "Invalid tenant. You are not allowed to log in to this tenant.")          
+    else:
+        form = CustomLoginForm(initial={'tenant': current_tenant})  
+    form = CustomLoginForm(initial={'tenant': current_tenant})     
+    return render(request, 'accounts/registration/login_public.html', {'form': form})
 
 
 
-# def login_job_seeker_view(request):
-#     current_tenant = None
-#     if hasattr(connection, 'tenant'):
-#         current_tenant = connection.tenant.schema_name 
 
-#     if request.method == 'POST':
-#         form = CustomLoginForm(data=request.POST)
-#         if form.is_valid():
-#             username = form.cleaned_data.get('username')
-#             password = form.cleaned_data.get('password')
-#             tenant = form.cleaned_data['tenant']  
-#             if current_tenant == tenant:
-#                 user = authenticate(request, username=username, password=password)
-#             else:
-#                 messages.warning(request,'Your not in correct tenant. Please login with our own tenant')
-#             if user:            
-#                 login(request, user)
-#                 messages.success(request, "Login successful!")
-#                 return redirect('clients:tenant_expire_check')             
-#             else:
-#                 messages.error(request, "Invalid username or password.")
-#         else:
-#             messages.error(request, "Invalid form")
-#     else:
-#         form = CustomLoginForm(initial={'tenant': current_tenant})    
-#     return render(request, 'accounts/registration/login_job_seeker.html', {'form': form})
+def login_partner_job_seeker(request):
+    current_tenant = None
+    if hasattr(connection, 'tenant'):
+        current_tenant = connection.tenant.schema_name 
+    if request.method == 'POST':
+        form = CustomLoginForm(data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            tenant = form.cleaned_data['tenant'] 
+
+            user = authenticate(request, username=username, password=password)
+            if user is not None:             
+                if hasattr(user, 'user_profile'):
+                    user_tenant = user.user_profile.tenant
+                    if user_tenant and user_tenant.schema_name == tenant:
+                        login(request, user,backend='accounts.backends.TenantAuthenticationBackend')                      
+                        messages.success(request, "Login successful!")
+                        return redirect('clients:tenant_expire_check')  
+                    else:
+                        messages.error(request, "Invalid tenant. You are not allowed to log in to this tenant.")
+                else:
+                    messages.error(request, "User profile is missing. Contact admin for support.")
+            else:
+                messages.error(request, "Invalid username or password.")
+    else:
+        form = CustomLoginForm(initial={'tenant': current_tenant})   
+    form = CustomLoginForm(initial={'tenant': current_tenant})   
+    return render(request, 'accounts/registration/login_partner_job_seeker.html', {'form': form})
+
 
 
 
@@ -361,14 +407,20 @@ def logged_out_view(request):
     plans = SubscriptionPlan.objects.all().order_by('duration')
     for plan in plans:
         plan.features_list = plan.features.split(',')
-    is_customer = False
+    is_partner_job_seeker = False    
+    is_public = False
+
     if request.user.is_authenticated:        
-        is_customer = request.user.groups.filter(name='Customer').exists()
+        is_partner_job_seeker = request.user.groups.filter(name__in=('partner','job_seeker')).exists()       
+        is_public = request.user.groups.filter(name='public').exists()
        
     logout(request)
 
-    if is_customer:
-        return render(request, 'accounts/registration/logged_out_customer.html',{'plans':plans})
+    if is_partner_job_seeker:
+        return render(request, 'accounts/registration/login_partner_job_seeker.html',{'plans':plans})
+    elif is_public:
+        return render(request, 'accounts/registration/login_public.html',{'plans':plans})
+   
     return render(request, 'accounts/registration/logged_out.html',{'plans':plans})
 
 

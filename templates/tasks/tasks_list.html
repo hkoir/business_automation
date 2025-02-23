@@ -39,7 +39,7 @@
             </div>
         </div>
        
-        <div class="col-12">      
+        <div class="col-12 table-responsive">      
                          
             <h4>Tasks List</h4>
             <table class="table table-hover">
@@ -49,7 +49,7 @@
                         <th>Assign task</th>
                         <th>Chat</th>
                         <th>Task ID</th>
-                        <th>Entity</th>
+                   
                         <th>Task Title</th>
                         <th>Ticket</th>
                         <th>Priority</th>
@@ -109,8 +109,11 @@
                                 {% endif %}
                             </a>                       
                         </td>                                    
-                                                
+                                
                         <td>
+                            {{task.task_id}}
+                        </td>
+                        <!-- <td>
                             <a href="#" 
                                class="view-task-details" 
                                data-task-id="{{ task.id }}" 
@@ -118,13 +121,9 @@
                                data-bs-target="#taskDetailsModal">
                                {{task.task_id}}
                             </a>
-                        </td>
+                        </td> -->
                         
-
-
-
-
-                        <td>{{ task.ticket.get_organization_display }}</td>
+                    
                         <td>
                             {% if task.task_type == 'TICKET' %}
                             <span>Ticket</span>
@@ -338,7 +337,7 @@
 </div>
 
 
-<div style="height:800px"></div>
+
 <!-- Modal -->
 <div class="modal fade" id="taskDetailsModal" tabindex="-1" aria-labelledby="taskDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -365,48 +364,48 @@
       </div>
     </div>
   </div>
-  
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.view-task-details').forEach(function(link) {
-        link.addEventListener('click', function(event) {
-            event.preventDefault();
-            const taskId = this.dataset.taskId;  // Get the task.id from the data attribute
-            
-            console.log("Task ID clicked:", taskId);  // Log the task.id to check if it's correct
-
-            fetch(`/tasks/task_details/${taskId}/`)
-                .then((response) => response.json())
-                .then((data) => {
-                    if (data.error) {
-                        console.error('Error:', data.error);
-                    } else {
-                        // Log the data to check its contents
-                        console.log(data);
-
-                        // Update modal with task details
-                        document.getElementById('task-id').textContent = data.task_id;
-                        document.getElementById('task-description').textContent = data.description;
-                        document.getElementById('task-status').textContent = data.status;
-                        document.getElementById('task-assigned').textContent = data.assigned_to;
-                        document.getElementById('task-due-date').textContent = data.due_datetime;
-                        document.getElementById('ticket_subject').textContent = data.ticket_subject;
-                        document.getElementById('ticket_description').textContent = data.ticket_description;
-                        document.getElementById('ticket_raised_by').textContent = data.ticket_raised_by;
-                        document.getElementById('ticket_origin_date').textContent = data.ticket_origin_date;
-                        document.getElementById('ticket_resolution_date').textContent = data.resolution_date;
-                    }
-                })
-                .catch((error) => {
-                    console.error("Error fetching task details:", error);
-                    alert("An error occurred while fetching task details.");
-                });
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.view-task-details').forEach(function(link) {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                const taskId = this.dataset.taskId;  
+    
+                console.log("Task ID clicked:", taskId);  // Debugging
+    
+                fetch(`/tasks/task_details/${taskId}/`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.error) {
+                            console.error('Error:', data.error);
+                        } else {
+                            console.log("Fetched data:", data);
+    
+                            document.getElementById('task-id').textContent = data.task_id || 'N/A';
+                            document.getElementById('task-description').textContent = data.description || 'N/A';
+                            document.getElementById('task-status').textContent = data.status || 'N/A';
+                            document.getElementById('task-assigned').textContent = data.assigned_to || 'N/A';
+                            document.getElementById('task-due-date').textContent = data.due_datetime || 'N/A';
+                            document.getElementById('ticket_subject').textContent = data.ticket_subject || 'N/A';
+                            document.getElementById('ticket_description').textContent = data.ticket_description || 'N/A';
+                            document.getElementById('ticket_raised_by').textContent = data.ticket_raised_by || 'N/A';
+                            document.getElementById('ticket_origin_date').textContent = data.ticket_origin_date || 'N/A';
+                            document.getElementById('ticket_resolution_date').textContent = data.ticket_resolution_date || 'N/A';
+    
+                            // Ensure modal opens after data is set
+                            var modal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
+                            modal.show();
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching task details:", error);
+                        alert("An error occurred while fetching task details.");
+                    });
+            });
         });
     });
-});
-
-
-</script>
+    </script>
+    
 
 <script>
     $(document).ready(function() {

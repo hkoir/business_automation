@@ -4,41 +4,155 @@
 
 {% block content %}
 
-   <style>
+<style>
+
 .hero-section {
-    background-color: #f8f9fa;
-    background-image: url('your-image-url.jpg'); /* Optional */
-    background-size: cover;
-    background-position: center;
-    padding: 100px 20px;
+    position: relative;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(255, 255, 255, 1)),
+                url('https://source.unsplash.com/1600x900/?office,teamwork') no-repeat center center/cover;
+    height: 70vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
     text-align: center;
-    color: #212529;
-}
-
-.hero-section h1 {
-    font-size: 2.5rem;
-    font-weight: 600;
-}
-.hero-section p {
-    font-size: 1.2rem;
-    opacity: 0.9;
+    overflow: hidden;
+    padding: 0 15px;
+    border-bottom: 1px solid #eee; /* Optional: A light border for a clean separation */
 }
 
 
-   </style>
+    .hero-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6); /* Darker and more professional */
+        z-index: 1;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 800px;
+        margin: 0 auto;
+        text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.6); /* Subtle shadow for contrast */
+        animation: fadeInUp 10s ease-out infinite;
+    }
+
+    .hero-section h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+    }
+
+    .hero-section p {
+        font-size: 1.3rem;
+        font-weight: 300;
+        opacity: 0.95;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Optional Animation */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(40px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Optional Button */
+    .hero-btn {
+        background-color: #fcb900;
+        color: #333;
+        padding: 12px 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-btn:hover {
+        background-color: #f5a623;
+        color: #fff;
+        transform: translateY(-3px);
+    }
+
+
+
+.custom-shape-divider-bottom-hero {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    }
+.custom-shape-divider-bottom-hero svg {
+        position: relative;
+        display: block;
+        width: calc(115% + 1.3px);
+        height: 80px;
+    }
+.custom-shape-divider-bottom-hero .shape-fill {
+        fill: #ffffff;
+    }
+
+
+
+    .card-hover:hover {
+        transform: translateY(-5px);
+        transition: 0.3s;
+    }
+    .job-title {
+        font-weight: bold;
+        color: #004085;
+    }
+    .btn-apply {
+        background-color: #004085;
+        color: white;
+    }
+    .btn-apply:hover {
+        background-color: #002752;
+        color: cyan;
+    }
+
+
+</style>
                
 
-<div class="container-fluid main-content mb-4">   
+<div class="container-fluid main-content">   
     <div class="row"> 
         <div class="col-12">                        
             <!-- Hero Section -->
-            <div class="hero-section">
-                <div>
-                    <h1>Find Your Next Career Opportunity</h1>
-                    <p>Join our innovative and growing team.</p>
-                    <a href="#job-listings" class="btn btn-light btn-lg mt-3">View Openings</a>
+           
+
+            <section class="hero-section">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <h1>Welcome to Our Careers</h1>
+                    <p>Join a team that drives innovation and fosters growth.</p>
+                    <button class="hero-btn">Explore Jobs</button>
                 </div>
-            </div>
+                <div class="custom-shape-divider-bottom-hero">
+                    <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                        <path d="M0,0V46.29c47.6,15.4,98.5,27.4,150,24.67,49.6-2.6,97.1-20.73,146.6-27.27,64.5-8.53,129.6,1.84,194,9.39,65.1,7.6,130.8,10.9,196.5,2.53,65.8-8.27,128.9-27.47,192.2-31.1,51.5-3,103.7,4.72,155.2,13.11,51.5,8.4,103.2,17.6,155.5,20.44,45.5,2.51,91.3-.53,136.8-5.39V0Z" fill="#ffffff"></path>
+                    </svg>
+                </div>
+            </section>
+            
+            
 
             <!-- Job Listings Preview -->
             <div class="container my-5" id="job-listings">

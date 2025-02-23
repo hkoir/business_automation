@@ -41,6 +41,8 @@ def demo_request(request):
 
 
 
+
+
 def tenant_dashboard(request):    
     plans = SubscriptionPlan.objects.all().order_by('duration')
     for plan in plans:
@@ -79,8 +81,17 @@ def tenant_dashboard(request):
             'modules':modules
 
         }
+    elif is_public_schema and request.user.is_authenticated:
+        template_name = "tenant/default_dashboard.html"
+        context = {
+            "welcome_message": "Welcome to the public dashboard",
+            'plans':plans,
+            'modules':modules
+
+        }
     else:
-        template_name = "customerportal/public_landing_page.html"
+        template_name = "tenant/tenant_dashboard.html"
+       
         context = {
             "tenant": tenant,
             "welcome_message": f"Welcome to {tenant.name}'s Dashboard!",
@@ -91,8 +102,16 @@ def tenant_dashboard(request):
     return render(request, template_name, context)
 
 
+def public_tenant_login(request):
+    return render(request,'tenant/default_dashboard.html')
+
+
 
 def tenant_expire_check(request):
+    tenant = get_object_or_404(Client, schema_name=request.tenant.schema_name)
+    tenant = getattr(request, 'tenant', None)
+    is_public_schema = tenant.schema_name == get_public_schema_name()
+
     tenant = getattr(request, 'tenant', None)
     if tenant:
         tenant_instance = tenant.tenant.first()
@@ -100,50 +119,21 @@ def tenant_expire_check(request):
             messages.warning(request,'Your subscription has expired, please renew')
             return redirect('clients:renew_tenant')            
 
-    if not request.user.is_authenticated:
-        if tenant.registered_tenant:
-            return redirect('accounts:login')
-        else:
-             return redirect('clients:dashboard')
+    if not request.user.is_authenticated:       
+        return redirect('clients:dashboard')
 
-    else:      
-        if request.user.groups.filter(name='Customer').exists():
-            return redirect('customerportal:customer_landing_page')
-        elif request.user.groups.filter(name='job_seekers').exists():
+    else:
+        if is_public_schema:
+            return redirect('clients:dashboard')
+        elif request.user.groups.filter(name='partner').exists():
+            return redirect('customerportal:partner_landing_page')
+        elif request.user.groups.filter(name='job_seeker').exists():
             return redirect('customerportal:job_landing_page')
         elif request.user.groups.filter(name='public').exists():
              return redirect('customerportal:public_landing_page')
         else:
             return redirect('core:dashboard')
    
-
-def tenant_expire_check2(request):
-    if connection.schema_name == get_public_schema_name(): 
-        if not request.user.is_authenticated:          
-            return redirect('clients:dashboard') 
-        elif request.user.groups.filter(name='public').exists():    
-            return redirect('clients:dashboard')
-        else:
-            print('redirected to core dashboard')
-            return redirect('core:dashboard') 
-    else: 
-        tenant = getattr(request, 'tenant', None)
-        if tenant:
-            tenant_instance = tenant.tenant.first()
-            if tenant_instance and tenant_instance.subscription and tenant_instance.subscription.expiration_date:
-                if tenant_instance.subscription.expiration_date < timezone.now().date():
-                    return redirect('clients:renew_tenant')
-
-        if not request.user.is_authenticated:
-            return redirect('clients:dashboard') 
-        elif request.user.groups.filter(name='Customer').exists():
-            return redirect('customerportal:customer_landing_page')
-        elif request.user.groups.filter(name='job_seekers').exists():
-            return redirect('customerportal:job_landing_page')
-        elif request.user.groups.filter(name='public').exists():
-             return redirect('customerportal:public_landing_page')
-        else:
-            return redirect('core:dashboard')  
 
 
 def create_user_profile(request):
@@ -195,10 +185,15 @@ def get_client_ip(request):
     return ip
 
 
-
+@login_required
 def apply_for_tenant_subscription(request):
     plan_id = request.GET.get('plan_id')
     plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+
+    if not request.user.is_authenticated:
+        current_tenant = get_public_schema_name()
+        if current_tenant:
+            return redirect('accounts:login_public')
 
     if plan.duration != 1: #free plan checking  
         try:  
@@ -224,7 +219,7 @@ def apply_for_tenant_subscription(request):
             subdomain = form.cleaned_data['subdomain']
             name = form.cleaned_data['name'] 
             email = form.cleaned_data['email']
-            password = form.cleaned_data['password'] 
+            password = 'demo2'
             logo = form.cleaned_data['logo']
             phone_number = form.cleaned_data['phone_number'] 
             address = form.cleaned_data['address'] 
@@ -253,7 +248,7 @@ def apply_for_tenant_subscription(request):
 
                     if not request.user.is_authenticated:
                         user = User.objects.create_user(
-                            username=email,
+                            username=name,
                             email=email,
                             password=password  
                         )
@@ -288,7 +283,7 @@ def apply_for_tenant_subscription(request):
 
                     send_tenant_email(email, name, password, subdomain)
                     messages.success(request, 'Tenant created successfully. Credentials sent to your email.')
-                    return redirect('accounts:login') 
+                    return redirect(f'http://{subdomain}.localhost')
 
             except IntegrityError as e:
                 messages.error(request, f"Error: {e}")
@@ -363,6 +358,8 @@ def handle_renewal_success(user, plan):
     subscription.expiration_date += timedelta(days=plan.duration * 30) 
     subscription.save()
 
+
+@login_required
 def renew_subscription(request):
     subscription =None
     current_date = timezone.now().date()
@@ -377,6 +374,7 @@ def renew_subscription(request):
     if user_profile and user_profile.tenant:
         client = user_profile.tenant  
         tenant = Tenant.objects.filter(tenant=client).first() 
+       
     else:
         messages.error(request, "No tenant found for this user.")
         return redirect('clients:dashboard')
@@ -436,7 +434,8 @@ def renew_subscription(request):
                     if charge_response['status'] == 'success':
                         handle_renewal_success(user, plan)
                         messages.success(request, "Your subscription has been successfully renewed!")
-                        return redirect('clients:dashboard')
+                        return redirect('http://demo1.localhost:8000')
+                  
                     else:
                         messages.error(request, "Payment failed. Please try again.")
                 except Exception as e:
@@ -463,7 +462,7 @@ def renew_subscription(request):
         if charge_response['status'] == 'success':
             handle_renewal_success(user, plan)
             messages.success(request, "Your subscription has been successfully renewed!")
-            return redirect('clients:dashboard')
+            return redirect('http://demo1.localhost:8000')
         else:
             messages.error(request, "Payment failed. Please try again.")
     except Exception as e:
@@ -503,3 +502,32 @@ def thanks_for_application(request):
     })
 
 
+
+################################ Billing section #################################
+
+from django.core.exceptions import ValidationError
+
+def can_add_user(tenant):
+    active_user_count = tenant.users.filter(is_active=True).count()
+    if active_user_count >= tenant.max_users:
+        return False
+    return True
+
+'''
+if not can_add_user(request.user.tenant):
+    raise ValidationError("User limit exceeded for your plan. Upgrade your plan to add more users.")
+'''
+
+
+from.models import BillingRecord
+
+def generate_bill(tenant):
+    active_users = tenant.users.filter(is_active=True).count()
+    price_per_user = tenant.subscriptionplan.price_per_user
+    total_cost = active_users * price_per_user
+
+    BillingRecord.objects.create(
+        tenant=tenant,
+        total_users=active_users,
+        total_cost=total_cost
+    )

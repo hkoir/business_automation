@@ -24,16 +24,31 @@ from tasks.forms import CustomerUpdateTicketForm,TicketForm
 from tasks.models import TeamMember,PerformanceEvaluation,TaskMessageReadStatus,Ticket,Task
 
 from.forms import QualityControlFormByCustomer
-from sales.models import SaleOrder,SaleOrderItem
+from sales.models import SaleOrder,SaleOrderItem,SaleQualityControl
 
 from.forms import FilterForm,TicketCustomerFeedbackForm
 from core.forms import CommonFilterForm
 from logistics.models import SaleDispatchItem,SaleShipment
+from recruitment.models import  Candidate
+from clients.models import SubscriptionPlan
 
 
 
-def customer_landing_page(request):
-    return render(request,'customerportal/customer_landing_page.html')
+
+def partner_landing_page(request):
+    return render(request,'customerportal/partner_landing_page.html')
+
+
+def public_landing_page(request):
+    plans = SubscriptionPlan.objects.all().order_by('duration')
+    for plan in plans:
+        plan.features_list = plan.features.split(',') if plan.features else [] 
+    return render(request,'customerportal/public_landing_page.html',{'plans':plans})
+
+
+def job_landing_page(request):
+    return render(request,'customerportal/recruitment/job_landing_page.html')
+
 
 
 @login_required
@@ -179,12 +194,15 @@ def sale_dispatch_item_list(request, sale_order_id):
 
 
 
-
 @login_required
 def update_sale_dispatch_status(request, dispatch_item_id):
-    dispatch_item = get_object_or_404(SaleDispatchItem, id=dispatch_item_id)  
+    dispatch_item = get_object_or_404(SaleDispatchItem, id=dispatch_item_id)          
     
     if request.method == 'POST':
+        if dispatch_item.status in ['OBI','DELIVERED']:
+            messages.info(request,'item has already been updated')
+            return redirect('customerportal:update_sale_dispatch_status',dispatch_item_id)
+        
         new_status = request.POST.get('new_status')
         old_status = dispatch_item.status
         dispatch_item.status = new_status
@@ -251,46 +269,46 @@ def customer_qc_inspect_item(request, item_id):
 
     if not sale_shipment:
         messages.error(request, "No shipment found for this order item.")
-        return redirect('sales:customer_qc_dashboard')  
+        return redirect('customerportal:customer_qc_dashboard')  
     if not sale_dispatch_item.status in ['REACHED','OBI']:
         messages.error(request, "Goods not arrived yet found for this order item.")
-        return redirect('sales:customer_qc_dashboard')  
+        return redirect('customerportal:customer_qc_dashboard')  
     
     if sale_shipment.status != 'REACHED':
                 messages.info(request, "Cannot inspect due to delivery has not been done yet.")
-                return redirect('sales:customer_qc_dashboard')
+                return redirect('customerportal:customer_qc_dashboard')
 
     if request.method == 'POST':
-        form = QualityControlFormByCustomer(request.POST)
+        try:
+            qc_entry = SaleQualityControl.objects.get(sale_dispatch_item=sale_dispatch_item)  # Assuming sale_dispatch_item is unique
+            form = QualityControlFormByCustomer(request.POST, instance=qc_entry) # Bind to existing instance
+        except QualityControl.DoesNotExist:           
+            form = QualityControlFormByCustomer(request.POST)
+       
         if form.is_valid():           
             qc_entry = form.save(commit=False)
             qc_entry.sale_dispatch_item = sale_dispatch_item
             qc_entry.user = request.user 
             qc_entry.quality_check_by = 'BY-CUSTOMER' 
-            qc_entry.inspection_date = timezone.now()
+            qc_entry.inspection_date_by_customer = timezone.now()
             qc_entry.save()
 
-            sale_dispatch_item.status = 'OBI'
-            sale_dispatch_item.save()   
-            
-            sale_order.status = 'DELIVERED'
-            sale_order.save()
-
+            sale_dispatch_item.status = 'DELIVERED' # status changed from READY-FOR-DISPATCH >> DISPATCHED >> REACHED >> DELIVERED
+            sale_dispatch_item.save()               
+           
             sale_order_item.status ='DELIVERED'
             sale_order_item.save()
-
-            sale_request_order.status ='DELIVERED'
-            sale_request_order.save()
 
             sale_request_item.status ='DELIVERED'
             sale_request_item.save()
 
             update_sale_order(sale_order.id)      
             update_sale_shipment_status(sale_shipment.id)
-            update_sale_request_order(sale_request_order.id)         
+            update_sale_request_order(sale_request_order.id)      
+            sale_shipment.update_shipment_status()   
                  
             messages.success(request, "Quality control inspection recorded successfully.")
-            return redirect('sales:customer_qc_dashboard')
+            return redirect('customerportal:customer_qc_dashboard')
         else:
             messages.error(request, "Error saving QC inspection.")
     else:
@@ -525,7 +543,7 @@ def create_ticket(request):
 
             messages.success(request, 'Ticket and task  created successfully!')
 
-            create_notification(request.user,f"A ticket with task '{ticket.subject}' has been created",'TICKET-NOTIFICATION')
+            create_notification(request.user,message=f"A ticket with task '{ticket.subject}' has been created",notification_type='TICKET-NOTIFICATION')
             return redirect('customerportal:ticket_list')
         else:
             for field, errors in form.errors.items():
@@ -699,7 +717,7 @@ def update_ticket(request, ticket_id):
                     evaluation.save()                            
                 
                 messages.success(request, f'Ticket updated successfully with feedback: {ticket.customer_feedback} complete!')
-                create_notification(request.user, f"A ticket with subject '{ticket.subject}' has been updated", 'TICKET-NOTIFICATION')
+                create_notification(request.user,message= f"A ticket with subject '{ticket.subject}' has been updated", notification_type='TICKET-NOTIFICATION')
                 return redirect('customerportal:ticket_list')
         
                           
@@ -899,11 +917,6 @@ def repair_return_customer_feedback(request,return_id):
              
         })
 
-
-from recruitment.models import  Candidate
-
-def job_landing_page(request):
-    return render(request,'customerportal/recruitment/job_landing_page.html')
 
 
 
@@ -1283,10 +1296,4 @@ def search_applications(request):
         'candidates': candidates,
     })
 
-from clients.models import SubscriptionPlan
 
-def public_landing_page(request):
-    plans = SubscriptionPlan.objects.all().order_by('duration')
-    for plan in plans:
-        plan.features_list = plan.features.split(',') if plan.features else [] 
-    return render(request,'customerportal/public_landing_page.html',{'plans':plans})

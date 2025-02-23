@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from simple_history.models import HistoricalRecords
 import uuid
-
+from accounts.models import CustomUser
 
 from logistics.models import PurchaseShipment,SaleShipment
 from django.db.models import Sum
@@ -12,7 +12,7 @@ from decimal import Decimal
 
 
 class PurchaseInvoice(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_invoice_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_invoice_user')
     purchase_shipment = models.ForeignKey(PurchaseShipment, related_name='shipment_invoices', on_delete=models.CASCADE,null=True,blank=True)
     invoice_number = models.CharField(max_length=150, unique=True, blank=True, null=True)
     amount_due = models.DecimalField(max_digits=10, decimal_places=2)
@@ -62,7 +62,7 @@ class PurchaseInvoiceAttachment(models.Model):
 
 
 class PurchasePayment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_payment_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_payment_user')
     purchase_invoice = models.ForeignKey(PurchaseInvoice, related_name='purchase_payment_invoice', on_delete=models.CASCADE, null=True, blank=True) 
     payment_id =models.CharField(max_length=20, null=True, blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -104,7 +104,7 @@ class PurchasePayment(models.Model):
         return abs(total_paid - self.purchase_invoice.amount_due) <= tolerance
 
 class PurchasePaymentAttachment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     purchase_invoice = models.ForeignKey(PurchaseInvoice, related_name='purchase_payment_attachment', on_delete=models.CASCADE)
     file = models.ImageField(upload_to='purchase_payment/')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -114,7 +114,7 @@ class PurchasePaymentAttachment(models.Model):
 
 
 class SaleInvoice(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_invoice_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_invoice_user')
     sale_shipment = models.ForeignKey(SaleShipment, related_name='sale_shipment_invoices', on_delete=models.CASCADE,null=True,blank=True)
     invoice_number = models.CharField(max_length=150, unique=True, blank=True, null=True)
     amount_due = models.DecimalField(max_digits=10, decimal_places=2)
@@ -154,7 +154,7 @@ class SaleInvoice(models.Model):
 
 
 class SaleInvoiceAttachment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     sale_invoice = models.ForeignKey(SaleInvoice, related_name='sale_invoice_attachment', on_delete=models.CASCADE)
     file = models.ImageField(upload_to='sale_invoice/')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -162,7 +162,7 @@ class SaleInvoiceAttachment(models.Model):
 
 
 class SalePayment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_payment_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_payment_user')
     sale_invoice = models.ForeignKey(SaleInvoice, related_name='sale_payment_invoice', on_delete=models.CASCADE, null=True, blank=True) 
     payment_id =models.CharField(max_length=20, null=True, blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -201,7 +201,7 @@ class SalePayment(models.Model):
         return abs(self.sale_invoice.amount_due - total_paid) <= tolerance
     
 class SalePaymentAttachment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     sale_invoice = models.ForeignKey(SaleInvoice, related_name='sale_payment_attachement', on_delete=models.CASCADE)
     file = models.ImageField(upload_to='sale_payment/')
     created_at = models.DateTimeField(auto_now_add=True)

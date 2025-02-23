@@ -8,12 +8,12 @@ from product.models import Product,Category
 from django.apps import apps
 from django.contrib.auth.decorators import permission_required
 from django.utils import timezone
-
+from accounts.models import CustomUser
 
 
 class ExistingOrder(models.Model):
     order_id = models.CharField(max_length=20)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='operations_order_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='operations_order_user')
     order_date = models.DateField(null=True, blank=True)
     ORDER_STATUS_CHOICES = [
     ('PENDING', 'Pending'),
@@ -46,7 +46,7 @@ class ExistingOrderItems(models.Model):
     item_id = models.CharField(max_length=20)
     existing_order = models.ForeignKey(ExistingOrder, 
         on_delete=models.CASCADE, null=True, blank=True,related_name='operations_existing_order_items')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='operations_order_items_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='operations_order_items_user')
     product = models.ForeignKey(Product,related_name='operations_order_product', on_delete=models.CASCADE) 
    
     order_date = models.DateField(null=True, blank=True)
@@ -75,7 +75,7 @@ class ExistingOrderItems(models.Model):
     
 
 class OperationsRequestOrder(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)   
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)   
     order_id = models.CharField(max_length=50,null=True,blank=True)
     department = models.CharField(max_length=50,null=True, blank=True)
    
@@ -128,7 +128,7 @@ class OperationsRequestOrder(models.Model):
 
 
 class OperationsRequestItem(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     item_id = models.CharField(max_length=20, unique=True)   
     operations_request_order = models.ForeignKey(OperationsRequestOrder, related_name='operations_request_items', on_delete=models.CASCADE, null=True, blank=True)
     purpose = models.CharField(max_length=150)
@@ -161,7 +161,7 @@ class OperationsRequestItem(models.Model):
 class OperationsDeliveryItem(models.Model):
     operations_request_order = models.ForeignKey(OperationsRequestOrder, related_name='operations_request_order_delivery', on_delete=models.CASCADE,null=True, blank=True)
     operations_request_item = models.ForeignKey(OperationsRequestItem, related_name='operations_request_items_delivery', on_delete=models.CASCADE,null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     item_id = models.CharField(max_length=20)
     warehouse = models.ForeignKey('inventory.warehouse', on_delete=models.CASCADE,null=True, blank=True)
     location = models.ForeignKey('inventory.location', on_delete=models.CASCADE, null=True, blank=True)

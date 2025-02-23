@@ -21,22 +21,20 @@ SHARED_APPS = [
     'django.contrib.staticfiles',  
     'django_crontab',               
     'django_celery_beat',   
-    'django_extensions', 
-    'clients',   
-    'django.contrib.humanize',
-    'commonapp',
+    'django_extensions',   
+    'django.contrib.humanize',   
     'django.contrib.sites',
-   
-   
-  
+    'django.contrib.auth',   
+    'django.contrib.admin',  
+    'accounts',
+    'clients',   
+    'commonapp',      
 
 ]
 
 TENANT_APPS = [ 
-    'django.contrib.admin',    
-    'django.contrib.auth',   
-    'accounts', 
-    'logistics',
+ 
+   'logistics',
     'manufacture',
     'product',
     'purchase',
@@ -69,6 +67,14 @@ TENANT_DOMAIN_MODEL = "clients.Domain"
 DATABASE_ROUTERS = ("django_tenants.routers.TenantSyncRouter",)
 PUBLIC_SCHEMA_NAME = 'public'
 
+AUTH_USER_MODEL = 'accounts.CustomUser' 
+
+
+
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.TenantAuthenticationBackend',  # Custom tenant-aware backend
+    'django.contrib.auth.backends.ModelBackend',  # Default Django backend
+]
 
 
 
@@ -83,11 +89,13 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'clients.middleware.TenantValidationMiddleware', 
-    'clients.middleware.TenantSessionMiddleware',         
+    'clients.middleware.CustomTenantAuthMiddleware',         
     'clients.middleware.CustomGeneralPurposeMiddleWare',  
        
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+
 
 
 
@@ -104,10 +112,10 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'accounts.context_processors.user_info',
-                'accounts.context_processors.notifications_context',
+                'accounts.context_processors.user_info',           
                 'accounts.context_processors.tenant_schema',
-                'accounts.context_processors.unread_messages',
+                'tasks.context_processors.unread_messages',
+                'tasks.context_processors.notifications_context',
             ],
         },
     },
@@ -120,7 +128,7 @@ WSGI_APPLICATION = 'dscm.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django_tenants.postgresql_backend',
-        'NAME': 'scmdatabase',  # your PostgreSQL database name
+        'NAME': 'bautomation',  # your PostgreSQL database name
         'USER': 'postgres',      # the user you created for PostgreSQL
         'PASSWORD': 'Arafat_123',  # the password for your PostgreSQL user
         'HOST': 'localhost',    # default for local database
@@ -238,12 +246,6 @@ MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 # EMAIL_HOST_USER = 'your-email@example.com'
 # EMAIL_HOST_PASSWORD = 'your-email-password'
 # DEFAULT_FROM_EMAIL = 'your-email@example.com'
-
-
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    # Add other backends if you have any
-]
 
 
 

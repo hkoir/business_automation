@@ -3,11 +3,11 @@ from django.db import models
 from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
 import uuid
-
+from accounts.models import CustomUser
 
 
 class Category(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='category_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='category_user')
     name = models.CharField(max_length=100)
     category_id = models.CharField(max_length=150, unique=True, null=True, blank=True)
     description = models.TextField(blank=True, null=True)
@@ -28,7 +28,7 @@ class Category(models.Model):
 
 
 class Product(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='product_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='product_user')
     name = models.CharField(max_length=255)
     product_id = models.CharField(max_length=150, unique=True, null=True, blank=True)  
     sku = models.CharField(max_length=100, unique=True)
@@ -70,7 +70,7 @@ class Product(models.Model):
 
 class Component(models.Model):
     name = models.CharField(max_length=100)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='component_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='component_user')
     component_id = models.CharField(max_length=150, unique=True, null=True, blank=True)  
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="components")  # Updated related name
     quantity_needed = models.PositiveIntegerField()
@@ -94,7 +94,7 @@ class Component(models.Model):
 
 class BOM(models.Model):
     name = models.CharField(max_length=100) 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='bom_user') 
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='bom_user') 
     bom_id = models.CharField(max_length=150, unique=True, null=True, blank=True) 
     description = models.TextField(blank=True, null=True) 
     product = models.ForeignKey(Product, related_name='bills_of_materials', on_delete=models.CASCADE)

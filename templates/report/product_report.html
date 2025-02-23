@@ -8,8 +8,8 @@
 
 <div class="container-fluid main-content">
     <div class="row">
-        <h4 class="text-center" style="color:yellow;margin-bottom:20px;"><strong>DOPS Inventory management system</strong></h6>   
-                           
+        <h4 class="text-center" style="color:blue;margin-bottom:20px;"><strong>DOPS Inventory management system</strong></h6>   
+            {% if warehouse_data %}
             <div class="col-12">  
                 <div class="container-fluid">
                     <div class="row">
@@ -99,12 +99,11 @@
         </div>
        
         <div style="height:50px"></div>
+        {% else %}
+        <h4 class="text-center">No record found</h4>
+        {% endif %}
     </div>
 </div>
-
-
-<div style="height:1200px"></div>
-
 
 
 <!-- Chart.js library -->

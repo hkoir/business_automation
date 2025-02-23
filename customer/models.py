@@ -4,12 +4,12 @@ import uuid
 from simple_history.models import HistoricalRecords
 from product.models import Product
 from django.apps import apps
-
+from accounts.models import CustomUser
 
 
 
 class Customer(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     logo = models.ImageField(upload_to='company_logo/',blank=True, null=True)
     name = models.CharField(max_length=150,null=True,blank=True)
     customer_id = models.CharField(max_length=150, null=True, blank=True)
@@ -34,7 +34,7 @@ class Customer(models.Model):
 
 class Location(models.Model):
     name=models.CharField(max_length=20,null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     customer = models.ForeignKey(Customer, related_name='customer_locations', on_delete=models.CASCADE,null=True,blank=True)
     location_id = models.CharField(max_length=150, null=True, blank=True)
     address = models.TextField(null=True,blank=True)
@@ -59,7 +59,7 @@ class Location(models.Model):
 
 class CustomerPerformance(models.Model):
     sales_order = models.ForeignKey('sales.SaleOrder', related_name='sale_order_performance', null=True, blank=True, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)   
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)   
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='performance_customer_location', null=True, blank=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='performance_customer', null=True, blank=True)
     date = models.DateField(blank=True, null=True)

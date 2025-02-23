@@ -17,6 +17,8 @@ urlpatterns = [
     path('create_user_profile/', views.create_user_profile, name='create_user_profile'), 
     path('demo_request/', views.demo_request, name='demo_request'), 
 
+    path('public_tenant_login/', views.public_tenant_login, name='public_tenant_login'), 
+
 
     
    

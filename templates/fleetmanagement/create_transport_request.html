@@ -9,7 +9,7 @@
 
 <div class="container-fluid main-content">
     <div class="row">
-        <h6 class="text-center text-warning fw-bold">Transport Requisition</h6>
+        <h6 class="text-center text-primary fw-bold">Transport Requisition Panel</h6>
         <div class="col-12">
             <form method="get">
                 <div class="row">
@@ -39,7 +39,7 @@
         <div class="card shadow" style="padding:10px;background-color:aliceblue;">
              <!-- Card Header -->
              <div class="card-header bg-primary text-white text-center">
-                <h3 class="mb-0"> Create/Update transport request</h3>
+                <h4 class="mb-0"> Create/Update transport request</h4>
             </div> 
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data" id="add_category" autocomplete="off">
@@ -78,7 +78,7 @@
             </div>
         </div>
 </div>
-    <div class="col-12">       
+    <div class="col-12 table-responsive">       
         
         {% if page_obj %}
           
@@ -128,7 +128,7 @@
                                         {% elif data.request_approval.first.status == 'REJECTED' %}
                                         <i class="fas fa-check text-warning">Rejected</i>
                                         {% else %}
-                                        <a href="{% url 'transport:transport_request_approval' data.id %}"><i class="fas fa-times text-danger fw-bold">Pending Approval</i></a>
+                                        <a href="{% url 'transport:transport_request_approval' data.id %}" class="btn btn-primary"><i class="fas fa-times text-danger fw-bold"></i>Pending Approval</a>
                                         {% endif %}
                                     </td> 
 
@@ -157,18 +157,20 @@
                                 {% endif %}
                             </td>
                             <td>
+                            
                                 {% if data.status == 'IN-USE' %}
-                                <i class="fas fa-truck text-primary">&nbsp;{{ data.get_status_display}}</i>
+                                <i class="fas fa-truck text-primary">&nbsp;{{ data.get_status_display }}</i>
                                 {% elif data.status == 'PENALIZED' %}
-                                <i class="fas fa-truck text-danger">&nbsp;{{ data.get_status_display}}</i>
+                                <i class="fas fa-truck text-danger">&nbsp;{{ data.get_status_display }}</i>
                                 {% elif data.status == 'BOOKED' %}
-                                <i class="fas fa-check text-success">&nbsp;{{ data.get_status_display}}</i>
-                                {% elif data.status == 'COMPLETED'%}
-                                <i class="fas fa-check text-primary">&nbsp;{{ data.get_status_display}}</i>
+                                <i class="fas fa-check text-success">&nbsp;{{ data.get_status_display }}</i>
+                                {% elif data.status == 'COMPLETED' %}
+                                <i class="fas fa-check text-primary">&nbsp;{{ data.get_status_display }}</i>
                                 {% else %}
-                                <i class="fas fa-times text-warning">&nbsp;{{ data.get_status_display}}</i>
+                                <i class="fas fa-times text-warning">&nbsp;{{ data.get_status_display }}</i>
                                 {% endif %}
-                            </td> 
+                            </td>
+                            
                             <td>{{ data.vehicle.vehicle_code }}</td>
                             <td>{{ data.vehicle.vehicle_registration_number }}</td>  
                             <td>{{ data.vehicle.get_vehicle_ownership_display }}</td>  
@@ -215,9 +217,6 @@
 </div>
 <h4 style="height:10px"></h4>
 </div>
-<div style="height:1000px"></div>
-    
-
 
 
             <!-- Delete Confirmation Modal -->

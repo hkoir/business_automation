@@ -9,11 +9,6 @@
     </div>
 </div>
 
-{% for audio in audio_files %}
-{% if audio.account_create_success %}
-    <audio id="successAudio" src="{{ audio.account_create_success.url }}" preload="auto"></audio>
-{% endif %}
-{% endfor %}
 
 
 

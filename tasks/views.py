@@ -102,7 +102,7 @@ def create_team(request):
             team= form.save(commit=False)
             team.save()
             messages.success(request, 'Team created successfully!')
-            create_notification(request.user,f"A team named '{team.name}' has been created with manager: {team.manager} for {team.description}")
+            create_notification(request.user,message=f"A team named '{team.name}' has been created with manager: {team.manager} for {team.description}",notification_type='TASK-NOTIFICATION')
             return redirect('tasks:create_team')
         else:
             for field, errors in form.errors.items():
@@ -121,7 +121,7 @@ def delete_team(request, team_id):
     if request.method == 'POST':
         team.delete()
         messages.success(request, "Team has been successfully deleted.")
-        create_notification(request.user,f'team-{team.name} has been deleted by {request.user} on {timezone.now()}')
+        create_notification(request.user,message=f'team-{team.name} has been deleted by {request.user} on {timezone.now()}',notification_type='TASKS-NOTIFICATION')
         return redirect('tasks:create_team') 
     return render(request, 'tasks/delete_record.html', {'team': team})
 
@@ -148,8 +148,8 @@ def add_member(request):
 
             if member and team:
                 create_notification(
-                    request.user,
-                    f'Member {member.name} has been added to the team {team.name}'
+                    request.user,message=
+                    f'Member {member.name} has been added to the team {team.name}',notification_type='TASKS-NOTIFICATION'
                 )
                 messages.success(request, 'Member added to the team successfully!')
             else:
@@ -180,7 +180,7 @@ def add_member_with_id(request,team_id):
             form_data = form.save(commit=False)
             form_data.save()
             messages.success(request, 'Member added to the team successfully!')
-            create_notification(request.user,f'member {team.members.first.member.name} has been added to the team {team.name}')
+            create_notification(request.user,message=f'member {team.members.first.member.name} has been added to the team {team.name}',notification_type='TASK-NOTIFICATION')
             return redirect('tasks:create_team')
         else:
             for field, errors in form.errors.items():
@@ -196,7 +196,8 @@ def delete_member(request, team_id):
     if request.method == 'POST':
         team.delete()
         messages.success(request, "member has been successfully deleted.")
-        create_notification(request.user,f'member {team.member.name} has been deleted frrom team {team.team.name}, deleted by {request.user} dated {timezone.now()}')
+        create_notification(request.user,message=f'member {team.member.name} has been deleted frrom team {team.team.name}, deleted by {request.user} dated {timezone.now()}'
+            ,notification_type='TASK-NOTIFICATION')
         return redirect('tasks:add_member') 
     return render(request, 'tasks/delete_record.html', {'team': team})
 
@@ -209,6 +210,7 @@ def create_task(request):
     if not request.user.groups.filter(name='managers').exists():
         messages.success(request, 'You are not authorized to create a task.')
         return redirect('tasks:tasks_dashboard')
+    
 
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
@@ -226,6 +228,11 @@ def create_task(request):
 
             if assigned_to == 'team':
                 task.assigned_to_team = form.cleaned_data['assigned_to_team']
+                team = get_object_or_404(Team,name=task.assigned_to_team)
+                members = team.members.all()
+                if not members:
+                    messages.warning(request,'No member(s) in this team, Plese add member before assignin task to this team') 
+                    return redirect('tasks:create_task')                 
                 task.assigned_to_employee = None
             elif assigned_to == 'member':
                 task.assigned_to_employee = form.cleaned_data['assigned_to_employee']
@@ -233,12 +240,8 @@ def create_task(request):
 
             task.save()
             create_notification(
-                request.user,
-                f'Task: {task.title} has been created and assigned to '
-                f'{task.assigned_to_team or task.assigned_to_employee}, '
-                f'manager: {task.task_manager} created by {request.user} '
-                f'dated {timezone.now()}',
-                'TASK-NOTIFICATION'
+                request.user,message=
+                f'Task: {task.title} has been created and assigned to {task.assigned_to_team or task.assigned_to_employee}, manager: {task.task_manager} created by {request.user} dated {timezone.now()}',notification_type='TASK-NOTIFICATION'
 
             )
             messages.success(request, 'Task created successfully!')
@@ -287,12 +290,11 @@ def assigned_task(request, task_id):
 
             task.save()
             create_notification(
-                request.user,
-                f'Task: {task.title} has been assigned to '
-                f'{task.assigned_to_team or task.assigned_to_employee}, '
-                f'manager: {task.task_manager} created by {request.user} '
-                f'dated {timezone.now()}',
-                'TASK-NOTIFICATION'
+                request.user,message=
+                f'Task: {task.title} has been assigned to \
+                {task.assigned_to_team or task.assigned_to_employee}, \
+                manager: {task.task_manager} created by {request.user} \
+                dated {timezone.now()}',notification_type='TASK-NOTIFICATION'
             )
             messages.success(request, 'Task assigned successfully!')
             return redirect('tasks:tasks_list')
@@ -403,10 +405,10 @@ def update_task_progress(request, task_id):
             given_progress = form.cleaned_data['progress']
             form.save()            
      
-    # Update ticket progress#########################################
-
-            task.ticket.progress_by_user = given_progress
-            task.ticket.save()
+    # Update ticket progress #########################################
+            if task.ticket:
+                task.ticket.progress_by_user = given_progress
+                task.ticket.save()
 
     # Update repair return progress####################################
             try:           
@@ -531,9 +533,8 @@ def request_extension(request, task_id):
             task_form.task = task  
             task.status = 'TIME_EXTENSION'  
             task.save() 
-            task_form.save()             
-
-            create_notification(request.user, task)            
+            task_form.save()            
+                   
             messages.success(request, 'Time extension request submitted successfully.')
             return redirect('tasks:tasks_list')
         else:
@@ -630,11 +631,11 @@ def performance_evaluation_view(request):
 def create_qualitative_evaluation(request, task_id):
     task = get_object_or_404(Task, id=task_id)
 
-    if task.task_manager.user_profile.user == request.user:
-        pass
-    else:
-        messages.info(request, "This is a performance evaluation process of task. Only Task manager can evaluate performance.")
-        return redirect('tasks:tasks_list')
+    # if task.task_manager.user_profile.user == request.user:
+    #     pass
+    # else:
+    #     messages.info(request, "This is a performance evaluation process of task. Only Task manager can evaluate performance.")
+    #     return redirect('tasks:tasks_list')
 
     def calculate_performance_quality_score(evaluations):      
         
@@ -720,7 +721,7 @@ def create_qualitative_evaluation(request, task_id):
                         performance_evaluation.save()                   
                         
                     messages.success(request, f"Qualitative evaluation for the team '{task.assigned_to_team.name}' was successfully saved.")
-                    create_notification(request.user,f'Task:{task.title}, manager evaluation completed by Mr {request.user} dated {timezone.now()}')
+                    create_notification(request.user,message=f'Task:{task.title}, manager evaluation completed by Mr {request.user} dated {timezone.now()}',notification_type='TASK-NOTIFICATION')
                 else:
                     messages.error(request, "No members found in the assigned team.")
             
@@ -766,7 +767,10 @@ def create_qualitative_evaluation(request, task_id):
         form = QualitativeEvaluationForm(initial={'task': task})
     return render(request, 'tasks/qualitative_evaluation_form.html', {'form': form, 'task': task})
 
+
+
 from django.db.models import Case, When, Value, FloatField
+
 taskaggregated_report = []
 def aggregated_report_sheet(request):
     global taskaggregated_report
@@ -1115,7 +1119,7 @@ def team_performance_chart(request):
 
     form = CommonFilterForm(request.GET)
     if form.is_valid():
-        team_name = form.cleaned_data.get('team_name', '').strip()
+        team_name = form.cleaned_data.get('team_name')
         department = form.cleaned_data.get('department')
         start_date = form.cleaned_data.get('start_date')
         end_date = form.cleaned_data.get('end_date')

@@ -4,7 +4,7 @@
 
 
 
-<div class="container">
+<div class="container main-content">
     <h4 class="text-center">Confirm sale Order</h4>
 
     <h4>Items to be sold</h4>
@@ -34,10 +34,10 @@
 
     <form method="post">
         {% csrf_token %}
-        <button type="submit" class="btn btn-success">Confirm Purchase Order</button>
+        <button type="submit" class="btn btn-success">Confirm Sale Order</button>
     </form>
     {% else %}
-    <p>No items in the basket to confirm purchase.</p>
+    <p>No items in the basket to confirm sale.</p>
     {% endif %}
 </div>
 

@@ -12,13 +12,13 @@ from sales.models import SaleOrder
 from manufacture.models import MaterialsRequestOrder
 from operations.models import OperationsDeliveryItem
 from datetime import datetime
-
+from accounts.models import CustomUser
 
 
 
 class Team(models.Model):   
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True,related_name='team_department')
-    user=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)   
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True,blank=True)   
     team_id = models.CharField(max_length=20, unique=True, editable=False)
     manager = models.ForeignKey(Employee,on_delete=models.CASCADE,related_name='team_manager',null=True,blank=True)
     name = models.CharField(max_length=100)
@@ -49,8 +49,8 @@ PRIORITY_CHOICES = [
 ]
 
 class Ticket(models.Model):
-    user=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)
-    ticket_id = models.CharField(max_length=150, unique=True, editable=False)
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True,blank=True)
+    ticket_code = models.CharField(max_length=150, unique=True, editable=False)
     organization = models.CharField(max_length=100,null=True,blank=True,
     choices=[
         ('ROBI','Robi'),
@@ -78,7 +78,7 @@ class Ticket(models.Model):
     production = models.ForeignKey(MaterialsRequestOrder,on_delete=models.CASCADE,null=True,blank=True)
     subject = models.CharField(max_length=200,null=True,blank=True)
     description = models.TextField(blank=True, null=True)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_tickets",null=True,blank=True)    
+    created_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="created_tickets",null=True,blank=True)    
     priority = models.CharField(max_length=20,choices=PRIORITY_CHOICES,default='LOW')
 
     sla=models.FloatField(null=True,blank=True)
@@ -151,13 +151,13 @@ class Ticket(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Ticket #{self.ticket_id}"
+        return f"Ticket #{self.ticket_code}"
 
 
 
 
 class TeamMember(models.Model):
-    user=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True,blank=True)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="members",blank=True,null=True)  
     member = models.ForeignKey(
         Employee, 
@@ -175,7 +175,7 @@ class TeamMember(models.Model):
 from repairreturn.models import ReturnOrRefund
 
 class Task(models.Model):
-    user=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True,blank=True)
     department=models.ForeignKey(Department,on_delete=models.CASCADE,null=True,blank=True)
     task_id = models.CharField(max_length=20,null=True, blank=True)
     task_manager = models.ForeignKey(Employee,on_delete=models.CASCADE,related_name='task_manager',null=True,blank=True)
@@ -280,7 +280,7 @@ class Task(models.Model):
 
 class TaskMessage(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="task_messages",null=True,blank=True)
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     message = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)  
@@ -294,7 +294,7 @@ class TaskMessage(models.Model):
 
 class TaskMessageReadStatus(models.Model):
     task_message = models.ForeignKey(TaskMessage, on_delete=models.CASCADE, related_name="read_statuses")
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     read = models.BooleanField(default=False)
     read_at = models.DateTimeField(null=True, blank=True)
 
@@ -305,7 +305,7 @@ class TaskMessageReadStatus(models.Model):
 
 class TimeExtensionRequest(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="time_extension_requests",null=True,blank=True)
-    requested_by = models.ForeignKey(User, on_delete=models.CASCADE,null=True,blank=True)
+    requested_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE,null=True,blank=True)
     requested_extension_datetime = models.DateTimeField(null=True,blank=True)  
     time_extension_reason=models.CharField(max_length=50,null=True,blank=True,
     choices=[
@@ -331,7 +331,7 @@ class TimeExtensionRequest(models.Model):
 
 
 class PerformanceEvaluation(models.Model):
-    user=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True,blank=True)
     ev_id = models.CharField(max_length=20, null=True, blank=True)
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='employee_evaluation', blank=True, null=True)
     department =models.ForeignKey(Department,on_delete=models.CASCADE,null=True,blank=True)
@@ -360,7 +360,7 @@ class PerformanceEvaluation(models.Model):
     total_given_score = models.FloatField(default=0.0, null=True, blank=True)
     total_obtained_score = models.FloatField(default=0.0, null=True, blank=True) 
 
-    evaluator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,related_name='evaluation_evaluator')  
+    evaluator = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True,related_name='evaluation_evaluator')  
    
     half_year = models.CharField(max_length=20, null=True, blank=True)
     quarter = models.CharField(max_length=20, null=True, blank=True)
@@ -427,13 +427,13 @@ class PerformanceEvaluation(models.Model):
 
 
 class QualitativeEvaluation(models.Model):
-    user=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True,blank=True)
     ev_id = models.CharField(max_length=20, null=True, blank=True)
     performance_evaluation = models.ForeignKey(PerformanceEvaluation, on_delete=models.CASCADE, related_name='qualitative_evaluations',blank=True, null=True)
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='employee_qualitative_evaluations',blank=True, null=True)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team_qualitative_evaluations',blank=True, null=True)
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='task_qualitative_evaluations', null=True, blank=True)
-    evaluator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,related_name='evaluator')  
+    evaluator = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True,related_name='evaluator')  
 
     manager_given_quantitative_number = models.FloatField(null=True,blank=True)
     manager_given_quantitative_score = models.FloatField(null=True,blank=True)

@@ -29,7 +29,7 @@
         </div>
        
         
-        <div class="col-12">
+        <div class="col-12 table-responsive">
             <h4 style="margin-top:20px">Vehicle Costs Summary:                                   
                 Data for
                 {% if days %}
@@ -68,7 +68,7 @@
                 </tbody>
             </table>
         </div>   
-        <div class="col-12">              
+        <div class="col-12 table-responsive">           
             {% for vehicle_reg_number, x in datewise_running_data.object_list %}
                 <h4 style="margin-top:20px">Vehicle Registration Number: {{ vehicle_reg_number }}</h4>
                 
@@ -151,7 +151,6 @@
 </div>
 
 
-    <div class="col" style="height:800px"></div>
 
 
 

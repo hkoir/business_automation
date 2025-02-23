@@ -1,10 +1,10 @@
-{% extends 'customer_portal_base.html' %}
+{% extends 'partner_portal_base.html' %}
 {% load custom_filters %} 
 {% block content %}
 
 
 
-<div class="container-fluid main-content my-5" style="margin-top: 0px;">
+<div class="container-fluid main-content" >
     <div class="row">
         <h4>Dispatch Items for Sale Order: {{ sale_order.order_id }}</h4>
             <div class="col-12">            
@@ -39,7 +39,7 @@
                                     <td>{{ dispatch_item.dispatch_quantity }}</td>
                                     <td>{{ dispatch_item.delivery_date }}</td>                                                           
                                     <td>
-                                        {% if dispatch_item.status|in_list:"REACHED,OBI,DELIVERED" %}
+                                        {% if dispatch_item.status|item_list:"REACHED,OBI,DELIVERED" %}
                                             {{ dispatch_item.updated_at|date:"M-d,Y" }}
                                         {% else %}
                                             <span style="color:red;font-weight: bold;">Not delivered yet</span>
@@ -63,11 +63,6 @@
         </div>
     </div>
 </div>
-
-
-
-<div style="height:2000px"></div>
-
 
 
 

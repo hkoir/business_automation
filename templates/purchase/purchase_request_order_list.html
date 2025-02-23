@@ -114,15 +114,17 @@
 
 
                             
-
+                    <td>
                       {% if order.purchase_order_request_order.first %}
-                      <td><strong><i class="fas fa-check" style="color:green">Order placed</i></strong></td>
+                     <strong><i class="fas fa-check" style="color:green">Order placed</i></strong>
+                      {% elif order.approver_approval_status != 'APPROVED'  %}
+                      <button class="btn btn-secondary" disabled>Pending approval</button>                     
+                       {% else %}
                     
-                      {% else %}
-                    <td class="text-center p-2" style="white-space: nowrap;">
                     <a href="{% url 'purchase:create_purchase_order' order.id %}" class="btn btn-sm btn-primary">Create Purchase_order</a>
-                    </td>
+                  
                      {% endif %}
+                    </td>
                 </tr>
 
                     {% endfor %}
@@ -151,9 +153,6 @@
 
     
 </div>      
-
-<div style="height:2000px"></div>
-
 
 
 

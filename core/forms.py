@@ -247,7 +247,7 @@ from purchase.models import PurchaseOrder, PurchaseRequestOrder
 from inventory.models import InventoryTransaction,Warehouse,TransferOrder
 from sales.models import SaleOrder,SaleRequestOrder
 from core.utils import DEPARTMENT_CHOICES,POSITION_CHOICES
-
+from tasks.models import Team
 
 class CommonFilterForm(forms.Form):
     start_date = forms.DateField(
@@ -361,13 +361,11 @@ class CommonFilterForm(forms.Form):
     end_year = forms.IntegerField(label='End Year',required=False)
     
        
-    team_name = forms.CharField(
+    team_name = forms.ModelChoiceField(
+        queryset=Team.objects.all(),
         required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Enter team name'
-        })
-    )   
+        widget=forms.Select(attrs={'id': 'id_team_name'}),
+    )  
 
     employee = forms.CharField(max_length=20,label='Employee',required=False)
     employee_name = forms.ModelChoiceField(

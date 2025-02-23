@@ -191,7 +191,7 @@ def confirm_add_existing_items(request):
                 inventory_transaction.inventory_transaction= inventory
                 inventory_transaction.save()
             
-            create_notification(request.user,f'{product} from existing resource has been added into stock',notification_type='OPERATIONS-NOTIFICATION')
+            create_notification(request.user,message=f'{product} from existing resource has been added into stock',notification_type='OPERATIONS-NOTIFICATION')
 
             request.session['basket'] = []
             request.session.modified = True
@@ -579,7 +579,7 @@ def confirm_operations_items_delivery(request):
                     inventory_transaction.inventory_transaction = inventory
                     inventory_transaction.save()           
                     
-                    create_notification(request.user,f'request from operations for{product} has been delivered')
+                    create_notification(request.user,message=f'request from operations for{product} has been delivered',notification_type='OPERATION-NOTIFICATION')
 
                 request.session['basket'] = []
                 request.session.modified = True

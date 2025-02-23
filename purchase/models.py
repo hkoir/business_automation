@@ -13,14 +13,14 @@ logger = logging.getLogger(__name__)
 from supplier.models import Supplier
 from product.models import Product,Component
 from django.apps import apps
-
+from accounts.models import CustomUser
 
 
 
 class PurchaseRequestOrder(models.Model):
     order_id = models.CharField(max_length=50,null=True,blank=True)
     department = models.CharField(max_length=50,null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_request_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_request_user')
     order_date = models.DateField(null=True, blank=True)
     STATUS_CHOICES = [
         ('IN_PROCESS', 'In Process'),
@@ -36,16 +36,16 @@ class PurchaseRequestOrder(models.Model):
         ]
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
 
-    STATUS_CHOICES = [
+    APPROVAL_STATUS_CHOICES = [
     ('SUBMITTED', 'Submitted'),
      ('REVIEWED', 'Reviewed'),
     ('APPROVED', 'Approved'),   
     ('CANCELLED','Cancelled'),
         ]
-    approval_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
-    requester = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='requester_orders')
-    reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewer_orders')
-    approver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approver_orders')
+    approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
+    requester = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='requester_orders')
+    reviewer = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewer_orders')
+    approver = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='approver_orders')
     
     total_amount = models.DecimalField(max_digits=15, decimal_places=2,null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
@@ -73,11 +73,11 @@ class PurchaseRequestOrder(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.requester:
-            self.requester = User.objects.filter(groups__name='Requester').first()
+            self.requester = CustomUser.objects.filter(groups__name='Requester').first()
         if not self.reviewer:
-            self.reviewer = User.objects.filter(groups__name='Reviewer').first()
+            self.reviewer = CustomUser.objects.filter(groups__name='Reviewer').first()
         if not self.approver:
-            self.approver = User.objects.filter(groups__name='Approver').first()
+            self.approver = CustomUser.objects.filter(groups__name='Approver').first()
 
         if not self.order_id:
             self.order_id= f"PRID-{uuid.uuid4().hex[:8].upper()}"
@@ -107,7 +107,7 @@ class PurchaseRequestOrder(models.Model):
 
 class PurchaseRequestItem(models.Model):
     item_request_id = models.CharField(max_length=20,null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_request_item_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_request_item_user')
     purchase_request_order=models.ForeignKey(PurchaseRequestOrder,related_name='purchase_request_order',on_delete=models.CASCADE)
     product = models.ForeignKey(Product,related_name='purchase_request_item', on_delete=models.CASCADE)   
     quantity = models.PositiveIntegerField() 
@@ -126,13 +126,13 @@ class PurchaseRequestItem(models.Model):
         return f" {self.item_request_id}:{self.product.name}:{self.quantity}nos"
 
 
-
+from django.db.models import Q
 
 class PurchaseOrder(models.Model):
     order_id = models.CharField(max_length=20)
     purchase_request_order = models.ForeignKey(PurchaseRequestOrder, 
         on_delete=models.CASCADE, null=True, blank=True,related_name='purchase_order_request_order')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_order_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_order_user')
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchase_supplier')
     order_date = models.DateField(null=True, blank=True)
     ORDER_STATUS_CHOICES = [
@@ -157,9 +157,9 @@ class PurchaseOrder(models.Model):
     approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
     total_amount = models.DecimalField(max_digits=15, decimal_places=2,null=True, blank=True)
 
-    requester = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_requester')
-    reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_reviewer')
-    approver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_approvar')
+    requester = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_requester')
+    reviewer = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_reviewer')
+    approver = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_approvar')
     
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -185,11 +185,11 @@ class PurchaseOrder(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.requester:
-            self.requester = User.objects.filter(groups__name='Requester').first()
+            self.requester = CustomUser.objects.filter(groups__name='Requester').first()
         if not self.reviewer:
-            self.reviewer = User.objects.filter(groups__name='Reviewer').first()
+            self.reviewer = CustomUser.objects.filter(groups__name='Reviewer').first()
         if not self.approver:
-            self.approver = User.objects.filter(groups__name='Approver').first()
+            self.approver = CustomUser.objects.filter(groups__name='Approver').first()
 
         if not self.order_id:
             self.order_id= f"PROID-{uuid.uuid4().hex[:8].upper()}"
@@ -200,28 +200,30 @@ class PurchaseOrder(models.Model):
         return self.order_id
     
     @property
-    def is_full_delivered(self):  
-        total_delivered = self.purchase_shipment.all().aggregate(
-            total_dispatched=Sum('shipment_dispatch_item__dispatch_quantity')
-        )['total_dispatched'] or 0
-        
-        total_ordered = self.purchase_order_item.all().aggregate(
+    def is_fully_delivered(self):
+        total_delivered_agg = self.purchase_shipment.all().aggregate(
+            total_dispatched=Sum('shipment_dispatch_item__dispatch_quantity', filter=Q(shipment_dispatch_item__status='DELIVERED'))
+        )
+        total_delivered = total_delivered_agg['total_dispatched'] if total_delivered_agg and total_delivered_agg['total_dispatched'] is not None else 0
+       
+        total_ordered_agg = self.purchase_order_item.all().aggregate(
             total_ordered=Sum('quantity')
-        )['total_ordered'] or 0
-
+        )
+        total_ordered = total_ordered_agg['total_ordered'] if total_ordered_agg and total_ordered_agg['total_ordered'] is not None else 0
+       
         return total_delivered >= total_ordered
-
+    
 
 
 class PurchaseOrderItem(models.Model):
     order_item_id = models.ForeignKey(PurchaseRequestItem,on_delete=models.CASCADE,related_name='order_request_item',null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_order_item_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_order_item_user')
     purchase_order = models.ForeignKey(PurchaseOrder, related_name='purchase_order_item', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='purchases', null=True, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)  # Total quantity ordered
     total_price = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    prepared_by = models.ForeignKey(User, related_name='prepared_purchases', on_delete=models.CASCADE, null=True, blank=True)
-    approved_by = models.ForeignKey(User, related_name='approved_purchases', on_delete=models.CASCADE, null=True, blank=True)
+    prepared_by = models.ForeignKey(CustomUser, related_name='prepared_purchases', on_delete=models.CASCADE, null=True, blank=True)
+    approved_by = models.ForeignKey(CustomUser, related_name='approved_purchases', on_delete=models.CASCADE, null=True, blank=True)
     status = models.CharField(
     max_length=50,
     choices=[
@@ -262,13 +264,13 @@ class PurchaseOrderItem(models.Model):
         return f"{self.quantity} nos {self.product.name}"
     
 
-
+#
 
 
 class QualityControl(models.Model):
     purchase_dispatch_item = models.ForeignKey('logistics.PurchaseDispatchItem', on_delete=models.CASCADE,
          related_name='quality_control',null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='quality_control_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='quality_control_user')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='qc_product', null=True, blank=True)
     total_quantity = models.PositiveIntegerField(null=True, blank=True)
     good_quantity = models.PositiveIntegerField(null=True, blank=True)
@@ -305,7 +307,7 @@ class ReceiveGoods(models.Model):
     warehouse = models.ForeignKey('inventory.warehouse', on_delete=models.CASCADE, related_name='received_goods_warehouse',null=True, blank=True)
     location = models.ForeignKey('inventory.location', on_delete=models.CASCADE, null=True, blank=True,related_name='received_goods_location')
     quantity_received = models.PositiveIntegerField(null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='received_goods')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='received_goods')
 
     RECEIVE_STATUS_CHOICES = [
         ('RECEIVED', 'RECEIVED'),

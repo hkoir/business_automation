@@ -15,10 +15,11 @@ from sales.models import SaleOrder
 from manufacture.models import ReceiveFinishedGoods
 from purchase.models import PurchaseOrder
 
+from accounts.models import CustomUser
 
 
 class Warehouse(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True,related_name='warehouse_user')
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True, blank=True,related_name='warehouse_user')
     name = models.CharField(max_length=100)
     warehouse_id = models.CharField(max_length=150, unique=True, null=True, blank=True)  
     address = models.CharField(max_length=255, blank=True, null=True)
@@ -42,7 +43,7 @@ class Warehouse(models.Model):
 
 class Location(models.Model):
     name = models.CharField(max_length=50)
-    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True,related_name='location_user')
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True, blank=True,related_name='location_user')
     location_id = models.CharField(max_length=150, unique=True, null=True, blank=True)     
     warehouse = models.ForeignKey(Warehouse, related_name='locations', on_delete=models.CASCADE)  
     address= models.TextField(null=True,blank=True)  
@@ -66,7 +67,7 @@ from repairreturn.models import ScrappedOrder
 class Inventory(models.Model):
     inventory_id = models.CharField(max_length=30,null=True,blank=True) 
     user = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -111,7 +112,7 @@ class Inventory(models.Model):
 class InventoryTransaction(models.Model):  
     inventory_transaction=models.ForeignKey(Inventory,on_delete=models.CASCADE,null=True, blank=True,related_name='inventory_transaction') 
     transaction_id = models.CharField(max_length=30,null=True,blank=True)    
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='inventory_transaction_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='inventory_transaction_user')
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE,null=True, blank=True)
     location = models.ForeignKey(Location, on_delete=models.CASCADE,null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE,null=True, blank=True)
@@ -195,7 +196,7 @@ class InventoryTransaction(models.Model):
 class TransferOrder(models.Model):
     order_number = models.CharField(max_length=20, unique=True)
     order_status = models.CharField(max_length=20)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='transfer_orders')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='transfer_orders')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     remarks = models.TextField(blank=True, null=True)
@@ -206,7 +207,7 @@ class TransferOrder(models.Model):
 
 
 class TransferItem(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True,related_name='transfer_user')
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True, blank=True,related_name='transfer_user')
     transfer_order = models.ForeignKey(TransferOrder, related_name='transfers', on_delete=models.CASCADE, null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     source_warehouse = models.ForeignKey(Warehouse, related_name='source_transfers', on_delete=models.CASCADE, null=True, blank=True)
@@ -222,13 +223,14 @@ class TransferItem(models.Model):
         return f"{self.quantity} nos {self.product.name} transferred from {self.source_warehouse.name} to {self.target_warehouse.name}"
 
 
+from accounts.models import CustomUser
 
 class ReorderLevel(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reorder_levels',null=True,blank=True)
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE, related_name='reorder_warehouse',null=True,blank=True)
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='reorder_location',null=True,blank=True)
     reorder_level = models.PositiveIntegerField(null=True,blank=True)
-    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True,related_name='reorder_user')
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True, blank=True,related_name='reorder_user')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

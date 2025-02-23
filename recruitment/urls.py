@@ -144,26 +144,5 @@ urlpatterns = [
 
 ]
 
-'''
-create_job_category
-create_job
-job_list
-cv_screening
-create_exam
-exam_list
-create_questions
-exam_screening
-create_panel
-create_panel_member
-interview-screening
-selected_candidate
-grand_summary
-create_common_documents
-create_candiadte_documents
-
-
-'''
-
-
 
   

@@ -4,7 +4,7 @@
 html, body {
     background-color: white;
     color: #333333;
-    padding-top: 100px; /* Offset for fixed navbars */
+    padding-top: 80px; /* Offset for fixed navbars */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
@@ -55,16 +55,25 @@ html, body {
         }
 
 
+    .page-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
 
-.main-content {   
-    overflow-y: auto;
-    margin-left: 0px;
-    position: absolute;
-    width: 100%;
-    left: 0;
-    top: 100px;
-    padding-bottom: 0px;
-} 
+    /* Content will expand to push footer down */
+    .main-content {
+        flex: 1;
+    }
+
+ 
+    footer {
+        background-color: #f8f9fa;      
+        text-align: center;
+        border-top: 1px solid #ddd;
+        margin-top: 150px;
+        width:100%
+    }
 
 
 table {
@@ -118,11 +127,12 @@ table th{
         }
         
 
+
 /* Ensure Select2 fields take up full width */
 .select2-container {
     width: 100% !important;
-    min-width: 200px !important;
-    max-width: 250px !important; /* Prevent overflow */
+    min-width: 100px !important;
+    max-width: 200px !important; /* Prevent overflow */
 }
 
 /* Adjust the size and appearance of Select2 input fields */
@@ -137,7 +147,7 @@ table th{
 /* Ensure dropdown width matches field width */
 .select2-container--default .select2-dropdown {
     width: 100% !important;
-    min-width: 200px !important;
+    min-width: 150px !important;
 }
 
 .select2-results__option {
@@ -169,6 +179,8 @@ table th{
         height: 35px !important;
     }
 }
+
+
 
 
 @keyframes marquee {
@@ -234,36 +246,30 @@ table th{
 
 
 
-.custom_navbar{
- background-color: orange;
- padding:10px;
 
- }
 
- .navbar-brand {
-     font-size: 20px;
-     font-weight: 700;
-     color: #0AEDED;
-     -webkit-text-stroke: #fff 1px;
 
- }
-
- .navbar-brand:hover {
-     color: #f0d108;
-
- }
-
+    .navbar-brand {
+        font-size: 20px;
+        font-weight: 700;
+        color: orange !important;
+        -webkit-text-fill-color: orange !important;  /* Ensure text color applies */
+        -webkit-text-stroke: 2px orange;  /* White stroke */
+    }
+    
+    .navbar-brand:hover {
+        color: olivedrab !important;
+        -webkit-text-fill-color: #081dfa !important; /* Change text color on hover */
+        -webkit-text-stroke: 2px cyan;  /* White stroke */
+    }
+    
 
  .menu-color{
-     color:blue;
+     color:white;
     
  }
 
- .dropdown-menu {
-     background-color: white;
-     color:white;    
-     padding:10px;
- }
+
 
 .navbar-fixed-top {
     position: fixed;
@@ -293,46 +299,48 @@ table th{
 
 
 .navbar .nav-link .fas.fa-bell {
-    color: #333;  
+    color: white;  
     font-size: 20px;
     }
 
 
-.notification-dropdown {
-    max-height: 400px; 
-    overflow-y: auto; 
-    width: 500px; 
-    padding: 10px; 
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); 
-    border-radius: 8px; 
-    background-color: #fff; 
-   }
-   
-.notification-scroll {
-    max-height: 300px; 
-    overflow-y: auto; 
-   }
-   
-.notification.unread {
-    font-weight: bold; 
-    background-color: #f8f9fa; 
-    padding: 8px;
-    border-radius: 5px;
-    margin-bottom: 5px; 
-     }
 
-   
-.notification p:hover  {
-    background-color: #e2e6ea; 
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    cursor: pointer; 
-   }
-
-.notification p {
-    margin: 0; 
-    white-space: normal; 
-    word-break: break-word; 
-   }
+    .notification-dropdown {
+        max-height: 400px; 
+        overflow-y: auto; 
+        width: 500px; 
+        padding: 10px; 
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); 
+        border-radius: 8px; 
+        background-color: black; 
+       }
+       
+    .notification-scroll {
+        max-height: 300px; 
+        overflow-y: auto; 
+       }
+       
+    .notification.unread {
+        font-weight: bold; 
+        background-color: gray; 
+        padding: 8px;
+        border-radius: 5px;
+        margin-bottom: 5px; 
+         }
+    
+       
+    .notification p:hover  {
+        
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        cursor: pointer; 
+       }
+    
+    .notification p {
+        margin: 0; 
+        white-space: normal; 
+        word-break: break-word; 
+       }
+    
    
 .badge.bg-danger {
     position: absolute;
@@ -351,14 +359,14 @@ table th{
 
    }
 
-   .navbar .nav-link .badge {
-        font-size: 12px;
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background-color: red;
-        color: white;
-    }
+.navbar .nav-link .badge {
+    font-size: 12px;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: red;
+    color: white;
+}
 
 
 
@@ -674,17 +682,7 @@ ul.custom-arrow-list li {
 
    
 
-    footer {
-        text-align: center;
-        background: #007bff;
-        color: white;
-        padding: 10px;
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        margin-top: 100px;
-        height:30px
-    }
+
    
     .animate {
         

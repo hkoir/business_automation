@@ -562,7 +562,12 @@ def qc_inspect_item(request, item_id):
 
     if request.method == 'POST':
         form = QualityControlForm(request.POST)
-        if form.is_valid():           
+        if form.is_valid():    
+            good_quantity = form.cleaned_data['good_quantity']     
+            bad_quantity = form.cleaned_data['bad_quantity']   
+            if good_quantity + bad_quantity !=purchase_dispatch_item.dispatch_quantity:
+                messages.warning(request,'dispatch quantity is more than selected quantity')
+                return redirect('purchase:qc_inspect_item',item_id)
             qc_entry = form.save(commit=False)
             qc_entry.purchase_dispatch_item = purchase_dispatch_item
             qc_entry.user = request.user  
@@ -578,7 +583,7 @@ def qc_inspect_item(request, item_id):
             messages.error(request, "Error saving QC inspection.")
     else:
         form = QualityControlForm(initial={'total_quantity': purchase_dispatch_item.dispatch_quantity})    
-    return render(request, 'purchase/qc_inspect_item.html', {'form': form, 'purchase_order_item': purchase_dispatch_item})
+    return render(request, 'purchase/qc_inspect_item.html', {'form': form, 'purchase_order': purchase_order,'purchase_dispatch_item':purchase_dispatch_item,'purchase_shipment': purchase_shipment})
 
 
 

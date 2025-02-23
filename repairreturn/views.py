@@ -85,7 +85,7 @@ def create_return_request(request, sale_order_id):
             return_refund.save()
 
             create_notification(
-                request.user,
+                request.user,message=
                 f"Customer {sale_order.customer} has placed a repair/return request for: {sale.product}",notification_type='RETURN-NOTIFICATION'
             )
             messages.success(request, "Return/Refund request submitted successfully!")
@@ -231,10 +231,10 @@ def repair_faulty_product(request, faulty_product_id):
             faulty_product = form.save(commit=False)                               
             faulty_product.save()
             if status == 'REPAIRED_AND_READY':
-                create_notification(request.user, f'Product {product} has been repaired and ready to return','RETURN-NOTIFICATION')
+                create_notification(request.user, message= f'Product {product} has been repaired and ready to return',notification_type='RETURN-NOTIFICATION')
 
             if status in ['UNREPAIRABLE','SCRAPPED']:                
-                create_notification(request.user, f'Product {product} can not be repaired.')
+                create_notification(request.user, message=f'Product {product} can not be repaired',notification_type='REPAIR-RETURN-NOTIFICATION')
 
 
             messages.success(request, f'{faulty_product.product.name} has been processed.')

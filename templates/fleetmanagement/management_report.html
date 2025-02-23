@@ -14,6 +14,7 @@ ul li {
 
 
 <div class="container-fluid main-content">
+    <h4 class="text-center text-primary fw-bold mb-4">Transport run expense analysis as a whole</h4>
     <div class="row">
         <div class="col-12">           
             <form method="GET" action="{% url 'transport:management_summary_report' %}">
@@ -35,8 +36,8 @@ ul li {
                 <div class="row">
                     <div class="col-12 col-md-4 mt-2">
                         <div class="card shadow-sm border-0">
-                            <div class="card-body" style="background-color: aqua;">
-                               Filter applied:
+                            Filter applied:
+                            <div class="card-body" style="background-color: aqua;">                              
                                     
                                 <ul class="list-group list-group-flush">
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -75,7 +76,7 @@ ul li {
         
 
         <!-- Summary Table -->
-        <div class="col-12">
+        <div class="col-12 table-responsive">
             <h4>Vehicle OPS performance Summary: Data for
                 {% if days %}
                     the last {{ days }} days
@@ -129,10 +130,6 @@ ul li {
 
 
 
-<div class="col" style="height:1200px"></div>
-
-
-
 <script>
     const chartData = JSON.parse('{{ chart_data|escapejs }}');       
     const ctx = document.getElementById('incrementChart').getContext('2d');   
@@ -146,8 +143,8 @@ ul li {
                 data: chartData.values,
                 backgroundColor: [
                
-                '#FF0000',  // Soft Blue
-                '#FFCE56',  // Soft Yellow
+                '#00FF00',  // Soft Blue
+                '#F0F00F',  // Soft Yellow
                 '#FF9F40',  // Soft Orange
 
                
@@ -169,7 +166,7 @@ ul li {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right',
+                    position: 'left',
                     labels: {
                     color: '#333333',  // Set legend text color (e.g., dark gray)
                     font: {

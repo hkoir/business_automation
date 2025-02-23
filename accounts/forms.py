@@ -48,84 +48,77 @@ class UserProfileForm(forms.ModelForm):
 
 
     
+from django import forms
+from django.contrib.auth.forms import AuthenticationForm
 
 class CustomLoginForm(AuthenticationForm):
     tenant = forms.CharField(
         max_length=100,
         required=True,
         widget=forms.TextInput(attrs={
-            'class': 'form-control', 
-            'placeholder': 'Tenant', 
-            'readonly': 'readonly'
-          
-          
+            'class': 'form-control',
+            'placeholder': 'Tenant',
+           
         }),
         label="Tenant",
     )
-    class Meta:
-        model = AuthenticationForm
-        fields = ['username', 'password','tenant']
 
 
+from.models import CustomUser
 
 class TenantUserRegistrationForm(UserCreationForm):
-    tenant = forms.CharField(
-        max_length=100,
-        required=True,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control', 
-            'placeholder': 'Tenant', 
-            'readonly': 'readonly'
-        }),
-        label="Tenant",
-    )
     profile_picture = forms.ImageField(required=False)
-    user_type = forms.ChoiceField(choices=[
-        ('Register_as_business_parner','Register as our business partners'),
-        ('register-as-our-services','Register as our offerings and services'),
-        ('register-as-our job-vacancies','Register as our job vacancies')
-    ])
-
+    
     class Meta:
-        model = User
-        fields = ['user_type','username', 'email', 'tenant','password1', 'password2','profile_picture']
+        model = CustomUser
+        fields = ['username', 'email', 'password1', 'password2', 'profile_picture']  
 
     def __init__(self, *args, **kwargs):
-        tenant = kwargs.pop('tenant', None)
+        self.tenant = kwargs.pop('tenant', None)  # Store tenant in the form instance
         super().__init__(*args, **kwargs)
 
-        if tenant:
-            self.fields['tenant'].initial = tenant
-            self.fields['tenant'].disabled = True
-
-    def clean_tenant(self):
-        tenant = self.cleaned_data['tenant']
-        if not tenant:
-            raise ValidationError("Tenant is required.")
-        return tenant
+        # Optional Bootstrap classes
+        for field in self.fields:
+            self.fields[field].widget.attrs.update({'class': 'form-control'})
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        password1 = self.cleaned_data.get('password1')
-        password2 = self.cleaned_data.get('password2')
-        if password1 != password2:
-            raise ValidationError("The passwords do not match.")
-        user.set_password(password1)
+        user.set_password(self.cleaned_data['password1'])
 
         if commit:
             user.save()
 
-        tenant = self.cleaned_data['tenant']
-        tenant_instance = Client.objects.get(schema_name=tenant)  
+        return user
 
-        user_profile = UserProfile(
-            user=user,
-            tenant=tenant_instance,
-            profile_picture=self.cleaned_data.get('profile_picture')  
-        )
+    
+class PartnerJobSeekerRegistrationForm(UserCreationForm):
+    profile_picture = forms.ImageField(required=False)
+    user_type = forms.ChoiceField(
+        choices=[
+            ('register-as_business-parner', 'Register as business partners'),
+            ('register-as-job-seeker', 'Register as job seeker')
+        ],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ['user_type', 'username', 'email', 'password1', 'password2', 'profile_picture']  # ❌ Removed 'tenant'
+
+    def __init__(self, *args, **kwargs):
+        self.tenant = kwargs.pop('tenant', None)  # Store tenant in the form instance
+        super().__init__(*args, **kwargs)
+
+        # Optional Bootstrap classes
+        for field in self.fields:
+            self.fields[field].widget.attrs.update({'class': 'form-control'})
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data['password1'])
 
         if commit:
-            user_profile.save()
+            user.save()
 
         return user
 
@@ -134,7 +127,7 @@ class TenantUserRegistrationForm(UserCreationForm):
 
 class UserRegistrationForm(UserCreationForm):
     class Meta:
-        model = User
+        model = CustomUser
         fields = ['username', 'email', 'password1', 'password2']
 
     def save(self, commit=True):
@@ -172,7 +165,7 @@ class PwdResetForm(PasswordResetForm):
 
     def clean_email(self):
         email = self.cleaned_data['email']
-        u = User.objects.filter(email=email)
+        u = CustomUser.objects.filter(email=email)
         if not u:
             raise forms.ValidationError(
                 'Unfortunatley we can not find that email address')

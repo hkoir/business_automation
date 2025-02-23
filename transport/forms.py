@@ -12,7 +12,7 @@ from .models import TransportRequest
 from.models import VehicleRentalCost
 from.models import FuelPumpDatabase
 from.models import FuelPumpPayment
-from .models import TransportUsage
+
 from .models import TransportExtension
 
 

@@ -7,13 +7,13 @@ from inventory.models import Warehouse,Location
 from supplier.models import Supplier
 
 from django.contrib.auth.models import User
-
+from accounts.models import CustomUser
 
 
 class AssignRolesForm(forms.Form):
-    requester = forms.ModelChoiceField(queryset=User.objects.all(), label="Requester")
-    reviewer = forms.ModelChoiceField(queryset=User.objects.all(), label="Reviewer")
-    approver = forms.ModelChoiceField(queryset=User.objects.all(), label="Approver")
+    requester = forms.ModelChoiceField(queryset=CustomUser.objects.all(), label="Requester")
+    reviewer = forms.ModelChoiceField(queryset=CustomUser.objects.all(), label="Reviewer")
+    approver = forms.ModelChoiceField(queryset=CustomUser.objects.all(), label="Approver")
 
 
 

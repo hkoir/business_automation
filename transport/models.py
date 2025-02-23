@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from inventory.models import InventoryTransaction 
 from decimal import Decimal
-
+from accounts.models import CustomUser
 from datetime import datetime
 
 
@@ -73,7 +73,8 @@ class Transport(models.Model):
         ('IN-USE','In use'),
         ('PENALIZED','Penalized'),
         ('BOOKED','Booked'),
-        ('FAULTY','Faulty')
+        ('FAULTY','Faulty'),
+        ('COMPLETED', 'Completed'),      
         ],null=True,blank=True)  
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -117,7 +118,7 @@ class TransportRequest(models.Model):
         ('Staff', 'Staff'),
     ]
 
-    staff = models.ForeignKey(User, on_delete=models.CASCADE,null=True,blank=True) 
+    staff = models.ForeignKey(CustomUser, on_delete=models.CASCADE,null=True,blank=True) 
     vehicle = models.ForeignKey(Transport, on_delete=models.CASCADE,related_name='transport_request')  
     transport_type = models.CharField(max_length=10, choices=TRANSPORT_TYPE_CHOICES,default='Staff')
     item_description = models.TextField(null=True, blank=True) 
@@ -148,10 +149,11 @@ class TransportRequest(models.Model):
 
 
 
+
 class ManagerApproval(models.Model):
     approval_code = models.CharField(max_length=50,null=True,blank=True)
     request = models.ForeignKey(TransportRequest, on_delete=models.CASCADE,related_name='request_approval')
-    manager = models.ForeignKey(User, on_delete=models.CASCADE) 
+    manager = models.ForeignKey(CustomUser, on_delete=models.CASCADE) 
     approved_at = models.DateTimeField(default=timezone.now)
     status=models.CharField(max_length=50,choices=[('APPROVED','Approved'),('REJECTED','Rejected')],null=True,blank=True)
     rejection_reason = models.TextField(null=True, blank=True)
@@ -181,7 +183,7 @@ class TransportExtension(models.Model):
     extended_until = models.DateTimeField(null=True, blank=True)
     reason = models.CharField(max_length=255,blank=True, null=True)
     requested_at = models.DateTimeField(default=timezone.now)
-    approved_by = models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)
+    approved_by = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True,blank=True)
     approval_status=models.CharField(max_length=50,choices=[('APPROVED','Approved'),('CANCELLED','Cancelled'),('PENDING','Pending')],default='PENDING')
     cancellation_reason=models.CharField(max_length=255,null=True,blank=True)
     created_at = models.DateField(auto_now_add=True)
@@ -197,7 +199,6 @@ class TransportExtension(models.Model):
 
     def __str__(self):
         return f"Extension for {self.booking} until {self.extended_until}"
-
 
 
 class TransportUsage(models.Model):
@@ -304,7 +305,7 @@ class TransportUsage(models.Model):
 class BookingHistory(models.Model):    
     booking = models.OneToOneField(TransportRequest,on_delete=models.CASCADE,related_name='history_request',null=True, blank=True)
     transport_used = models.ForeignKey(Transport, on_delete=models.CASCADE,null=True, blank=True)
-    staff = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True)
+    staff = models.ForeignKey(CustomUser, on_delete=models.CASCADE,null=True, blank=True)
     booked_at = models.DateTimeField(default=timezone.now,null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -319,7 +320,7 @@ class BookingHistory(models.Model):
 
 
 class Penalty(models.Model):
-    staff = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True)
+    staff = models.ForeignKey(CustomUser, on_delete=models.CASCADE,null=True, blank=True)
     transport_request = models.ForeignKey(TransportRequest, on_delete=models.CASCADE,related_name='penalty')
     penalty_amount = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
     issued_at = models.DateTimeField(auto_now_add=True)
@@ -333,7 +334,7 @@ class Penalty(models.Model):
 
 
 class PenaltyPayment(models.Model):
-    staff = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True)
+    staff = models.ForeignKey(CustomUser, on_delete=models.CASCADE,null=True, blank=True)
     penalty = models.ForeignKey(Penalty, on_delete=models.CASCADE,related_name='penalty_payment')
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
     payment_doc =models.ImageField(upload_to='Penalty_payment',null=True,blank=True)
@@ -413,7 +414,7 @@ class FuelRefill(models.Model):
     refill_type = models.CharField(max_length=20, choices=REFILL_CHOICES, default='pump')
    
     pump = models.ForeignKey(FuelPumpDatabase,related_name='vehicle_fuel_pump',on_delete=models.CASCADE,default=None,null=True,blank=True)
-    user = models.ForeignKey(User, related_name='refill_requester_name', on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, related_name='refill_requester_name', on_delete=models.CASCADE, null=True, blank=True)
     fuel_refill_code = models.CharField(max_length=50, default='None')
     refill_date = models.DateField(default=timezone.now)
 
@@ -505,7 +506,7 @@ class Vehiclefault(models.Model):
     vehicle_fault_id = models.CharField(max_length=50, default='None')    
     vehicle = models.ForeignKey(Transport, related_name='vehiclefault_info', on_delete=models.CASCADE,null=True, blank=True)
     vehicle_runnin_data = models.ForeignKey(TransportUsage, related_name='VehicleRuniningDataInfo', on_delete=models.CASCADE ,null=True, blank=True) 
-    user = models.ForeignKey(User, related_name='vehicle_fault_user', on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, related_name='vehicle_fault_user', on_delete=models.CASCADE, null=True, blank=True)
     fault_start_time = models.DateTimeField(default=timezone.now)    
     fault_stop_time = models.DateTimeField(default=timezone.now)  
     fault_duration_hours = models.FloatField(default=None, null=True, blank=True)

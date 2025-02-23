@@ -78,7 +78,7 @@
 
 </style>
 
-<div class="container-fluid main-content my-5">
+<div class="container-fluid main-content">
     <!-- Marquee Section -->
     <div class="row">           
             <div class="col-12">
@@ -90,25 +90,23 @@
                              <div class="col-12 col-md-6 login-circle-container2">
                                 <a href="{% url 'accounts:login' %}" class="login-circle2">
                                     <span class="text-center text-primary fw-bold" style="font-size: 14px;">
-                                        <i class="fas fa-user-tie"></i><br>Log in<br>
+                                        <i class="fas fa-user-tie"></i><br>&nbsp;cLogin<br>
                                         <span style="font-size: 16px; font-weight: bold; color:darkgreen"><i class="fas fa-sign-in"></i></span></span>
                                    
                                 </a>
                             </div>
+
                              <!-- Spinning Login Box -->
-                             <div class="col-12 col-md-6"> 
-                                <h4 class="text-center">Don't have accunt?? register now</h4>
-                                <ul>
-                                    <li><a href="{% url 'accounts:register_customer_support' %}"
-                                        class="btn btn-primary mb-2">Register as our business partner (Customers and Suppliers)</a></li>
-                                    <li><a href="{% url 'accounts:register_job_seeker' %}"
-                                        class="btn btn-primary mb-2">Register for our job vacancies</a></li>
-                                    <li><a href="{% url 'accounts:register_public' %}"
-                                        class="btn btn-primary">Register for your offerings and services</a></li>
-                                </ul>
-
-
+                             <div class="col-12 col-md-6 login-circle-container2">
+                                <a href="{% url 'accounts:register_partner_job_seeker' %}" class="login-circle2">
+                                    <span class="text-center text-primary fw-bold" style="font-size: 14px;">
+                                        Don't have accunt??<br>
+                                        <i class="fas fa-user-tie"></i><br>&nbsp;eRegister<br>
+                                        <span style="font-size: 16px; font-weight: bold; color:darkgreen"><i class="fas fa-sign-in"></i></span></span>
+                                   
+                                </a>
                             </div>
+                           
                     </div>
                 </div>
             </div>      

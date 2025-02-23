@@ -23,7 +23,7 @@ class AddLocationForm(forms.ModelForm):
     )
     class Meta:
         model=Location
-        exclude = ['location_id','history','created_at','updated_at','user']
+        exclude = ['location_id','created_at','updated_at','user']
 
 
 
@@ -39,7 +39,7 @@ class UpdateLocationForm(forms.ModelForm):
     )
     class Meta:
         model=Location
-        exclude = ['location_id','history','created_at','updated_at','user']
+        exclude = ['location_id','created_at','updated_at','user']
 
 
 

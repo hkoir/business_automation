@@ -1,4 +1,4 @@
-{% extends "public_portal.html" %}
+{% extends "public_portal_base.html" %}
 {% load custom_filters %}
 {% block content %}
 <div class="container mt-5">
@@ -25,7 +25,7 @@
                 <div class="card-footer text-center bg-light">
                     <p class="mb-0">
                         Already have an account? 
-                        <a href="{% url 'accounts:login' %}" class="text-primary text-decoration-none fw-bold">Login Here</a>
+                        <a href="{% url 'accounts:login_public' %}" class="text-primary text-decoration-none fw-bold">Login Here</a>
                     </p>
                 </div>
             </div>

@@ -2,9 +2,12 @@ from django.db import models
 import uuid
 from tasks.models import Ticket
 
+
+
+
 class TicketCustomerFeedback(models.Model):    
     feedback_id =models.CharField(max_length=30)   
-    ticket = models.ForeignKey(Ticket,on_delete=models.CASCADE,related_name='ticket_feedback')
+    ticket = models.ForeignKey(Ticket,on_delete=models.CASCADE,related_name='ticket_feedback_by_customer')
     is_work_completed = models.BooleanField('Is Work Completed?',default=False,choices=[(False, 'No'), (True, 'Yes')]) 
     progress=models.CharField(max_length=100,choices=
             [                        

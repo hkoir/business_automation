@@ -1,10 +1,10 @@
-{% extends 'customer_portal_base.html' %}
+{% extends 'partner_portal_base.html' %}
 {% load custom_filters %} 
 {% block content %}
 
 
 
-<div class="container-fluid main-content my-5" style="margin-top: 0px;">
+<div class="container-fluid main-content" >
     <div class="row">
         <h4>Dispatch Items for Sale Order: {{ sale_order.order_id }}</h4>
             <div class="col">              
@@ -13,7 +13,7 @@
                         <div class="col-12 col-md-4">
                             <table class="table table-hover">
                                 <thead class="table-dark">
-                                    <h5 style="color:yellow;font-weight: bolder;">Summary</h5>
+                                    <h5 style="color:blue;font-weight: bolder;">Summary</h5>
                                     <tr>
                                         <th>#</th>
                                         <th>Product Name</th>
@@ -84,9 +84,10 @@
                                     <td>{{ dispatch_item.dispatch_item.quantity }}</td>
                                     <td>{{ dispatch_item.dispatch_quantity }}</td>
                                     <td>{{ dispatch_item.delivery_date }}</td>                                                           
-                                   
+                                                                     
+
                                     <td>
-                                        {% if dispatch_item.status|in_list:"REACHED,OBI,DELIVERED" %}
+                                        {% if dispatch_item.status == "DELIVERED" %}
                                             {{ dispatch_item.updated_at|date:"M-d,Y" }}
                                         {% else %}
                                             <span style="color:red;font-weight: bold;">Not delivered yet</span>
@@ -100,7 +101,7 @@
                                             {% csrf_token %}
                                             <div class="d-flex align-items-center">
                                                 <select name="new_status" class="form-select me-2" style="width: 60%;">
-                                                    {% if dispatch_item.status == 'READY_FOR-DISPATCH' %}
+                                                    {% if dispatch_item.status == 'DISPATCHED' %}
                                                     <option value="IN_PROCESS">In Process</option>
                                                     {% elif dispatch_item.status == 'IN_PROCESS' %}
                                                         <option value="ON_BOARD">On Board</option>
@@ -111,9 +112,7 @@
                                                     {% elif dispatch_item.status == "CUSTOM_CLEARANCE_IN_PROCESS" %}
                                                         <option value="REACHED">Reached</option>   
                                                     {% elif dispatch_item.status == "OBI" %}
-                                                        <option value="OBU">OBI</option>                                                                                                     
-                                                    {% elif dispatch_item.status == "CANCELLED" %}
-                                                        <option value="CANCELLED">Cancelled</option>  
+                                                        <option value="OBI">OBI</option>                                           
                                                     {% else %}
                                                         <option disabled selected>No action needed</option>
                                                     {% endif %}
@@ -156,10 +155,6 @@
         </div>
     </div>
 </div>
-
-
-
-<div style="height:2000px"></div>
 
 
 

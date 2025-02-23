@@ -3,7 +3,7 @@ from django_tenants.models import TenantMixin, DomainMixin
 from django.contrib.auth.models import AbstractUser,User
 from datetime import timedelta
 from django.utils import timezone
-
+from django.conf import settings
 
 app_name='clients'
 
@@ -38,6 +38,7 @@ class SubscriptionPlan(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)  
     description = models.TextField(blank=True, null=True)  
     features = models.TextField()  # Comma-separated features
+    price_per_user = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
     created_on = models.DateTimeField(auto_now_add=True)  
     updated_on = models.DateTimeField(auto_now=True)  
 
@@ -46,9 +47,10 @@ class SubscriptionPlan(models.Model):
 
 
 class Tenant(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True, related_name='tenant_user')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,blank=True, related_name='tenant_user')
     tenant = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='tenant', null=True, blank=True)  # Maps to Client
     name = models.CharField(max_length=100)
+    max_users = models.PositiveIntegerField(default=5) 
     subdomain = models.CharField(max_length=100, unique=True,help_text='subdomain could be your company name or nay name you prefer')  
     email = models.EmailField()
     phone_number = models.CharField(max_length=20, blank=True, null=True)
@@ -102,6 +104,18 @@ class Subscription(models.Model):
         ordering = ['-start_date']
 
 
+
+class BillingRecord(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    billing_cycle = models.DateField(default=timezone.now)
+    total_users = models.PositiveIntegerField()
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    is_paid = models.BooleanField(default=False)
+    created_on = models.DateTimeField(auto_now_add=True)  
+    updated_on = models.DateTimeField(auto_now=True) 
+
+
+
 class TenantInfo(models.Model):
     name = models.CharField(max_length=100)
     content = models.TextField() 
@@ -111,7 +125,7 @@ class TenantInfo(models.Model):
 
 
 class PaymentProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="payment_profile")
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payment_profile")
     tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name="tenant_payment_profile",blank=True, null=True)
     payment_token = models.CharField(max_length=255, unique=True)  # Token from payment gateway
     card_last4 = models.CharField(max_length=4, blank=True, null=True)  # Last 4 digits
@@ -125,8 +139,6 @@ class PaymentProfile(models.Model):
     card_expiry_year = models.IntegerField(blank=True, null=True)  # Expiry year
 
 
-
-from accounts.models import UserProfile
 
 class DemoRequest(models.Model):
     name = models.CharField(max_length=255)
@@ -144,7 +156,7 @@ class DemoRequest(models.Model):
         ('rejected', 'Rejected'),  
     ], default='pending')    
 
-    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='demo_requests') # Assign to sales rep
+    assigned_to = models.ForeignKey( settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='demo_requests') # Assign to sales rep
     created_on = models.DateTimeField(auto_now_add=True)  
     updated_on = models.DateTimeField(auto_now=True)  
 

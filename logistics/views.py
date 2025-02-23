@@ -238,7 +238,7 @@ def dispatch_item_list(request, purchase_order_id):
     shipments = {}
     qc_quantities = {} 
 
-    for dispatch_item in dispatch_items:
+    for dispatch_item in dispatch_items:        
         shipment = dispatch_item.purchase_shipment
         product_name = dispatch_item.dispatch_item.product.name
         if shipment not in shipments:
@@ -277,10 +277,18 @@ def dispatch_item_list(request, purchase_order_id):
 @login_required
 def update_dispatch_status(request, dispatch_item_id):
     dispatch_item = get_object_or_404(PurchaseDispatchItem, id=dispatch_item_id)
+
     if request.method == 'POST':
+        if dispatch_item.status in ['OBI','DELIVERED']:
+            messages.info(request,'item has already been updated')
+            return redirect('logistics:update_dispatch_status',dispatch_item_id)
+        
         new_status = request.POST.get('new_status')
         old_status = dispatch_item.status
         dispatch_item.status = new_status
+        if new_status == 'OBI':
+            messages.warning(request,'No further updated is neededfor this item')
+            return redirect('logistics:update_dispatch_status',dispatch_item_id)
         dispatch_item.save()  
         create_notification(request.user, message=f'Product: {dispatch_item.dispatch_item.product} status updated from {old_status} to {new_status}',notification_type='SHIPMENT-NOTIFICATION')     
 
@@ -289,16 +297,16 @@ def update_dispatch_status(request, dispatch_item_id):
 
     try:
         shipment = PurchaseShipment.objects.get(id=shipment.id)
-
         total_dispatch_items = shipment.shipment_dispatch_item.count()
         reached_items_count = shipment.shipment_dispatch_item.filter(status__in=['REACHED', 'OBI']).count()
-
         all_items_reached = reached_items_count == total_dispatch_items
 
         if all_items_reached:
             shipment.status = 'REACHED'
             shipment.purchase_order.status = 'REACHED'
+            shipment.purchase_order.purchase_request_order = 'REACHED'
             shipment.save()
+            shipment.purchase_order.save()
 
             logger.info(f"Shipment {shipment.id} marked as REACHED.")
 
@@ -588,6 +596,10 @@ def update_sale_dispatch_status(request, dispatch_item_id):
     dispatch_item = get_object_or_404(SaleDispatchItem, id=dispatch_item_id)  
     
     if request.method == 'POST':
+        if dispatch_item.status in ['OBI','DELIVERED']:
+            messages.info(request,'item has already been updated')
+            return redirect('logistics:update_sale_dispatch_status',dispatch_item_id)
+        
         new_status = request.POST.get('new_status')
         old_status = dispatch_item.status
         dispatch_item.status = new_status

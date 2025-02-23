@@ -124,6 +124,8 @@
                 <td>
                     {% if order.is_fully_ordered %}                             
                     <i class="fas fa-check" style="color:green;font-weight: bold;">Fully ordered</i>                   
+                    {% elif order.approver_approval_status != 'APPROVED' %}
+                    <strong><i class="fas fa-times" style="color:red" class="btn btn-secondary">Approval Pending</i></strong>
                     {% else %}
                     <a href="{% url 'sales:create_sale_order' order.id %}" class="btn btn-sm btn-primary">Create Sale Order</a>
                     {% endif %}
@@ -154,10 +156,6 @@
         </div>
     </div>
 </div>      
-
-<div style="height:2000px"></div>
-
-
 
 
 

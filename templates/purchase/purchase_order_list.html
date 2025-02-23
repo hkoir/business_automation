@@ -4,7 +4,11 @@
 
 {% block content %}
 
-
+<style>
+    .table-responsive{
+        overflow-x: auto;
+    }
+</style>
 
 
 <div class="container-fluid main-content">
@@ -36,10 +40,11 @@
      
         <hr class="mt-2">
      
-        <div class="col-12">       
+        <div class="col-12 table-responsive">       
 
             <h4> Placed Purchase orders</h4>
-            <table class="table table-hover">
+
+            <table class=" table">
                 <thead class="table-dark">
                     <tr class="btn-primary text-white">
                    
@@ -189,27 +194,32 @@
                     <td style="background-color: aquamarine;">
                         {% if order.approver_approval_status != 'APPROVED' %}
                             <span>Approval Pending</span>>
-                            {% elif order.purchase_shipment.first.shipment_dispatch_item.first.status|item_list:'DELIVERED,REACHED,OBI' %}
+                         
+                            {% elif order.is_fully_delivered %}
 
                         <i class="fas fa-check" style="color:green;font-weight: bold;">Delivered</i>
                         {% else %}
                             <a href="{% url 'logistics:dispatch_item_list' order.id %}">Update</a>
+                                                
+                           
                         {% endif %}
                     </td>
 
-                    <td><a href="{% url 'logistics:dispatch_item_list' order.purchase_shipment.first.shipment_dispatch_item.first.id %}">Items</a></td>
-
+                    <td>
+                        
+                        <a href="{% url 'logistics:dispatch_item_list' order.id %}">Items</a>
+                                    
+                    </td>
                                           
 
                  <!-- QC Dashboard section -->
                  <td>
-                    {% with order.purchase_shipment.first.shipment_dispatch_item.first as first_dispatch_item %}
-                        {% if first_dispatch_item.status == 'DELIVERED' %}
+                    {% if order.is_full_delivered %}                   
                         <i class="fas fa-check" style="color:green; font-weight: bold;">QC completed</i>
                      {% else %}                        
                             <a href="{% url 'purchase:qc_dashboard_with_order' order.id %}" class="btn btn-sm btn-primary">QC Dashboard</a>
                         {% endif %}
-                    {% endwith %}
+                   
                 </td>
                 
 
@@ -384,13 +394,6 @@
 
 
 </div>      
-
-
-
-
-
-
-<div style="height:2000px"></div>
 
 
 

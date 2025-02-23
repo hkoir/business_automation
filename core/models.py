@@ -8,10 +8,12 @@ from django.utils import timezone
 from datetime import datetime
 from core.utils import DEPARTMENT_CHOICES,EMPLOYEE_LEVEL_CHOICES,POSITION_CHOICES,LOCATION_CHOICES
 import uuid
+from accounts.models import CustomUser
+
 
 
 class Notice(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     title = models.CharField(max_length=255,null=True,blank=True)
     content = models.TextField(null=True,blank=True)
     notice_attachment = models.ImageField(upload_to='notices',null=True,blank=True)
@@ -23,7 +25,7 @@ class Notice(models.Model):
 
 
 class Department(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100,choices=DEPARTMENT_CHOICES)
     description = models.TextField(null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
@@ -34,7 +36,7 @@ class Department(models.Model):
 
 
 class Employeelevel(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100,choices=EMPLOYEE_LEVEL_CHOICES)  
     description = models.TextField(null=True, blank=True)
     created_at = models.DateField(auto_now_add=True)
@@ -42,10 +44,11 @@ class Employeelevel(models.Model):
     def __str__(self):
             return self.name
 
+
+
 class Position(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    name = models.CharField(max_length=100, choices=POSITION_CHOICES)
-    employee_level = models.ForeignKey(Employeelevel, on_delete=models.CASCADE, related_name="employee_level", null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=100, choices=POSITION_CHOICES)    
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="positions")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -53,8 +56,10 @@ class Position(models.Model):
         return self.name
     
 
+
+
 class JobRequirement(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)    
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)    
     department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True, blank=True)  
     position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name="requirements",null=True, blank=True)  # ✅ Related name added
     requirement = models.TextField()     
@@ -65,8 +70,10 @@ class JobRequirement(models.Model):
         return f"{self.position.name} - {self.requirement}"  
 
 
+
+
 class JobDescription(models.Model):  
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)  
     department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True, blank=True)  
     position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name="descriptions",null=True, blank=True)  # ✅ Related name added
     description = models.TextField()     
@@ -81,7 +88,7 @@ class JobDescription(models.Model):
 
 
 class Company(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='company_hq_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='company_hq_user')
     name = models.CharField(max_length=255)
     logo = models.ImageField(upload_to='company_logo/',blank=True, null=True)
     contact_person = models.CharField(max_length=30,null=True,blank=True)
@@ -96,8 +103,10 @@ class Company(models.Model):
         return self.name
 
 
+
+
 class Location(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='company_location_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='company_location_user')
     company = models.ForeignKey(Company, related_name='company_locations', on_delete=models.CASCADE,null=True, blank=True)
     name = models.CharField(max_length=255,null=True, blank=True,choices=LOCATION_CHOICES)
        
@@ -143,7 +152,7 @@ class PoliciesAndGuideline(models.Model):
 
 class CompanyPolicy(models.Model):
     name =models.CharField(max_length=30,null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     policy_code = models.CharField(max_length=30,null=True,blank=True)
     company = models.ForeignKey(Company, on_delete=models.CASCADE,null=True,blank=True)
     hra_percentage = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
@@ -168,7 +177,7 @@ class CompanyPolicy(models.Model):
 
 
 class Festival(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=50,null=True,blank=True,help_text='any name you prefer')
     company_policy = models.ForeignKey(CompanyPolicy, on_delete=models.CASCADE)   
     month = models.PositiveIntegerField(help_text='use numerical month like 1,2 etc. 1=January, 2=February')  
@@ -182,7 +191,7 @@ class Festival(models.Model):
 
 
 class PerformanceBonus(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=50,null=True,blank=True,help_text='any name you prefer')
     company_policy = models.ForeignKey(CompanyPolicy, on_delete=models.CASCADE)
     month = models.PositiveIntegerField(help_text='use numerical month like 1=January, 2=February')
@@ -196,7 +205,7 @@ class PerformanceBonus(models.Model):
 
 class SalaryStructure(models.Model):
     name =models.CharField(max_length=30,null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     salary_structure_code = models.CharField(max_length=50,null=True,blank=True)
     company_policy = models.ForeignKey(CompanyPolicy,on_delete=models.CASCADE,null=True,blank=True)
 
@@ -292,6 +301,7 @@ class SalaryStructure(models.Model):
         return f"Salary Structure: {self.name}-{self.salary_level}"
 
 
+from core.utils import EMPLOYEE_LEVEL_CHOICES
 
 class Employee(models.Model):  
     employee_code = models.CharField(max_length=100, null=True, blank=True)   
@@ -310,7 +320,7 @@ class Employee(models.Model):
     department = models.ForeignKey(Department,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_department')   
     position = models.ForeignKey(Position,on_delete=models.CASCADE,null=True, blank=True,related_name='employee_position')            
     location = models.ForeignKey(Location,on_delete=models.SET_NULL,null=True,blank=True,related_name='employee_location')   
-    employee_level = models.ForeignKey(Employeelevel,on_delete=models.CASCADE,null=True,blank=True)
+    employee_level = models.CharField(max_length=200,choices=EMPLOYEE_LEVEL_CHOICES,null=True,blank=True)
     salary_structure=models.ForeignKey(SalaryStructure,on_delete=models.CASCADE,null=True,blank=True)
          
     gender_choices =[
@@ -442,7 +452,7 @@ class SalaryIncrementAndPromotion(models.Model):
 
 
 class EmployeeRecordChange(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     changed_at = models.DateTimeField(default=timezone.now)
     field_name = models.CharField(max_length=100,default="None")
@@ -454,7 +464,7 @@ class EmployeeRecordChange(models.Model):
 
 
 class AttendanceModel(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     date = models.DateField()
     check_in_time = models.TimeField()
@@ -494,7 +504,7 @@ class AttendanceModel(models.Model):
 
 
 class MonthlySalaryReport(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     month = models.IntegerField()  # Month number (e.g., 1 for January)
     year = models.IntegerField()

@@ -630,12 +630,11 @@ def update_booking(request, booking_id):
                         booking_penalty.issued_at = timezone.now()
                         booking_penalty.staff=booking.staff
                         booking_penalty.save()
-
             
             return redirect('transport:available_transports')
     else:
         form = TransportRequestStatusUpdateForm(instance=booking)
-    return render(request, 'fleetmanagement/create_transport_request.html', {'form': form, 'transport': booking})
+    return render(request, 'fleetmanagement/update_transport_booking.html', {'form': form, 'transport': booking})
 
 
 
@@ -647,6 +646,9 @@ def refresh_status(request):
             if booking.return_datetime > now() and booking.request_datetime <= now():
                 booking.vehicle.status = 'IN-USE'
                 booking.status = 'IN-USE'
+                if booking.status == 'COMPLETED':
+                     booking.vehicle.status = 'AVAILABLE'
+            
 
             elif booking.status == 'COMPLETED':
                 booking.vehicle.status = 'AVAILABLE'
@@ -689,7 +691,7 @@ def transport_usage_update(request, booking_id):
             end_reading= form.cleaned_data['end_reading']
             form = form.save(commit=False)
             form.booking = booking 
-
+          
             if status == 'COMPLETED':
                 booking.status = 'COMPLETED'
                 booking.vehicle.status = 'AVAILABLE'
@@ -697,8 +699,8 @@ def transport_usage_update(request, booking_id):
                 booking.vehicle.save()
 
             if status == 'IN-USE':
-                booking.vehicle.status = 'IN_USE'
-                booking.status = 'IN_USE'
+                booking.vehicle.status = 'IN-USE'
+                booking.status = 'IN-USE'
                 booking.save()
                 booking.vehicle.save()
 
@@ -714,7 +716,7 @@ def transport_usage_update(request, booking_id):
             )
           
             messages.success(request, "Transport usage details created successfully.")
-            return redirect('transport:transport_request_list')
+            return redirect('transport:create_transport_request')
     else:  
         initial_data = {
             'travel_date': timezone.now().date(), 
@@ -819,6 +821,43 @@ def update_fuel_pump_database(request, pump_id):
     else:
         form = FuelPumpDatabaseForm(instance=pump_instance)
     return render(request, 'fleetmanagement/create_fuel_pump.html', {'form': form, 'pump_instance': pump_instance})
+
+
+@login_required
+def manage_fuel_refill(request,id=None): 
+    vehicle_number=None   
+    instance = get_object_or_404(FuelRefill, id=id) if id else None    
+
+    if request.method == 'POST':        
+        form = FuelRefillForm(request.POST or None, request.FILES or None, instance=instance)
+        if form.is_valid():        
+            form.instance.refill_requester = request.user           
+            form.save()
+            messages.success(request,'refill success')
+            return redirect('transport:create_fuel_refill')
+
+    fuel_refill = FuelRefill.objects.all().order_by('-created_at')
+    
+    vehicle_number = request.GET.get('vehicle_registration_number')   
+    if vehicle_number:
+         fuel_refill = fuel_refill.filter(vehicle__vehicle_registration_number=vehicle_number) 
+    if 'download_csv' in request.GET:
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="expense_approval_status.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['created_at','Requester'])
+        for expense_requisition in fuel_refill:
+            writer.writerow([
+                expense_requisition.created_at,
+                expense_requisition.refill_requester,               
+            ])
+        return response
+    paginator = Paginator( fuel_refill, 10) 
+    page_number = request.GET.get('page')   
+    fuel_refill = paginator.get_page(page_number)   
+   
+    form = FuelRefillForm(instance=instance)
+    return render(request, 'fleetmanagement/manage_fuel_refill.html', {'fuel_refill':fuel_refill,'form':form})
 
 
 
@@ -976,42 +1015,6 @@ def delete_fuel_pump_payment(request, id):
     return redirect('transport:create_fuel_pump_payment')  
 
 
-
-
-@login_required
-def manage_fuel_refill(request,id=None): 
-    vehicle_number=None   
-    instance = get_object_or_404(FuelRefill, id=id) if id else None    
-
-    if request.method == 'POST':        
-        form = FuelRefillForm(request.POST or None, request.FILES or None, instance=instance)
-        if form.is_valid():        
-            form.instance.refill_requester = request.user           
-            form.save()
-            return redirect('transport:create_fuel_refill')
-
-    fuel_refill = FuelRefill.objects.all().order_by('-created_at')
-    
-    vehicle_number = request.GET.get('vehicle_registration_number')   
-    if vehicle_number:
-         fuel_refill = fuel_refill.filter(vehicle__vehicle_registration_number=vehicle_number) 
-    if 'download_csv' in request.GET:
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="expense_approval_status.csv"'
-        writer = csv.writer(response)
-        writer.writerow(['created_at','Requester'])
-        for expense_requisition in fuel_refill:
-            writer.writerow([
-                expense_requisition.created_at,
-                expense_requisition.refill_requester,               
-            ])
-        return response
-    paginator = Paginator( fuel_refill, 10) 
-    page_number = request.GET.get('page')   
-    fuel_refill = paginator.get_page(page_number)   
-   
-    form = FuelRefillForm(instance=instance)
-    return render(request, 'fleetmanagement/manage_fuel_refill.html', {'fuel_refill':fuel_refill,'form':form})
 
 
 
@@ -1341,14 +1344,25 @@ def vehicle_grand_summary(request):
         total_CNG_cost=0
         total_gasoline_cost=0
         total_kilometer_cost=0
+        processed_vehicles = {}
+
         for running_data in vehicle_running_data:
             if running_data.booking:               
                 vehicle_reg_number = running_data.booking.vehicle.vehicle_registration_number
                 driver_overtime_rate = running_data.booking.vehicle.vehicle_driver_overtime_rate
                 vehicle_body_overtime_rate = running_data.booking.vehicle.vehicle_body_overtime_rate
+
+                travel_date = running_data.travel_date
+                if vehicle_reg_number not in processed_vehicles:
+                    processed_vehicles[vehicle_reg_number] = set()  # Initialize empty set for this vehicle
+                vehicle_rent = 0
+                if travel_date not in processed_vehicles[vehicle_reg_number]:  
+                    vehicle_rent = running_data.booking.vehicle.vehicle_rent / 30 or 0
+                    processed_vehicles[vehicle_reg_number].add(travel_date)
                
                 total_kilometer_run = running_data.kilometer_run or 0             
-                vehicle_rent = running_data.booking.vehicle.vehicle_rent / 30 or 0
+                # vehicle_rent = running_data.booking.vehicle.vehicle_rent / 30 or 0
+               
                 vehicle_rental_rate = running_data.booking.vehicle.vehicle_rent or 0
                 total_CNG_cost = running_data.kilometer_cost_CNG or 0
                 total_gasoline_cost = running_data.kilometer_cost_gasoline or 0
@@ -1409,7 +1423,9 @@ def vehicle_grand_summary(request):
                 aggregated_data[vehicle_reg_number]['total_overtime_run_hours'] += overtime_run_hours
                 aggregated_data[vehicle_reg_number]['total_overtime_cost'] += overtime_cost
                 aggregated_data[vehicle_reg_number]['vehicle_body_overtime_cost'] += vehicle_body_overtime_cost
+               
                 aggregated_data[vehicle_reg_number]['total_vehicle_rent_due'] += vehicle_rent
+                
                 aggregated_data[vehicle_reg_number]['total_vehicle_bill_amount'] += float(total_vehicle_bill_amount)
                 aggregated_data[vehicle_reg_number]['total_CNG_cost'] += total_CNG_cost
                 aggregated_data[vehicle_reg_number]['total_gasoline_cost'] += total_gasoline_cost
@@ -1417,7 +1433,9 @@ def vehicle_grand_summary(request):
                 aggregated_data[vehicle_reg_number]['grand_total_bill_amount'] += grand_total_bill_amount
                 aggregated_data[vehicle_reg_number]['driver_overtime_rate'].append(driver_overtime_rate)
                 aggregated_data[vehicle_reg_number]['vehicle_body_overtime_rate'].append(vehicle_body_overtime_rate)
+               
                 aggregated_data[vehicle_reg_number]['vehicle_rent'].append(vehicle_rent)
+
                 aggregated_data[vehicle_reg_number]['vehicle_rental_rate'].append(vehicle_rental_rate)
                 aggregated_data[vehicle_reg_number]['travel_dates'].add(running_data.travel_date)
                 aggregated_data[vehicle_reg_number]['num_travel_dates'] = len(aggregated_data[vehicle_reg_number]['travel_dates'])

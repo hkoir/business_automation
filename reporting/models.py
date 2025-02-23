@@ -6,13 +6,13 @@ from logistics.models import PurchaseShipment,SaleShipment
 from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
 from inventory.models import Location,Inventory
-
+from accounts.models import CustomUser
 
 
 class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     message = models.TextField()
-    notification_type=models.CharField(max_length=150,null=True,blank=True,choices=[
+    notification_type=models.CharField(max_length=255,null=True,blank=True,choices=[
         ('PURCHASE-NOTIFICATION','Purchase notification'),
         ('SALES-NOTIFICATION','Sales Notification'),
         ('PRODUCTION-NOTIFICATION','Production notification'),
@@ -43,7 +43,7 @@ class ArchivedNotification(models.Model):
 
 class InventoryReport(models.Model):
     inventory=models.ForeignKey(Inventory,on_delete=models.CASCADE,related_name='inventory_report',null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='inventory_report_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='inventory_report_user')
     report_date = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -55,7 +55,7 @@ class InventoryReport(models.Model):
 
 class SaleShipmentReport(models.Model):
     sale_shipment = models.ForeignKey(SaleShipment, on_delete=models.CASCADE, null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_shipment_report_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_shipment_report_user')
     report_date = models.DateField(auto_now_add=True)  
     total_dispatch = models.PositiveIntegerField(default=0)
     total_delivered = models.PositiveIntegerField(default=0)
@@ -70,7 +70,7 @@ class SaleShipmentReport(models.Model):
 
 class PurchaseShipmentReport(models.Model):   
     purchase_shipment = models.ForeignKey(PurchaseShipment, on_delete=models.CASCADE, null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_shipment_report_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_shipment_report_user')
     report_date = models.DateField(auto_now_add=True)  
     total_dispatch = models.PositiveIntegerField(default=0)
     total_delivered = models.PositiveIntegerField(default=0)

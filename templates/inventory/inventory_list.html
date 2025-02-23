@@ -9,6 +9,7 @@
 
 <div class="container-fluid main-content">
     <div class="row">
+        
         <h4 class="text-center mb-4" style="color:blue;font-weight: bold;">DOPS Inventor Summary</h4>
             
         <div class="col-12">   
@@ -60,20 +61,17 @@
      
         <div class="col-12 my-3">   
             <div class="container-fluid">
-                <div class="row">                   
-
-                    <div class="col-12 col-md-9 bg-light">
-                        <canvas id="barChart" height="100"></canvas>
+                <div class="row" style="overflow-x: auto">                   
+                    <div id="chart-container" class="col-12 col-md-9 bg-light">
+                        <canvas id="barChart" width="100%"></canvas>
                     </div>
-
                     <div class="col-12 col-md-3 bg-light">                     
-                     <canvas id="warehouseDoughnutChart"></canvas>
-                                                    
+                        <canvas id="warehouseDoughnutChart"></canvas>
                     </div>
                 </div>
             </div>        
-                
-         </div>
+        </div>
+        
 
         <hr style="height:5px">             
        
@@ -83,7 +81,7 @@
                 {% for warehouse, products, warehouse_total_stock_value in grouped_data %}
                 <div class="row mt-4">
                     <div class="col-12">
-                        <h6 style="font-weight: bold; color:yellow">Warehouse: {{ warehouse }}</h6>
+                        <h6 style="font-weight: bold; color:blue">Warehouse: {{ warehouse }}</h6>
                         
                         <div>
                             <h5 style="color: blue;">Stock Value: {{ warehouse_total_stock_value|add_commas }}</h5>
@@ -161,7 +159,7 @@
         </div>
         {% else %}
         <div class="col-12 mt-4">
-            <h5 class="text-center" style="color:yellow">No inventory data available within specified criteria.Choose filter and  <b>"generate data"</b></h5>
+            <h5 class="text-center" style="color:blue">No inventory data available within specified criteria.Choose filter and  <b>"generate data"</b></h5>
         </div>
         {% endif %}       
 
@@ -192,10 +190,6 @@
 
 
 
-<div style="height:1200px"></div>
-
-
-
 <script>
 
 
@@ -208,6 +202,7 @@
     const totalSold = [];
     const totalAvailable = [];
     const reorderLevel = [];
+    const productReorderLevel = [];
 
     const totalManufactureIn = [];
     const totalManufactureOut = [];
@@ -221,8 +216,6 @@
 
     const totalScrappedOut = [];
     const totalScrappedIn = [];
-
-
     
     
 
@@ -233,6 +226,7 @@
         totalSold.push(chartData.total_sold[index] || 0);
         totalAvailable.push(chartData.total_available[index] || 0);
         reorderLevel.push(chartData.reorder_level[index] || 0);
+        productReorderLevel.push(chartData.product_reorder_level[index] || 0);
 
         totalManufactureIn.push(chartData.total_manufacture_in[index] || 0);
         totalManufactureOut.push(chartData.total_manufacture_out[index] || 0);
@@ -282,7 +276,7 @@
     ...totalReplacementOut,
     ...totalStock,
     ...reorderLevel
-) * 1.4;
+) * 1.1;
 
     
    
@@ -322,7 +316,16 @@
                 },  
 
                 {
-                    label: 'Reorder Level',
+                    label: 'Product Reorder Level',
+                    data: productReorderLevel,
+                    backgroundColor: 'rgba(255, 50, 36, 1)',  // Pink
+                    borderColor: 'rgba(255, 50, 36, 1)',        // Dark Pink
+                    borderWidth: 1,
+                   
+                },  
+
+                {
+                    label: 'Warehouse Reorder Level',
                     data: reorderLevel,
                     backgroundColor: 'rgba(255, 50, 36, 1)',  // Pink
                     borderColor: 'rgba(255, 50, 36, 1)',        // Dark Pink
@@ -431,26 +434,42 @@
             ]
         },
         options: {
-        responsive: true,
-        scales: {
+            datasets: {
+                    bar: {
+                        barThickness: 'flex', // Adjusts automatically based on dataset size
+                        maxBarThickness: 100,  // Increases max width
+                        categoryPercentage: 1, // Controls spacing between bars
+                        barPercentage: 0.9   // Controls individual bar width
+                    
+
+                    }
+                },
+            responsive: true,   
+                
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'category',
+                    ticks: {
+                        autoSkip: false, // Ensures all labels are displayed
+                        maxRotation: 20, // Reduces label tilt
+                        minRotation: 0,  // Avoids unnecessary rotation
+                    
+                    }
+                },
                 y: {
-                    beginAtZero: true,
-                    max: maxYValue,
-                    min: 0,
+                    beginAtZero: true
                 }
             },
-        plugins: {
-            legend: {
-                position: 'top',
-                labels: {
-                    font: {
-                        size: 14
-                    },
-                    color: '#333' // Ensures label text is readable
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
                 }
             }
         }
-    }
+
+
     });
 
    
@@ -479,6 +498,7 @@ const totalScrappedOutSum = totalScrappedOut.reduce((a, b) => a + b, 0);
 
 const totalAvailableSum = totalAvailable.reduce((a, b) => a + b, 0);
 const reorderLevelSum = reorderLevel.reduce((a, b) => a + b, 0);
+const productReorderLevelSum = productReorderLevel.reduce((a, b) => a + b, 0);
 
 const warehouseDoughnutChart = new Chart(doughnutCtx, {
     type: 'doughnut',
@@ -487,6 +507,7 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
             'Total stock',
             'Available Stock',
             'Reorder level',
+            'Product Reorder level',
             'Total Purchased',
             'Total Sold',
 
@@ -504,8 +525,9 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
         datasets: [{
             data: [
                 totalStockSum,
-                totalAvailableSum,
+                totalAvailableSum,            
                 reorderLevelSum,
+                productReorderLevelSum,
                 totalPurchasedSum,
                 totalSoldSum,
 
@@ -524,6 +546,7 @@ const warehouseDoughnutChart = new Chart(doughnutCtx, {
                 'rgba(76, 175, 80, 0.5)',  // Green
                 'rgba(33, 150, 243, 0.5)', // Blue
                 'rgba(255, 08, 2, 0.5)',  // Teal
+                'rgba(156, 39, 176, 0.5)', // Purple
                 'rgba(255, 87, 34, 0.5)',  // Deep Orange
                 'rgba(255, 193, 7, 0.5)',  // Amber
 

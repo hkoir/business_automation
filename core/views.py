@@ -421,7 +421,7 @@ def manage_salary_structure(request, id=None):
             
         form_instance.save()
         messages.success(request, message_text)     
-        return redirect('core:create_salary_structure' if not id else 'core:update_salary_structure', id=form_instance.id)
+        return redirect('core:create_salary_structure')
   
     datas = SalaryStructure.objects.all().order_by('-created_at')    
     paginator = Paginator(datas, 5)
@@ -1505,6 +1505,9 @@ def apply_leave(request):
 
 @login_required
 def leave_history(request):
+    leave_applications=[]
+    leave_summary=[]
+    employee=None
     try:
         user_profile = request.user.user_profile
         employee = Employee.objects.get(user_profile=user_profile)
@@ -1537,7 +1540,7 @@ def leave_history(request):
 
     except Employee.DoesNotExist:
         messages.error(request, "No employee record found for your profile.")
-        return redirect('core:dashboard')
+       
 
     return render(request, 'core/leave_management/leave_history.html', {
         'leave_applications': leave_applications,  # Pass applications directly

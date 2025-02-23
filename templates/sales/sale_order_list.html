@@ -74,7 +74,7 @@
                                                
                            
                             <td> 
-                                {% if order.is_full_delivered %} 
+                                {% if order.is_fully_delivered %} 
                                 <strong><i class="fas fa-check" style="color:green">Delivered</i></strong>                        
                                  {% else %}                             
                                  <i class="fas fa-hourglass-half" style="color:rgb(235, 10, 29);">In Process</i>
@@ -122,16 +122,20 @@
 
                             </td>
 
-
-                            {% if not order.sale_shipment.first %}
                             <td style="white-space: nowrap;">
+
+                            {% if order.approver_approval_status != 'APPROVED' %}
+                            <strong><i class="fas fa-times" style="color:red" class="btn btn-secondary">Approval Pending</i></strong>
+                            {% elif not order.sale_shipment.first %}
+                          
                                 <a href="{% url 'logistics:create_sale_shipment' order.id %}" class="btn btn-sm btn-primary">Create</a>
-                            </td>
+                          
                             {% else %}
-                            <td>
+                      
                                 <i class="fas fa-check" style="color:green;font-weight: bold;">Created</i>
-                            </td>
-                            {% endif %}                       
+                         
+                            {% endif %}      
+                        </td>                 
                            
 
 
@@ -314,12 +318,6 @@
 
 
 
-
-
-
-
-
-<div style="height:2000px"></div>
 
 
 

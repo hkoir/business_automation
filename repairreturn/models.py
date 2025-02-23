@@ -9,11 +9,11 @@ from sales.models import SaleOrder,SaleOrderItem
 from purchase.models import PurchaseOrder,PurchaseOrderItem
 from django.apps import apps
 import uuid
-
+from accounts.models import CustomUser
 
 
 class ReturnOrRefund(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True, related_name='return_or_refund_user')
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True, blank=True, related_name='return_or_refund_user')
     return_id = models.CharField(max_length=20,null=True, blank=True)
     sale = models.ForeignKey(SaleOrderItem,null=True, blank=True, related_name='sale_returns', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE,null=True,blank=True)
@@ -38,7 +38,7 @@ class ReturnOrRefund(models.Model):
    
     quantity_refund = models.PositiveIntegerField(null=True, blank=True)
     requested_date = models.DateTimeField(auto_now_add=True,null=True)
-    processed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    processed_by = models.ForeignKey(CustomUser, null=True, blank=True, on_delete=models.SET_NULL)
     processed_date = models.DateTimeField(null=True, blank=True)
     progress_by_customer = models.FloatField(default=0,null=True, blank=True)  
     progress_by_user = models.FloatField(default=0,null=True, blank=True)  
@@ -66,7 +66,7 @@ class ReturnOrRefund(models.Model):
 
       
 class FaultyProduct(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True, blank=True,related_name='user_faulty_product')
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True, blank=True,related_name='user_faulty_product')
     return_request = models.ForeignKey(ReturnOrRefund, on_delete=models.CASCADE, related_name='faulty_products', null=True, blank=True,)
     sale = models.ForeignKey(SaleOrderItem, on_delete=models.CASCADE, related_name='faulty_sales')   
     warehouse = models.ForeignKey(Warehouse, related_name='return_warehouses', on_delete=models.CASCADE,null=True,blank=True)
@@ -88,7 +88,7 @@ class FaultyProduct(models.Model):
     return_status = models.BooleanField(default=False,null=True, blank=True,) 
     repair_quantity = models.PositiveIntegerField(null=True, blank=True)
     return_quantity = models.PositiveIntegerField(null=True, blank=True)
-    inspected_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    inspected_by = models.ForeignKey(CustomUser, null=True, blank=True, on_delete=models.SET_NULL)
     resolution_date = models.DateTimeField(null=True, blank=True)
     resolution_action = models.CharField(max_length=50, null=True, blank=True)
     customer_feedback = models.TextField(null=True, blank=True)
@@ -117,7 +117,7 @@ class Replacement(models.Model):
     quantity = models.PositiveIntegerField(null=True, blank=True)
     source_inventory = models.ForeignKey('inventory.Inventory',on_delete=models.CASCADE,related_name='replacement_source_inventory',null=True, blank=True,)    
     faulty_product = models.ForeignKey(FaultyProduct, on_delete=models.CASCADE, related_name='faulty_replacement',null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='replacement_users', null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='replacement_users', null=True, blank=True)
     warehouse=models.ForeignKey(Warehouse,on_delete=models.CASCADE,related_name='replacement_warehouse',null=True, blank=True,)
     location=models.ForeignKey(Location,on_delete=models.CASCADE,related_name='replacement_location',null=True, blank=True,)
     replacement_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='replacement_products', null=True, blank=True)  
@@ -208,7 +208,7 @@ class ScrappedOrder(models.Model):
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     remarks=models.TextField(null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scrap_user', null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='scrap_user', null=True, blank=True)
 
     approval_data = models.JSONField(default=dict,null=True,blank=True)
     requester_approval_status = models.CharField(max_length=20, null=True, blank=True)
@@ -232,7 +232,7 @@ class ScrappedOrder(models.Model):
 
 class ScrappedItem(models.Model):
     scrapped_item_id =models.CharField(max_length=30)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scrap_item_user', null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='scrap_item_user', null=True, blank=True)
     scrapped_order = models.ForeignKey(ScrappedOrder,on_delete=models.CASCADE,null=True,blank=True,related_name='scrap_request_items')
     scrapped_product =models.ForeignKey(Product, on_delete=models.CASCADE, related_name='scrapped_product')
     quantity = models.PositiveIntegerField(null=True, blank=True)

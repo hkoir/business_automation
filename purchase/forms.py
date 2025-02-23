@@ -9,13 +9,13 @@ from supplier.models import Supplier
 from purchase.models import PurchaseRequestOrder,PurchaseOrder
 from django.contrib.auth.models import User
 
-
+from accounts.models import CustomUser
 
 
 class AssignRolesForm(forms.Form):
-    requester = forms.ModelChoiceField(queryset=User.objects.all(), label="Requester")
-    reviewer = forms.ModelChoiceField(queryset=User.objects.all(), label="Reviewer")
-    approver = forms.ModelChoiceField(queryset=User.objects.all(), label="Approver")
+    requester = forms.ModelChoiceField(queryset=CustomUser.objects.all(), label="Requester")
+    reviewer = forms.ModelChoiceField(queryset=CustomUser.objects.all(), label="Reviewer")
+    approver = forms.ModelChoiceField(queryset=CustomUser.objects.all(), label="Approver")
 
 
 class PurchaseRequestForm(forms.ModelForm):

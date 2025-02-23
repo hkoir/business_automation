@@ -9,12 +9,13 @@ from django.db.models import Sum,F,ExpressionWrapper,DecimalField
 from inventory.models import Warehouse,Location
 from sales.models import SaleOrderItem,SaleOrder
 from purchase.models import PurchaseOrder,PurchaseOrderItem
+from accounts.models import CustomUser
 
 #######################################################################################################
 
 class PurchaseShipment(models.Model):
     shipment_id = models.CharField(max_length=50,null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_shipment_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_shipment_user')
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE,
         related_name='purchase_shipment')
     carrier = models.CharField(max_length=100)
@@ -122,7 +123,7 @@ class PurchaseDispatchItem(models.Model):
         ('CANCELLED', 'Cancelled'),
     ],
     )  
-    user = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True) 
+    user = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -151,7 +152,7 @@ class PurchaseDispatchItem(models.Model):
 
 class SaleShipment(models.Model):
     shipment_id = models.CharField(max_length=50,null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_shipment_user')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='sale_shipment_user')
     sales_order = models.ForeignKey(SaleOrder, on_delete=models.CASCADE,related_name='sale_shipment')
     carrier = models.CharField(max_length=100)
     tracking_number = models.CharField(max_length=50, unique=True)
@@ -202,8 +203,7 @@ class SaleShipment(models.Model):
         )['total_ordered'] or 0  
         return total_shipped >= total_ordered
         
-
-
+        
     def update_shipment_status(self):    
         dispatch_items = self.sale_shipment_dispatch.all() 
         all_received = dispatch_items.filter(status__in=['RECEIVED','OBI','DELIVERED']).count() == dispatch_items.count()
@@ -261,7 +261,7 @@ class SaleDispatchItem(models.Model):
         ('CANCELLED', 'Cancelled'),
     ],
     )  
-    user = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True) 
+    user = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

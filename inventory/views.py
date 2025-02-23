@@ -204,6 +204,8 @@ def complete_quality_control(request, qc_id):
             update_purchase_order(purchase_order.id)      
             update_shipment_status(purchase_shipment.id)
             update_purchase_request_order(purchase_request_order.id)  
+            purchase_shipment.update_shipment_status()
+
        
             messages.success(request, "Quality control completed and product added to inventory.")
             return redirect('purchase:qc_dashboard')
@@ -324,6 +326,7 @@ def create_transfer(request):
 
     form = TransferProductForm(request.POST or None)
     if request.method == 'POST':
+        form = TransferProductForm(request.POST or None)
         if 'add_to_basket' in request.POST:
             if form.is_valid():
                 product = form.cleaned_data['product']
@@ -353,6 +356,7 @@ def create_transfer(request):
                 messages.success(request, f"Added '{product.name}' to the transfer basket")
                 return redirect('inventory:create_transfer')
             else:
+                print(form.errors)
                 messages.error(request, "Form is invalid. Please check the details and try again.")
 
         elif 'action' in request.POST:
@@ -554,6 +558,8 @@ def inventory_list(request):
     product_name=None
     grouped_data = []
     chart_data = {}     
+    page_obj = None
+    warehouse_json={}
   
 
     form = SummaryReportChartForm(request.GET or None)
@@ -565,14 +571,11 @@ def inventory_list(request):
         warehouse_name = form.cleaned_data.get('warehouse_name')
         product_name = form.cleaned_data.get('product_name')
 
-        products = Product.objects.all()
-        if product_name:
-            products = products.filter(id=product_name.id)
+        # Get all products and warehouses if no filter is applied
+        products = Product.objects.all() if not product_name else Product.objects.filter(id=product_name.id)
+        warehouses = Warehouse.objects.all() if not warehouse_name else Warehouse.objects.filter(id=warehouse_name.id)
 
-        warehouses = Warehouse.objects.all()
-        if warehouse_name:
-            warehouses = warehouses.filter(id=warehouse_name.id)
-
+        # Define date range filtering
         date_filter = {}
         if start_date and end_date:
             date_filter = {'created_at__range': (start_date, end_date)}
@@ -582,9 +585,12 @@ def inventory_list(request):
             date_filter = {'created_at__range': (start_date, end_date)}
 
         stock_results = []
+        data = []
+        grand_total_stock_value = 0  # Ensure this variable is initialized
 
+        # Loop through products to get inventory data
         for product in products:
-            inventories = product.product_inventories.filter(**date_filter)  
+            inventories = product.product_inventories.filter(**date_filter)  # Apply date filter
 
             if warehouse_name:
                 inventories = inventories.filter(warehouse__in=warehouses)
@@ -597,73 +603,77 @@ def inventory_list(request):
                 total_stock_value = total_available * float(product.unit_price)
                 grand_total_stock_value += total_stock_value
 
-                inventory_reorder_level = Inventory.objects.filter(product=product, warehouse=warehouse_name).first()
-                warehouse_reorder_level = inventory_reorder_level.reorder_level if inventory_reorder_level  else 0
-                
-                if product_name:
-                    data.append({
-                        'product': product.name,
-                        'reorder_level':warehouse_reorder_level,
-                        'warehouse': inventory.warehouse,
+                # Get reorder level
+                inventory_reorder_level = Inventory.objects.filter(product=product, warehouse=inventory.warehouse).first()
+                warehouse_reorder_level = inventory_reorder_level.reorder_level if inventory_reorder_level else 0
 
-                        'total_stock': stock_data['total_stock'],
-                        'total_purchase': stock_data['total_purchase'],
-                        'total_sold': stock_data['total_sold'],
+                data.append({
+                    'product': product.name,
+                     'product_reorder_level':product.reorder_level,
+                    'reorder_level': warehouse_reorder_level,
+                    'warehouse': inventory.warehouse,
 
-                        'total_manufacture_in': stock_data['total_manufacture_in'],
-                        'total_manufacture_out': stock_data['total_manufacture_out'],
+                    'total_stock': stock_data['total_stock'],
+                    'total_purchase': stock_data['total_purchase'],
+                    'total_sold': stock_data['total_sold'],
 
-                        'total_existing_in': stock_data['total_existing_in'],
-                        'total_operations_out': stock_data['total_operations_out'],
-                        'total_transfer_out': stock_data['total_transfer_out'],
-                        'total_transfer_in': stock_data['total_transfer_in'],
-                
-                        'total_replacement_out': stock_data['total_replacement_out'],
-                        'total_replacement_in': stock_data['total_replacement_in'], 
-                        'total_scrapped_out': stock_data['total_scrapped_out'],
-                        'total_scrapped_in': stock_data['total_scrapped_in'],                     
-                
-                        'total_available': total_available,            
-                        'total_stock_value': total_stock_value,
-                    })
-        chart_data={}
-        if product_name:  
-            if data:  
-                chart_data = {
-                    'labels': [f"{item['product']} ({item['warehouse'].name})" for item in data],
-                    'total_stock': [item['total_stock'] for item in data],
-                    'reorder_level': [item['reorder_level'] for item in data],
-                    'total_purchase': [item['total_purchase'] for item in data],
-                    'total_sold': [item['total_sold'] for item in data],
-                    'total_manufacture_in': [item['total_manufacture_in'] for item in data],
-                    'total_manufacture_out': [item['total_manufacture_out'] for item in data],
-                    'total_existing_in': [item['total_existing_in'] for item in data],
-                    'total_operations_out': [item['total_operations_out'] for item in data],
-                    'total_transfer_in': [item['total_transfer_in'] for item in data],
-                    'total_transfer_out': [item['total_transfer_out'] for item in data],
-                    'total_replacement_out': [item['total_replacement_out'] for item in data],
-                    'total_replacement_in': [item['total_replacement_in'] for item in data],
-                    'total_scrapped_out': [item['total_scrapped_out'] for item in data],
-                    'total_scrapped_in': [item['total_scrapped_in'] for item in data],
-                    'total_available': [item['total_available'] for item in data],
-                    'total_stock_value': [item['total_stock_value'] for item in data],
-                }
-        else:
-            chart_data = {}
+                    'total_manufacture_in': stock_data['total_manufacture_in'],
+                    'total_manufacture_out': stock_data['total_manufacture_out'],
 
-    warehouse_json = json.dumps(chart_data)
+                    'total_existing_in': stock_data['total_existing_in'],
+                    'total_operations_out': stock_data['total_operations_out'],
+                    'total_transfer_out': stock_data['total_transfer_out'],
+                    'total_transfer_in': stock_data['total_transfer_in'],
 
-    paginator = Paginator(data, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+                    'total_replacement_out': stock_data['total_replacement_out'],
+                    'total_replacement_in': stock_data['total_replacement_in'], 
+                    'total_scrapped_out': stock_data['total_scrapped_out'],
+                    'total_scrapped_in': stock_data['total_scrapped_in'],                     
 
-    grouped_data = []
-    for warehouse, items in groupby(sorted(data, key=lambda x: x['warehouse'].name), key=lambda x: x['warehouse'].name):
-        items_list = list(items)
-        warehouse_total_stock_value = sum(item['total_stock_value'] for item in items_list)
-        grouped_data.append((warehouse, items_list, warehouse_total_stock_value))
+                    'total_available': total_available,            
+                    'total_stock_value': total_stock_value,
+                })
 
-    form=SummaryReportChartForm()
+        # Ensure chart data is generated if there's valid data
+        chart_data = {}
+        if data:
+            chart_data = {
+                'labels': [f"{item['product']} ({item['warehouse'].name})" for item in data],
+                'total_stock': [item['total_stock'] for item in data],
+                'product_reorder_level': [item['product_reorder_level'] for item in data],
+                'reorder_level': [item['reorder_level'] for item in data],
+                'total_purchase': [item['total_purchase'] for item in data],
+                'total_sold': [item['total_sold'] for item in data],
+                'total_manufacture_in': [item['total_manufacture_in'] for item in data],
+                'total_manufacture_out': [item['total_manufacture_out'] for item in data],
+                'total_existing_in': [item['total_existing_in'] for item in data],
+                'total_operations_out': [item['total_operations_out'] for item in data],
+                'total_transfer_in': [item['total_transfer_in'] for item in data],
+                'total_transfer_out': [item['total_transfer_out'] for item in data],
+                'total_replacement_out': [item['total_replacement_out'] for item in data],
+                'total_replacement_in': [item['total_replacement_in'] for item in data],
+                'total_scrapped_out': [item['total_scrapped_out'] for item in data],
+                'total_scrapped_in': [item['total_scrapped_in'] for item in data],
+                'total_available': [item['total_available'] for item in data],
+                'total_stock_value': [item['total_stock_value'] for item in data],
+            }
+
+        warehouse_json = json.dumps(chart_data)
+
+        # Paginate results
+        paginator = Paginator(data, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        # Group data by warehouse
+        grouped_data = []
+        for warehouse, items in groupby(sorted(data, key=lambda x: x['warehouse'].name), key=lambda x: x['warehouse'].name):
+            items_list = list(items)
+            warehouse_total_stock_value = sum(item['total_stock_value'] for item in items_list)
+            grouped_data.append((warehouse, items_list, warehouse_total_stock_value))
+
+        form = SummaryReportChartForm()
+
     context = {
         'grouped_data': grouped_data,
         'product_wise_data': page_obj,

@@ -15,7 +15,7 @@
                 
                 <!-- Card Body -->
                 <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data" class="needs-validation p-4" novalidate>
+                    <form method="POST" action="{% url 'accounts:login' %}" enctype="multipart/form-data" class="needs-validation p-4" novalidate>
                         {% csrf_token %}
                         {{ form.as_p }}
                         <div class="d-grid">
@@ -35,10 +35,8 @@
     </div>
 </div>
 
-
  
-<div style="height:300px"></div>
-    
+
 
 <!-- Bootstrap Modal for displaying Django message -->
 <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">

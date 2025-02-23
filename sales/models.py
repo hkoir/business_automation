@@ -4,17 +4,17 @@ from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
 from django.apps import apps
 from django.db.models import Sum
-
 from customer.models import Customer
 from product.models import Product
-
 from django.db.models import Q
+from accounts.models import CustomUser
+
 
 
 class SaleRequestOrder(models.Model):    
     order_id = models.CharField(max_length=50)
     department = models.CharField(max_length=50,null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     order_date = models.DateField(null=True, blank=True)
     STATUS_CHOICES = [
         ('IN_PROCESS', 'In Process'),
@@ -76,7 +76,7 @@ class SaleRequestOrder(models.Model):
 
 class SaleRequestItem(models.Model):
     request_id = models.CharField(max_length=20,null=True,blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     sale_request_order=models.ForeignKey(SaleRequestOrder,related_name='sale_request_order',on_delete=models.CASCADE,null=True, blank=True)
     product = models.ForeignKey(Product,related_name='sale_request_item', on_delete=models.CASCADE,null=True, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)   
@@ -107,7 +107,7 @@ class SaleOrder(models.Model):
     sale_request_order=models.ForeignKey(SaleRequestOrder,on_delete=models.CASCADE,related_name='sale_request',null=True,blank=True)
     order_id = models.CharField(max_length=150, unique=True, null=True, blank=True)
     customer = models.ForeignKey(Customer, related_name='customer_sale', on_delete=models.CASCADE,null=True, blank=True)
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     order_date = models.DateTimeField(auto_now_add=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     STATUS_CHOICES = [
@@ -162,7 +162,7 @@ class SaleOrder(models.Model):
 
 
     @property
-    def is_full_delivered(self):  
+    def is_fully_delivered(self):  
         total_delivered = self.sale_shipment.all().aggregate(
         total_dispatched=Sum(
             'sale_shipment_dispatch__dispatch_quantity', 
@@ -182,7 +182,7 @@ class SaleOrderItem(models.Model):
     warehouse = models.ForeignKey('inventory.warehouse',on_delete=models.CASCADE,null=True, blank=True)
     location = models.ForeignKey('inventory.location',on_delete=models.CASCADE,null=True, blank=True)
     sale_id = models.CharField(max_length=150, unique=True, null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     sale_order = models.ForeignKey(SaleOrder, related_name='sale_order', on_delete=models.CASCADE)
     sale_request_item = models.ForeignKey(SaleRequestItem, related_name='sale_request_item', on_delete=models.CASCADE,null=True,blank=True)
     product = models.ForeignKey(Product, related_name='product_item', on_delete=models.CASCADE)
@@ -232,7 +232,7 @@ class SaleQualityControl(models.Model):
         related_name='sale_quality_control'
     )
     user = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         null=True,
         blank=True,

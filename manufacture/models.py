@@ -10,11 +10,11 @@ from django.apps import apps
 from product.models import Product,Component,BOM
 
 from core.utils import DEPARTMENT_CHOICES
-
+from accounts.models import CustomUser
 
 
 class MaterialsRequestOrder(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)   
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)   
     order_id = models.CharField(max_length=50,null=True,blank=True)
     department = models.CharField(max_length=50,null=True, blank=True,choices=DEPARTMENT_CHOICES)
    
@@ -72,7 +72,7 @@ class MaterialsRequestOrder(models.Model):
 
 
 class MaterialsRequestItem(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     item_id = models.CharField(max_length=20, unique=True)   
     material_request_order = models.ForeignKey(MaterialsRequestOrder, related_name='material_request_order_for_item', on_delete=models.CASCADE, null=True, blank=True)
     product = models.ForeignKey(Product,on_delete=models.CASCADE,related_name='product_request',null=True,blank=True)
@@ -104,7 +104,7 @@ class MaterialsRequestItem(models.Model):
 class MaterialsDeliveryItem(models.Model):
     materials_request_order = models.ForeignKey(MaterialsRequestOrder, related_name='materials_request_delivery', on_delete=models.CASCADE,null=True, blank=True)
     materials_request_item = models.ForeignKey(MaterialsRequestItem, related_name='materials_request_items', on_delete=models.CASCADE,null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     item_id = models.CharField(max_length=20)
     warehouse = models.ForeignKey('inventory.warehouse', on_delete=models.CASCADE,null=True, blank=True)
     location = models.ForeignKey('inventory.location', on_delete=models.CASCADE, null=True, blank=True)
@@ -142,7 +142,7 @@ class MaterialsDeliveryItem(models.Model):
 
 
 class FinishedGoodsReadyFromProduction(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     goods_id = models.CharField(max_length=20)
     materials_request_order = models.ForeignKey(MaterialsRequestOrder, on_delete=models.CASCADE,null=True,blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -171,7 +171,7 @@ class FinishedGoodsReadyFromProduction(models.Model):
 class ManufactureQualityControl(models.Model):
     finish_goods_from_production = models.ForeignKey(FinishedGoodsReadyFromProduction,
          on_delete=models.CASCADE,related_name='goods_quality')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
     total_quantity = models.PositiveIntegerField(null=True, blank=True)
     good_quantity = models.PositiveIntegerField(null=True, blank=True)
@@ -196,7 +196,7 @@ class ManufactureQualityControl(models.Model):
 
 
 class ReceiveFinishedGoods(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     quality_control=models.ForeignKey(ManufactureQualityControl,on_delete=models.CASCADE,related_name='quality_received')
     receiving_id = models.CharField(max_length=20)      
     product = models.ForeignKey(Product, on_delete=models.CASCADE)  

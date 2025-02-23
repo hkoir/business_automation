@@ -16,11 +16,12 @@ app_name = 'accounts'
 urlpatterns = [
     path('', tenant_expire_check, name='tenant_expire_check'),
     path('home/', views.home, name='home'),
+
     path('login/', views.login_view, name='login'),
-    # path('login_public/', views.login_public, name='login_public'),
-    # path('login_job_seeker/', views.login_job_seeker_view, name='login_job_seeker'),
-    # path('login_customer_support/', views.login_customer_support_view, name='login_customer_support'),
-#     path('logout/', auth_views.LogoutView.as_view(next_page='accounts:logged_out'), name='logout'),
+    path('login_public/', views.login_public, name='login_public'),   
+    path('login_partner_job_seeker/', views.login_partner_job_seeker, name='login_partner_job_seeker'),
+    
+    #path('logout/', auth_views.LogoutView.as_view(next_page='accounts:logged_out'), name='logout'),
     path('logout/', views.logged_out_view, name='logout'),
  
    
@@ -66,9 +67,10 @@ urlpatterns = [
   
    # Custom views
     path('register/', views.register_view, name='register'), 
-    path('register_customer_support/', views.register_customer_support, name='register_customer_support'),  
-    path('register_job_seeker/', views.register_job_seeker, name='register_job_seeker'), 
+    path('register_partner_job_seeker/', views.register_partner_job_seeker, name='register_partner_job_seeker'),
+    # path('register_job_seeker/', views.register_job_seeker, name='register_job_seeker'), 
     path('register_public/', views.register_public, name='register_public'),   
+    path("activate/<slug:uidb64>/<slug:token>)/", views.account_activate, name="activate"),
   
     path('update_profile_picture/', views.update_profile_picture, name='update_profile_picture'),
     path('common_search/', views.common_search, name='common_search'),

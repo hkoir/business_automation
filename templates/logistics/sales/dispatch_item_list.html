@@ -4,7 +4,7 @@
 
 
 
-<div class="container-fluid main-content my-5" style="margin-top: 0px;">
+<div class="container-fluid main-content">
     <div class="row">
         <h4>Dispatch Items for Sale Order: {{ sale_order.order_id }}</h4>
             <div class="col">              
@@ -84,7 +84,13 @@
                                     <td>{{ dispatch_item.dispatch_item.quantity }}</td>
                                     <td>{{ dispatch_item.dispatch_quantity }}</td>
                                     <td>{{ dispatch_item.delivery_date }}</td>                                                           
-                                    <td>{{dispatch_item.sale_quality_control.first.inspection_date|date:"d M Y" }}</td>
+                                    <td>
+                                        {% if dispatch_item.status|item_list:"REACHED,OBI,DELIVERED" %}
+                                            {{ dispatch_item.updated_at|date:"M-d,Y" }}
+                                        {% else %}
+                                            <span style="color:brown;font-weight: bold;">Not delivered yet</span>
+                                        {% endif %}
+                                    </td>
 
                                     
                                     <td>{{ dispatch_item.get_status_display }}</td>   
@@ -93,7 +99,7 @@
                                             {% csrf_token %}
                                             <div class="d-flex align-items-center">
                                                 <select name="new_status" class="form-select me-2" style="width: 60%;">
-                                                    {% if dispatch_item.status == 'READY_FOR-QC' %}
+                                                    {% if dispatch_item.status == 'DISPATCHED' %}
                                                     <option value="IN_PROCESS">In Process</option>
                                                     {% elif dispatch_item.status == 'IN_PROCESS' %}
                                                         <option value="ON_BOARD">On Board</option>
@@ -105,9 +111,7 @@
                                                         <option value="REACHED">Reached</option>   
                                                     {% elif dispatch_item.status == "OBI" %}
                                                         <option value="OBU">OBI</option>                                                                                                     
-                                                    {% elif dispatch_item.status == "CANCELLED" %}
-                                                        <option value="CANCELLED">Cancelled</option>  
-                                                    {% else %}
+                                                   {% else %}
                                                         <option disabled selected>No action needed</option>
                                                     {% endif %}
                                                 </select>
@@ -149,11 +153,6 @@
         </div>
     </div>
 </div>
-
-
-
-<div style="height:2000px"></div>
-
 
 
 

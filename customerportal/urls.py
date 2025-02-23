@@ -7,7 +7,10 @@ app_name = 'customerportal'
 
 
 urlpatterns = [
-    path('', views.customer_landing_page, name='customer_landing_page'),      
+    path('', views.partner_landing_page, name='partner_landing_page'),  
+    path('public_landing_page/', views.public_landing_page, name='public_landing_page'),
+    path('job_landing_page/', views.job_landing_page, name='job_landing_page'),        
+   
     path('create_ticket/',views.create_ticket, name='create_ticket'),
     path('ticket_list/',views.ticket_list, name='ticket_list'),
     path('update_ticket/<int:ticket_id>/',views.update_ticket, name='update_ticket'),
@@ -37,7 +40,7 @@ urlpatterns = [
     path('add_purchase_invoice_attachement/<int:invoice_id>/', views.add_purchase_invoice_attachment, name='add_purchase_invoice_attachment'),
 
 
-    path('job_landing_page/', views.job_landing_page, name='job_landing_page'),   
+   
     path('job_list_candidate_view/', views.job_list_candidate_view, name='job_list_candidate_view'),   
     path('job_application/<int:id>/', views.job_application, name='job_application'),
     path('pre_exams/<int:exam_id>/take/<int:candidate_id>/', views.pre_take_exam, name='pre_take_exam'),
@@ -52,7 +55,7 @@ urlpatterns = [
     path('search_applications/', views.search_applications, name='search_applications'),   
     path('position_details/<int:id>/', views.position_details, name='position_details'), 
 
-     path('public_landing_page/', views.public_landing_page, name='public_landing_page'),     
+       
  
 
 ]

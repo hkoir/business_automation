@@ -1,4 +1,4 @@
-{% extends 'public_portal.html' %}  
+{% extends 'public_portal_base.html' %}  
 
 
 {% load static %}
@@ -141,9 +141,10 @@ ul.custom-arrow-list li {
 
 .live_demo_box:hover {
     transform: translateY(-5px); /* Move box up slightly */
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); /* Subtler shadow */
+    box-shadow: 0 8px 16px rgba(166, 238, 238, 0.15); /* Subtler shadow */
     border-color: #ddd; /* Slightly darker border on hover */
-    background-color: rgba(0, 0, 0, 0.1); /* Semi-transparent black on hover */
+    background-color: rgba(157, 243, 239, 0.5); /* Semi-transparent black on hover */
+    
 }
 
 
@@ -152,10 +153,10 @@ ul.custom-arrow-list li {
 
 </style>
 
-<div class="container-fluid main-content my-5">
+<div class="container-fluid main-content">
     <div class="row">
         
-        <div class="container text-center py-5">
+        <div class="container text-center">
             <h1>Business Process Automation Platform</h1>
             <p>Streamline Your Operations with Smart Integrated Solutions</p>
             <a href="#free_trial" class="btn btn-primary btn-lg">Start Free Trial</a>
@@ -264,7 +265,7 @@ ul.custom-arrow-list li {
                 </div>
             </div>   
             
-            <div class="container-fluid bg-primary">
+            <div class="container-fluid" style=" background-color: #16213e;;">
                 <div class="row">
                 <div class="col-md-4 p-4">
                 <div class="card shadow text-center live_demo_box" style="border-radius: 50%; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center;">
@@ -523,7 +524,7 @@ ul.custom-arrow-list li {
 
 
 
-<div style="height:1200px"></div>
+
 
 
 

@@ -16,11 +16,11 @@ from django.contrib.auth import logout
 from django.conf import settings
 
 
-class TenantSessionMiddleware(MiddlewareMixin):
-    def process_request(self, request):
-        if hasattr(connection, 'schema_name'):
-            schema_name = connection.schema_name
-            request.session.cookie_name = f'sessionid_{schema_name}'
+
+
+
+
+
 
 
 class TenantValidationMiddleware:
@@ -48,10 +48,10 @@ class TenantValidationMiddleware:
         return self.get_response(request)
 
 
+from django.urls import Resolver404
 
-
-class CustomGeneralPurposeMiddleWare:    
-    TENANT_APPS = ['customer','accounts','core','finance','inventory','logistics','manufacture','operations','product','purchase','repairreturn','reporting','sales','supplier','shipment','tasks','transport'] 
+class CustomGeneralPurposeMiddleWare2:    
+    TENANT_APPS = ['customer','core','finance','inventory','logistics','manufacture','operations','product','purchase','repairreturn','reporting','sales','supplier','shipment','tasks','transport'] 
     def __init__(self, get_response):
         self.get_response = get_response
         self.restricted_apps = ['purchase']
@@ -63,52 +63,98 @@ class CustomGeneralPurposeMiddleWare:
             logout(request)
             request.session.flush()
 
-
         tenant = getattr(request, 'tenant', None) 
 
-        if request.user.is_authenticated:     
-            view_name = resolve(request.path_info).app_name       
-            if request.user.groups.filter(name='Customer').exists() and view_name in self.restricted_apps:
-                return HttpResponseForbidden("You are not allowed to access this page.")
-            elif request.user.groups.filter(name='job_seekers').exists() and view_name in self.restricted_apps:
-                return HttpResponseForbidden("You are not allowed to access this page.")
-       
-
-        if tenant.tenant.first():
-            if tenant and tenant.tenant.first().subscription:
-                if tenant and tenant.tenant.first().subscription.is_expired:
-                    messages.error(request, "Your subscription has expired. Please renew to continue.")
-                    return redirect('clients:dashboard') 
-            else:
-                messages.error(request, "No subscription plan")
+        if request.user.is_authenticated:
+            try:
+                view_name = resolve(request.path_info).app_name
+                if request.user.groups.filter(name__in=('partner', 'job_seeker', 'public')).exists() and view_name in self.restricted_apps:
+                    return HttpResponseForbidden("You are not allowed to access this page.")
+            except Resolver404:
+                view_name = None
+        
 
         if request.user.is_authenticated and hasattr(request, 'tenant'):
             current_tenant = request.tenant
             if hasattr(request.user, 'tenant') and request.user.tenant != current_tenant:               
                 messages.error(request, "You are not allowed to log in to this tenant.")
-                return redirect('clients:dashboard') 
-           
-
-        if request.path.startswith('/admin/'):
-            if hasattr(request, 'tenant') and request.tenant.schema_name == get_public_schema_name():   
-                messages.error(request, "You are not authorized to access this page.")              
-                return redirect('clients:dashboard')   
+                return redirect('clients:tenant_expire_check')       
         
-            
-        # if current_schema and any(app in request.path for app in self.TENANT_APPS): 
-        #     messages.warning(request, "You are not authorized to access this page.Please login with your credentials")          
-        #     return redirect('accounts:login')      
-        
-        if tenant:   
-            if tenant.tenant:  
-                tenant_instance = tenant.tenant.first()
-                if tenant_instance and tenant_instance.subscription.status == 'suspended':
-                    messages.error(request, 'Your subscription has expired. Please renew to continue.')
-                    return redirect('clients:apply_for_tenant')
+        if tenant:
+            tenant_instance = tenant.tenant.first()  # Gets the first related Tenant (if any)
+            if tenant_instance:
+                subscription = getattr(tenant_instance, 'subscription', None)
+                if subscription:
+                    if subscription.is_expired:
+                        messages.error(request, "Your subscription has expired. Please renew to continue.")
+                        return redirect('clients:tenant_expire_check')
+                else:
+                    messages.error(request, "No subscription plan found.")
             else:
-                messages.error(request, 'No tenant found for this user.')
-        else:
-            return redirect('clients:dashboard') 
-            # return redirect('clients:apply_for_tenant')  
+                messages.error(request, "No tenant instance found.")
+
+               
 
         return self.get_response(request)
+
+
+
+class CustomGeneralPurposeMiddleWare:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        tenant = getattr(request, 'tenant', None)
+        is_public_tenant = tenant and tenant.schema_name == get_public_schema_name()
+
+        # Allow public schema login without tenant checks
+        if is_public_tenant:
+            return self.get_response(request)
+
+        # Check if tenant user is on their correct tenant domain
+        if request.user.is_authenticated and tenant:
+            user_tenant = getattr(request.user, 'tenant', None)
+            if user_tenant and user_tenant.schema_name != tenant.schema_name:
+                logout(request)
+                messages.error(request, "You are not allowed to log in to this tenant.")
+                return redirect('login')
+
+        return self.get_response(request)
+    
+
+
+
+
+from django.contrib.auth import get_user_model
+from accounts.models import UserProfile  
+User = get_user_model() 
+
+
+
+
+
+class CustomTenantAuthMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        if hasattr(connection, 'schema_name'):
+            schema_name = connection.schema_name
+            request.session.cookie_name = f'sessionid_{schema_name}'
+
+        user = request.user
+        if user.is_authenticated: 
+            if user.is_superuser:
+                return
+
+            try:
+                user_profile = UserProfile.objects.get(user=user)
+                current_tenant = request.tenant
+       
+                if user_profile.tenant != current_tenant:
+                    logout(request)
+                    if user_profile.tenant:
+                        return redirect(f'http://{user_profile.tenant.subdomain}.localhost:8000')
+                 
+                    return redirect('http://localhost:8000')
+
+            except UserProfile.DoesNotExist:           
+                logout(request)
+                return redirect('http://localhost:8000')

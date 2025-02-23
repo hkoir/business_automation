@@ -29,8 +29,8 @@ domain=Domain(domain ='mno.localhost', tenant=tenant,is_primary=True)
 domain.save()
 
 
-python manage.py tenant_command createsuperuser --schema=demo2
-python manage.py tenant_command createsuperuser --schema=mno
+python manage.py tenant_command createsuperuser --schema=public
+python manage.py tenant_command createsuperuser --schema=demo1
 
 
 
@@ -39,9 +39,57 @@ GIT
 git remote add origin https://github.com/your-username/your-repo-name.git
 Push the code to the remote repository:
 
-git branch -M main
-git push -u origin main
+git branch -M main    // This will rename from Master to Main
+git push -u origin main // this will push t
+git config --global http.postBuffer 524288000 increase size to 500MB
 
+
+
+local server
+Easiest: Use lvh.me
+lvh.me is a special domain that always points to 127.0.0.1.
+<a href="http://demo1.lvh.me:8000">demo1 tenant</a>
+
+
+production DNS record setting
+Type: A
+Host: *  (this is the wildcard part)
+Value: Your Server IP Address (e.g., 123.45.67.89)
+TTL: Automatic (or 1 hour)
+
+mginx server setting
+server {
+    listen 80;
+    server_name *.yourapp.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000; # Or whatever port your Django app runs on
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+sudo certbot certonly --manual --preferred-challenges=dns -d "*.yourapp.com" -d "yourapp.com"
+server {
+    listen 443 ssl;
+    server_name *.yourapp.com;
+
+    ssl_certificate /etc/letsencrypt/live/yourapp.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourapp.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+    }
+}
+
+server {
+    listen 80;
+    server_name *.yourapp.com;
+    return 301 https://$host$request_uri;
+}
 
 
 
