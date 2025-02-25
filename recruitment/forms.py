@@ -27,7 +27,7 @@ class JobRequestProcessForm(forms.Form):
         ('APPROVED', 'Approved'),
         ('CANCELLED', 'Cancelled'),
     ]
-    approval_status = forms.ChoiceField(choices=STATUS_CHOICES, widget=forms.Select)
+    status = forms.ChoiceField(choices=STATUS_CHOICES, widget=forms.Select)
 
     remarks = forms.CharField(
         widget=forms.Textarea(
@@ -48,7 +48,7 @@ class JobForm(forms.ModelForm):
         exclude = [
             'is_active','job_code','requester','status','approval_data',
             'requester_approval_status','reviewer_approval_status','approver_approval_status',
-            'Requester_remarks','approver_remarks','reviewer_remarks'
+            'Requester_remarks','Approver_remarks','Reviewer_remarks'
 
             ]
        

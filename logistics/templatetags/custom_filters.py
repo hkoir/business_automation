@@ -110,10 +110,15 @@ def is_image(file_url):
     ext = os.path.splitext(file_url)[1].lower()
     return ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"]
 
+
+
 @register.filter
 def is_pdf(file_url):
+    if not file_url: 
+        return False
     ext = os.path.splitext(file_url)[1].lower()
     return ext == ".pdf"
+
 
 
 @register.filter

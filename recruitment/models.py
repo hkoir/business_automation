@@ -12,7 +12,7 @@ from django.db import models
 
 class Project(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
-    name=models.CharField(max_length=20,null=True,blank=True)
+    name=models.CharField(max_length=200,null=True,blank=True)
     company = models.ForeignKey(Company,on_delete=models.CASCADE,null=True,blank=True)
     description = models.TextField(null=True,blank=True)
     deadline=models.DateField(default=timezone.now)
@@ -55,7 +55,7 @@ class Job(models.Model):
     ]
 
     requester = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='requested_jobs')  # User who submits the request
-    job_code = models.CharField(max_length=30, blank=True, null=True)
+    job_code = models.CharField(max_length=100, blank=True, null=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, related_query_name='project_job')
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True, related_name='job_department')
@@ -71,12 +71,14 @@ class Job(models.Model):
 
     deadline = models.DateField()
  
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED')
-    approval_data = models.JSONField(default=dict,null=True,blank=True)
+    status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='SUBMITTED')
+
+    approval_data = models.JSONField(default=dict,null=True,blank=True)     
+    #approval_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED',null=True, blank=True) 
     
-    requester_approval_status = models.CharField(max_length=20, null=True, blank=True)
-    reviewer_approval_status = models.CharField(max_length=20, null=True, blank=True)
-    approver_approval_status = models.CharField(max_length=20, null=True, blank=True)
+    requester_approval_status = models.CharField(max_length=100, null=True, blank=True)
+    reviewer_approval_status = models.CharField(max_length=100, null=True, blank=True)
+    approver_approval_status = models.CharField(max_length=100, null=True, blank=True)
 
     Requester_remarks=models.TextField(null=True,blank=True)
     Reviewer_remarks=models.TextField(null=True,blank=True)
@@ -92,7 +94,7 @@ class Job(models.Model):
         super().save(*args,*kwargs)
 
     def __str__(self):
-        return f"{self.title} ({self.status})"
+        return f"{self.title}"
 
 
 
@@ -233,19 +235,19 @@ class Candidate(models.Model):
         default='Applied',null=True,blank=True
     )   
  
-    cv_screening_score = models.DecimalField(max_digits=20,decimal_places=2,default=0.0,null=True, blank=True)
-    exam_score = models.DecimalField(max_digits=20,decimal_places=2,default=0.0,null=True, blank=True)
-    interview_score = models.DecimalField(max_digits=20,decimal_places=2,default=0.0,null=True, blank=True)
-    total_score = models.DecimalField(max_digits=20,decimal_places=2,default=0.0,null=True, blank=True)
+    cv_screening_score = models.DecimalField(max_digits=100,decimal_places=2,default=0.0,null=True, blank=True)
+    exam_score = models.DecimalField(max_digits=100,decimal_places=2,default=0.0,null=True, blank=True)
+    interview_score = models.DecimalField(max_digits=100,decimal_places=2,default=0.0,null=True, blank=True)
+    total_score = models.DecimalField(max_digits=100,decimal_places=2,default=0.0,null=True, blank=True)
     
-    cv_screening_status=models.CharField(max_length=30,choices=[('SHORT-LISTED','Short Listed'),('REJECTED','Rejected')],null=True, blank=True)
-    exam_status=models.CharField(max_length=30,choices=[('EXAM-PASS','Exam Pass'),('EXAM-FAIL','Exam Fail')],null=True, blank=True)
-    interview_status=models.CharField(max_length=30,choices=[('INTERVIEW-PASS','Interview Pass'),('INTERVIEW-FAIL','Interview Fail')],null=True, blank=True)
+    cv_screening_status=models.CharField(max_length=100,choices=[('SHORT-LISTED','Short Listed'),('REJECTED','Rejected')],null=True, blank=True)
+    exam_status=models.CharField(max_length=100,choices=[('EXAM-PASS','Exam Pass'),('EXAM-FAIL','Exam Fail')],null=True, blank=True)
+    interview_status=models.CharField(max_length=100,choices=[('INTERVIEW-PASS','Interview Pass'),('INTERVIEW-FAIL','Interview Fail')],null=True, blank=True)
    
 
-    offer_status = models.CharField(max_length=20, choices=[('offered', 'Offered'), ('waitlist', 'Waitlist')],null=True,blank=True)
-    confirmation_status = models.CharField(max_length=20, choices=[('accepted', 'Accepted'), ('declined', 'Declined'),],null=True,blank=True)
-    onboard_status = models.CharField(max_length=20, choices=[('onboard', 'Onboard'),('declined', 'Declined')],null=True,blank=True)
+    offer_status = models.CharField(max_length=100, choices=[('offered', 'Offered'), ('waitlist', 'Waitlist')],null=True,blank=True)
+    confirmation_status = models.CharField(max_length=100, choices=[('accepted', 'Accepted'), ('declined', 'Declined'),],null=True,blank=True)
+    onboard_status = models.CharField(max_length=100, choices=[('onboard', 'Onboard'),('declined', 'Declined')],null=True,blank=True)
     
     confirmation_deadline=models.DateField(null=True,blank=True)
     joining_deadline = models.DateField(null=True,blank=True)
@@ -254,7 +256,7 @@ class Candidate(models.Model):
     
     hiring_status = models.BooleanField(default=False)
    
-    gender = models.CharField(max_length=20,choices=[('male','Male'),('female','Female'),('other','other')],null=True, blank=True)
+    gender = models.CharField(max_length=100,choices=[('male','Male'),('female','Female'),('other','other')],null=True, blank=True)
     age = models.ForeignKey(Age, on_delete=models.CASCADE,null=True, blank=True)
     education = models.ManyToManyField(Education,blank=True)
     subject_of_education = models.ManyToManyField(EducationalSubject,blank=True)
@@ -285,11 +287,7 @@ class Candidate(models.Model):
             if exp.score_card == self.applied_job.score_card
         )
 
-        age_score = sum(
-            age.score
-            for age in self.age.all()
-            if age.score_card == self.applied_job.score_card
-        )
+        age_score = self.age.score
 
         edu_score = sum(
             edu.score
@@ -358,7 +356,7 @@ class Exam(models.Model):
     
 
 class Question(models.Model):
-    name=models.CharField(max_length=30,null=True,blank=True)
+    name=models.CharField(max_length=100,null=True,blank=True)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="questions")
     text = models.TextField()
@@ -412,7 +410,7 @@ class TakeExam(models.Model):
 
 class Panel(models.Model):
      user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
-     name=models.CharField(max_length=20,null=True,blank=True) 
+     name=models.CharField(max_length=200,null=True,blank=True) 
      job = models.ManyToManyField(Job,blank=True,related_name='job_panel')
      exam= models.ManyToManyField(Exam, blank=True,related_name='exam_panel')
      description=models.CharField(max_length=255,null=True,blank=True)   

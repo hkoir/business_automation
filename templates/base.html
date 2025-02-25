@@ -451,16 +451,18 @@ li a {
                             <a class="dropdown-item dropdown-toggle dropdown_caret_color" href="#"><i class="fas fa-users"></i>&nbsp;Recruitment process automation &raquo;</a>
                             
                             <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'recruitment:recruitment_dashboard' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Menu Dashboard</a></li>
                                 <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
-                                <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
+                                
                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_job' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create job request</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recruitment:job_request_list' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Job Request List</a></li>
-                                <li><a class="dropdown-item" href="{% url 'recruitment:recruitment_dashboard' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Menu Dashboard</a></li>
-
-                                <li><a class="dropdown-item" href="{% url 'recruitment:create_common_documents' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create common Documents</a></li>
-                                <li><a class="dropdown-item" href="{% url 'recruitment:create_candidate_documents' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create candidate documents</a></li>
                                 <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
-                                <li><hr class="dropdown-divider"style="background-color:gray;"></li>                           
+
+                       
+                                <li><a class="dropdown-item" href="{% url 'recruitment:create_project' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create Project</a></li>
+                                <li><a class="dropdown-item" href="{% url 'recruitment:create_job_category' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create job category</a></li>
+                                <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
+                      
     
                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_score_card' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create Score card</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_experience' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create experience</a></li>
@@ -475,23 +477,24 @@ li a {
                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_age' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create age marks</a></li>
     
                                 <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
-                                <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
-                                <li><a class="dropdown-item" href="{% url 'recruitment:create_project' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create Project</a></li>
-                                <li><a class="dropdown-item" href="{% url 'recruitment:create_job_category' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create job category</a></li>
+
+                                
                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_job' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create job</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_exam' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create exam</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_questions' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create question</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_panel' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create interview Panel</a></li>
-                                <li><a class="dropdown-item" href="{% url 'recruitment:create_panel_member' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i></a>&nbsp;Create interview panel member</li>
+
+                                <li><a class="dropdown-item" href="{% url 'recruitment:create_panel_member' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Add panel member</a></li>
+
                                 <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
-                                <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
+                              
                            
                                 <li><a class="dropdown-item" href="{% url 'recruitment:job_list' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Job List</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recruitment:job_list_candidate_view' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Job candidate view</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recruitment:job_list_interview_panel_view' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Job interview panel view</a></li>                           
                                 <li><a class="dropdown-item" href="{% url 'recruitment:exam_list' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Exam List</a></li>
                                 <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
-                                <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
+                               
                                 <li><a class="dropdown-item" href="{% url 'recruitment:cv_screening' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;CV Screening</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recruitment:exam_screening' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp; Exam screening</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recruitment:interview_screening' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp; Interview screening</a></li>
@@ -500,7 +503,9 @@ li a {
                                  <li><a class="dropdown-item" href="{% url 'recruitment:grand_summary' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i> &nbsp;Grand summary</a></li>
     
                                  <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
-                                 <li><hr class="dropdown-divider"style="background-color:gray;"></li> 
+                                
+                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_common_documents' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create common Documents</a></li>
+                                 <li><a class="dropdown-item" href="{% url 'recruitment:create_candidate_documents' %}"><i class="fas fa-users"></i><i class="fas fa-pencil-alt"></i>&nbsp;Create candidate documents</a></li>
                                                                   
                             </ul>
                         </li>

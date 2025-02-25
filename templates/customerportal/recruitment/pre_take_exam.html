@@ -103,18 +103,20 @@
         </div>
     
     
-   
-        <!-- Empty Column -->
-        <div class="col-12 col-md-4"></div>
+        <div class="col-12">
+            <div class="container-fluid">
+                <div class="row">
+                     <!-- Empty Column -->
+        <div class="col-12 col-md-3"></div>
         <!-- Candidate Info -->
-        <div class="col-12 col-md-auto">
-            <div class="card shadow-lg" style="background-color: #f9f9f9; border-radius: 15px;">
-                <div class="card-body">
-                    <h5 class="card-title text-center" style="font-weight: bold; color: #007bff;">Candidate Information</h5>
+        <div class="col-12 col-md-6">
+            <div class="card shadow-lg" style="background-color: #f9f9f9; border-radius: 5px">
+                <div class="card-body m-4" style="border-radius: 5px;background-color: aliceblue;">
+                    <h4 class="card-title text-center" style="font-weight: bold; color: #007bff;">Exam Admit Card</h4>
                     <ul class="list-group list-group-flush">
                         <a href="{{ candidate.resume.url }}" target="_blank">
-                            <img src="{{ candidate.resume.url }}" style="width:30px;height:30px;border-radius:50%;">
-                         cv</a>
+                            <img src="{{ candidate.pp_photo.url }}" style="width:50px;height:50px;border-radius:50%;">
+                         Resume</a>
                         
                         <li class="list-group-item"><strong>Candidate Name:</strong> {{ candidate.full_name }}</li>
                         <li class="list-group-item"><strong>Email:</strong> {{ candidate.email }}</li>
@@ -131,8 +133,13 @@
 
 
         <!-- Empty Column -->
-        <div class="col-12 col-md-4"></div>
+        <div class="col-12 col-md-3"></div>
 
+                </div>
+            </div>
+            
+        </div>
+       
 
     </div>
         

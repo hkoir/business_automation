@@ -89,10 +89,10 @@
                         </td>  
 
                         <td>
-                            {% if data.requester_approval_status == 'SUBMITTED' and data.reviewer_approval_status == 'reviewed' and data.approver_approval_status == 'APPROVED' and not data.is_active %}
+                            {% if data.approver_approval_status == 'APPROVED' and not data.is_active %}
                           <a href="{% url 'recruitment:launch_job_by_hiring_manager' data.id %}" class="btn btn-primary">Update and launch</a>
                           {% elif data.is_active %}
-                          <i class="fas fa-check fw-bold text-success"></i>Recruitment started
+                          <i class="fas fa-check fw-bold text-success"></i><span style="color:blue;font-weight: bold;">Recruitment started</span>
                           {% else %}
                           <span class="btn btn-secondary ">Approval Pending</span>
                           {% endif %}

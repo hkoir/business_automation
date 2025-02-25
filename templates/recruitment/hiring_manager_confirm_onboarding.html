@@ -26,10 +26,13 @@
                     <h3 class="text-center fw-bold mb-4">Candidate's info</h3>
                     <h6 class="mb-3">
                         <strong>Candidate:</strong> {{ candidate.full_name}}
-                        <a href="{{ candidate.resume.url }}" target = '_blank'>
+                        {% if candidate.resume.url %}
+                        <a href="{{ candidate.resume.url }}" target = '_blank'>                       
+                        Submitted CV</a>:
+                        {% else %}
                         <img src="{{ candidate.resume.url}}"
                         style="width:40px;height:40px;">
-                        Submitted CV</a>:
+                        {% endif %}
                     <a href="{% url 'recruitment:candidate_details' candidate.id %}">CV Screening Result</a>
                     </h6>
                     <h6 class="mb-3">

@@ -8,22 +8,22 @@
     <h2 class="text-center fw-bold mb-4">Interview Panel</h2>
     <!-- Candidate and Interview Details Card -->
     <div class="row justify-content-center">
-        <div class="col-12 col-md-8">
-            <div class="card shadow-lg border-0 rounded-3" style="background-color: #f9fbfd;">
-                <div class="card-body p-4">
+        <div class="col-12 col-md-auto">
+            <div class="card shadow-lg rounded-2" style="background-color: #f9fbfd;border:2px solid green">
+                <div class="card-body rounded-2 p-4 m-2" style="border:2px solid blue">
                     <h6 class="mb-3">
-                        <strong>Candidate:</strong>{% if score_instance.interview.candidate.pp_photo %}
-                        <img src="{{ score_instance.interview.candidate.pp_photo.url }}" 
-                        style="width:40px;height:40px; border-radius: 50%;">
-                        {% endif %}
-                         {{ score_instance.interview.candidate }}
-                        <a href="{{ score_instance.interview.candidate.resume.url }}" target = '_blank'>
-                        <img src="{{ score_instance.interview.candidate.resume.url}}"
-                        style="width:40px;height:40px;">
+                        <strong>Candidate:</strong>{{ score_instance.interview.candidate }}                                          
+                        {% if score_instance.interview.candidate.pp_photo %}   
+                        <img src="{{ score_instance.interview.candidate.pp_photo.url}}"
+                        style="width:40px;height:40px;border-radius: 50%;">
+                        {% endif %}  
+                        {% if score_instance.interview.candidate.resume %}                 
+                        <a href="{{ score_instance.interview.candidate.resume.url }}" target = '_blank'>                        
                         Submitted CV</a>:
+                        {% endif %}
                     <a href="{% url 'recruitment:candidate_details' score_instance.interview.candidate.id %}">CV Screening Result</a>
                     </h6>
-                    <h46class="mb-3">
+                    <h6 class="mb-3">
                         <strong>Job Title:</strong> {{ score_instance.interview.job }}
                     </h6>
                     <h6 class="mb-3">

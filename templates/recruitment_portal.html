@@ -51,7 +51,7 @@
 html, body {
         background-color: white;
         color: #333333;
-        padding-top: 50px; /* Offset for fixed navbars */
+        padding-top: 20px; /* Offset for fixed navbars */
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
            
@@ -63,12 +63,7 @@ html, body {
         color: #ffffff;
     }
    
-
-
-
-
-    
-
+   
 
 /* Ensure the main dropdown opens on hover */
 .nav-item.dropdown:hover > .dropdown-menu {
@@ -159,7 +154,19 @@ html, body {
             <ul class="navbar-nav">
                 <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="#">About Us</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'customerportal:job_list_candidate_view' %}">Your Job </a></li>
+                
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-cog me-1"></i> Your Jobs
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                        <li class="nav-item"><a class="nav-link" href="{% url 'customerportal:job_list_candidate_view' %}">
+                            <i class="fas fa-tasks"></i>&nbsp;Job List</a></li>
+                    </ul>
+                
+                </li>
+
+
                 <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
                 <!-- Dropdown: User -->
                 <li class="nav-item dropdown">

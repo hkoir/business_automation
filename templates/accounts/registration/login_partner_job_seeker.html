@@ -19,7 +19,7 @@
                         {% csrf_token %}
                         {{ form.as_p }}
                         <div class="d-grid">
-                            <button type="submit"class="btn btn-primary btn-lg w-100" onclick="proceed()">Login</button> 
+                            <button type="submit"class="btn btn-primary btn-lg w-100">Login</button> 
                           
                         </div>
                     </form>
@@ -77,50 +77,5 @@
 
 
 
-<script>
-    function proceed() {       
-        function showLoadingMessage() {
-                if (!document.querySelector('.loader-container')) {
-                    const loaderContainer = document.createElement('div');
-                    loaderContainer.className = 'loader-container';
-                    loaderContainer.innerHTML = `
-                        <div class="loader"></div>
-                        <div class="loading-text">Loading...</div>
-                    `;
-                    document.body.appendChild(loaderContainer);
-                }
-            }    
-
-        function hideLoadingMessage() {
-                const loaderContainer = document.querySelector('.loader-container');
-                if (loaderContainer) {
-                    loaderContainer.remove(); 
-                }
-            }
-    
-        $.ajax({
-            type: 'POST',
-            url: '{% url "accounts:login" %}', 
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            data: {
-                csrfmiddlewaretoken: '{{ csrf_token }}',
-            },
-            beforeSend: function() {  
-                showLoadingMessage(); 
-            },           
-            success: function(response) { 
-                setTimeout(function() {
-                    hideLoadingMessage();               
-                   
-                }, 3000); 
-            },
-            error: function(error) {           
-                console.error(error);
-            }
-        });
-    }
-    </script> 
-    
-  
     
 {% endblock %}

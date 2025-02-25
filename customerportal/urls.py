@@ -55,6 +55,8 @@ urlpatterns = [
     path('search_applications/', views.search_applications, name='search_applications'),   
     path('position_details/<int:id>/', views.position_details, name='position_details'), 
 
+    path('preview_offer_letter/<int:candidate_id>/', views.preview_offer_letter, name='preview_offer_letter'), 
+
        
  
 

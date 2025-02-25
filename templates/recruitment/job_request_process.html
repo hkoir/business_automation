@@ -16,7 +16,7 @@
                     <h4 class="card-title"><strong>Choose action</strong> </h4>
                     <form method="post" enctype="multipart/form-data" action="" id="add_category">
                         {% csrf_token %}
-                        Choose your role {{ form.approval_status }}<br>
+                        Choose your role {{ form.status }}<br>
                         Remarks {{ form.remarks }}
                         <button type="submit" name="add_to_basket" class="btn btn-primary">Submit</button>
                     </form>

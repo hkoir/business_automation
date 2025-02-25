@@ -48,12 +48,14 @@
                             <td class="text-center p-2" style="white-space: nowrap;">{{data.full_name}}</td>
                             <td class="text-center p-2" style="white-space: nowrap;">{{data.applied_job}}</td>
                             <td>
-                                {% if data.resume %}
-                                <a href="{{ data.resume.url }}" target="_blank">
-                                     <img src="{{ data.resume.url }}" style="height:40px;width:40px">
+                                {% if data.resume and data.resume.url %}
+                                <a href="{{ data.resume.url }}" target="_blank" style="text-decoration: None;">
+                                    View CV:
                                 </a>
+                                {% else %}
+                                <img src="{{ data.resume.url }}" style="height:40px;width:40px">
                                 {% endif %}
-                                <a href="{% url 'recruitment:candidate_details' data.id %}">Digital CV</a>
+                                <a href="{% url 'recruitment:candidate_details' data.id %}" style="text-decoration: None;">Digital CV</a>
                             </td>
 
                             <td>
@@ -82,8 +84,10 @@
                             <td>{{ data.get_confirmation_status_display }}</td>
                             <td>{{ data.expected_joining_date }}</td>
                             <td>{{ data.get_onboard_status_display }}</td>
-                                                                              
-                           
+
+                                                            
+                          
+                            
                         </tr>
                         {% empty %}
                         <tr>

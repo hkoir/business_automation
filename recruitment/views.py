@@ -151,7 +151,7 @@ def delete_candidate_documents(request, id):
 from.forms import JobRequestForm
 from.forms import JobRequestProcessForm
 
-
+# requester will submit job request with below form
 @login_required
 def manage_job(request, id=None):  
     instance = get_object_or_404(Job, id=id) if id else None
@@ -160,8 +160,8 @@ def manage_job(request, id=None):
 
     if request.method == 'POST' and form.is_valid():
         form_intance=form.save(commit=False)
-        form_intance.user = request.user
-        form_intance.is_active = True
+        form_intance.requester = request.user
+        form_intance.is_active = False
         form_intance.save()        
         messages.success(request, message_text)
         return redirect('recruitment:create_job')  
@@ -273,16 +273,20 @@ def process_job_requirement(request, id):
     return render(request, 'recruitment/job_request_process.html', {'form': form, 'requirement': requirement})
 
 
-
-def launch_job_by_hiring_manager(request,id):
-    job_instance = get_object_or_404(Job,id=id)
-    form = JobForm(request.POST,request.FILES or None)
-
+def launch_job_by_hiring_manager(request, id):
+    job_instance = get_object_or_404(Job, id=id)    
     if request.method == 'POST':
-        form = JobForm(request.POST,request.FILES or None, instance = job_instance)
+        form = JobForm(request.POST, request.FILES or None, instance=job_instance)        
         if form.is_valid():
             form_instance = form.save(commit=False)
             form_instance.is_active = True
+            form_instance.save()            
+            return redirect('recruitment:job_request_list') 
+        else:
+            print(form.errors)  
+    else:
+        form = JobForm(instance=job_instance)    
+    return render(request, 'recruitment/launch_job.html', {'form': form, 'job_instance': job_instance})
 
 
 
@@ -848,6 +852,11 @@ def job_list_candidate_view(request):
     exam_end_time = None
     current_time = timezone.now()   
 
+    candidate_jobs = Job.objects.filter(
+        id__in=Candidate.objects.filter(candidate=request.user).values_list('applied_job_id', flat=True)
+    ).order_by('-created_at')
+
+
     # if candidate.status != 'Shortlisted':
     #     messages.info(request, "You are not shortlisted for this exam.")
     
@@ -869,7 +878,7 @@ def job_list_candidate_view(request):
 
    
 
-    paginator = Paginator(jobs, 5)
+    paginator = Paginator(candidate_jobs, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render (request,'recruitment/job_list_candidate_view.html',{
@@ -1249,7 +1258,7 @@ def take_exam(request, exam_id, candidate_id):
                 )
 
             TakeExam.objects.filter(candidate=candidate, exam=exam).update(obtained_marks=total_marks)
-            candidate.status = 'EXAM-PASS' if total_marks >= exam.pass_marks else 'EXAM-FAIL'
+            candidate.exam_status = 'EXAM-PASS' if total_marks >= exam.pass_marks else 'EXAM-FAIL'
             candidate.exam_score = total_marks
             candidate.save()  
             exam.is_active = False
@@ -1544,6 +1553,7 @@ def cv_screening(request):
             threshold_score = form.cleaned_data['threshold_score']
             job_title = form.cleaned_data['job_title']
             exam_name = form.cleaned_data['exam']
+            record_created = False
 
             if job_title:
                 jobs = jobs.filter(title__icontains=job_title)
@@ -1553,20 +1563,27 @@ def cv_screening(request):
                         exams = job.job_exam.filter(title__icontains=exam_name)
                     else:
                         exams = job.job_exam.all()
+                    
                     for exam in exams:
                         candidates = job.candidates.all()
                         for candidate in candidates:
                             if candidate.exam_score is not None:
-                                if candidate.cv_screening_score >= threshold_score:                                   
-                                    candidate.cv_screening_status = 'SHORT-LISTED'                                    
-                                else:                                    
-                                    candidate.cv_screening_status = 'REJECTED'                                  
+                                if candidate.cv_screening_score >= threshold_score:
+                                    candidate.cv_screening_status = 'SHORT-LISTED'
+                                else:
+                                    candidate.cv_screening_status = 'REJECTED'
+                                candidate.save()                             
 
-                                candidate.save()
+                                latest_screening = CandidateScreeningHistory.objects.filter(
+                                    candidate=candidate, job=job
+                                ).order_by('-screening_round').first()
 
-                                latest_screening = CandidateScreeningHistory.objects.filter(candidate=candidate, job=job).order_by('-screening_round').first()
+                                if  latest_screening and  latest_screening.threshold_score == threshold_score:
+                                    continue
+
                                 screening_round = (latest_screening.screening_round or 0) + 1 if latest_screening else 1
 
+                                # Create new screening record
                                 CandidateScreeningHistory.objects.create(
                                     candidate=candidate,
                                     status=candidate.cv_screening_status,
@@ -1574,31 +1591,17 @@ def cv_screening(request):
                                     job=job,
                                     exam=exam,
                                     screening_round=screening_round
-                                )
-            else:  
-                form = ShortlistThresholdForm()
+                                     )   
+                                record_created = True
 
-            cv_screening_result = Candidate.objects.all()
-            if job_title:
-                cv_screening_result = cv_screening_result.filter(applied_job__title=job_title)
-
-            total = cv_screening_result.aggregate(
-                candidate_pass=Count('id', filter=Q(cv_screening_status='SHORT-LISTED')),
-                candidate_fail=Count('id', filter=Q(cv_screening_status='REJECTED'))
-            )
-
-            No_of_candidate_pass = total['candidate_pass']
-            No_of_candidate_fail = total['candidate_fail']
-            total_candidates = No_of_candidate_pass + No_of_candidate_fail
-
-            chart_data = {
-                'labels': ['Total Candidates', 'No of Candidate Pass', 'No of Candidate Fail'],
-                'values': [total_candidates, No_of_candidate_pass, No_of_candidate_fail],
-            }
-
-            messages.success(request, "The screening process was completed successfully.")
-    else: 
-        form = ShortlistThresholdForm()
+                if record_created:
+                    messages.success(request, "The screening process was completed successfully.")
+                else:
+                    messages.warning(request, "No new record created. The last threshold score is the same as before.")                                               
+        else:
+            messages.success(request, "Form submission fail.")
+            print(form.errors)
+            form = ShortlistThresholdForm()
 
     if not chart_data:
         cv_screening_result = Candidate.objects.all()
@@ -1664,6 +1667,7 @@ def exam_screening(request):
             threshold_score = form.cleaned_data['threshold_score']
             job_title = form.cleaned_data['job_title']
             exam_name = form.cleaned_data['exam']
+            record_created = True
 
             if job_title:
                 jobs = jobs.filter(title__icontains=job_title)
@@ -1680,11 +1684,11 @@ def exam_screening(request):
                                 if candidate.exam_score >= threshold_score:                                   
                                     candidate.exam_status = 'EXAM-PASS'                                    
                                 else:                                    
-                                    candidate.exam_status = 'EXAM-FAIL'                                  
-
+                                    candidate.exam_status = 'EXAM-FAIL'                                 
                                 candidate.save()
-
                                 latest_screening = ExamScreeningHistory.objects.filter(candidate=candidate, job=job).order_by('-screening_round').first()
+                                if latest_screening and latest_screening.threshold_score == threshold_score:
+                                    continue  #                                
                                 screening_round = (latest_screening.screening_round or 0) + 1 if latest_screening else 1
 
                                 ExamScreeningHistory.objects.create(
@@ -1695,9 +1699,14 @@ def exam_screening(request):
                                     exam=exam,
                                     screening_round=screening_round
                                 )
-            else:  
-                form = ShortlistThresholdForm()
-
+                                record_created = True
+                
+                if record_created:
+                    messages.success(request, "The screening process was completed successfully.")
+                else:
+                    messages.warning(request, "No new record created. The last threshold score is the same as before.")
+                          
+       
             exam_screening_result = Candidate.objects.all()
             if job_title:
                 exam_screening_result = exam_screening_result.filter(applied_job__title=job_title)
@@ -1715,10 +1724,12 @@ def exam_screening(request):
                 'labels': ['Total Candidates', 'No of Candidate Pass', 'No of Candidate Fail'],
                 'values': [total_candidates, No_of_candidate_pass, No_of_candidate_fail],
             }
+        else: 
+            print(form.errors)
+            messages.success(request, "Form submissin fail.")
+            form = ShortlistThresholdForm()
 
-            messages.success(request, "The screening process was completed successfully.")
-    else: 
-        form = ShortlistThresholdForm()
+           
 
     if not chart_data:
         exam_screening_result = Candidate.objects.all()
@@ -1766,6 +1777,7 @@ def exam_screening(request):
 
 
 
+
 def interview_screening(request):
     jobs = Job.objects.all()
     exam_name = None
@@ -1774,7 +1786,8 @@ def interview_screening(request):
     total_candidates = 0
     No_of_candidate_fail = 0
     No_of_candidate_pass = 0
-    threshold_score = 0
+    threshold_score=0
+    page_obj=None
 
     interview_history = InterviewScreeningHistory.objects.all()
 
@@ -1784,6 +1797,7 @@ def interview_screening(request):
             threshold_score = form.cleaned_data['threshold_score']
             job_title = form.cleaned_data['job_title']
             exam_name = form.cleaned_data['exam']
+            record_created = False
 
             if job_title:
                 jobs = jobs.filter(title__icontains=job_title)
@@ -1796,21 +1810,20 @@ def interview_screening(request):
                     for exam in exams:
                         candidates = job.candidates.all()
                         for candidate in candidates:
-                            if candidate.interview_score is not None:                               
-                                if candidate.interview_score >= threshold_score:
-                                    candidate.status = 'SELECTED'
-                                    candidate.interview_status = 'INTERVIEW-PASS'
-                                    candidate.hiring_status = True
-                                else:
-                                    candidate.status = 'WAIT-IN-LIST'
-                                    candidate.interview_status = 'INTERVIEW-FAIL'
-                                    candidate.hiring_status = False
+                            if candidate.interview_score is not None:                                
+                                if candidate.interview_score >= threshold_score:                                   
+                                    candidate.interview_status = 'INTERVIEW-PASS'                                    
+                                else:                                    
+                                    candidate.interview_status = 'INTERVIEW-FAIL'                                  
 
                                 candidate.save()
-                               
+
                                 latest_screening = InterviewScreeningHistory.objects.filter(candidate=candidate, job=job).order_by('-screening_round').first()
+                                if latest_screening and latest_screening.threshold_score == threshold_score:
+                                    continue  #
+                                
                                 screening_round = (latest_screening.screening_round or 0) + 1 if latest_screening else 1
-                            
+
                                 InterviewScreeningHistory.objects.create(
                                     candidate=candidate,
                                     status=candidate.interview_status,
@@ -1819,9 +1832,12 @@ def interview_screening(request):
                                     exam=exam,
                                     screening_round=screening_round
                                 )
-            else: 
-                form = ShortlistThresholdForm()
-
+                                record_created = True
+                if record_created:
+                    messages.success(request, "The screening process was completed successfully.")
+                else:
+                    messages.warning(request, "No new record created. The last threshold score is the same as before.")
+                                          
             interview_screening_result = Candidate.objects.all()
             if job_title:
                 interview_screening_result = interview_screening_result.filter(applied_job__title=job_title)
@@ -1840,44 +1856,43 @@ def interview_screening(request):
                 'values': [total_candidates, No_of_candidate_pass, No_of_candidate_fail],
             }
 
-            messages.success(request, "The screening process was completed successfully.")
+           
+
+            if not chart_data:
+                interview_screening_result = Candidate.objects.all()
+                total = interview_screening_result.aggregate(
+                    candidate_pass=Count('id', filter=Q(interview_status='INTERVIEW-PASS')),
+                    candidate_fail=Count('id', filter=Q(interview_status='INTERVIEW-FAIL'))
+                )
+
+                No_of_candidate_pass = total['candidate_pass']
+                No_of_candidate_fail = total['candidate_fail']
+                total_candidates = No_of_candidate_pass + No_of_candidate_fail
+
+                chart_data = {
+                    'labels': ['Total Candidates', 'No of Candidate Pass', 'No of Candidate Fail'],
+                    'values': [total_candidates, No_of_candidate_pass, No_of_candidate_fail],
+                }
+        
+            candidate_name = request.GET.get('candidate_name', '')
+            number_of_top = request.GET.get('number_of_top', 5)
+            try:
+                number_of_top = int(number_of_top)
+            except ValueError:
+                number_of_top = 5
+
+            interview_history = InterviewScreeningHistory.objects.all().order_by('-screening_round')
+            if candidate_name:
+                interview_history = interview_history.filter(candidate__full_name__icontains=candidate_name)
+        
+            paginator = Paginator(interview_history, 8)
+            page_number = request.GET.get('page')
+            page_obj = paginator.get_page(page_number)
         else:
-            messages.error(request, "Please correct the errors in the form.")
-    else:  
-        form = ShortlistThresholdForm()
+            print(form.errors)
+            messages.error(request, "Form submission failed. Please check your input.")
+            form = ShortlistThresholdForm()    
 
-    # Default values for candidate statistics
-    if not chart_data:
-        interview_screening_result = Candidate.objects.all()
-        total = interview_screening_result.aggregate(
-            candidate_pass=Count('id', filter=Q(interview_status='INTERVIEW-PASS')),
-            candidate_fail=Count('id', filter=Q(interview_status='INTERVIEW-FAIL'))
-        )
-
-        No_of_candidate_pass = total['candidate_pass']
-        No_of_candidate_fail = total['candidate_fail']
-        total_candidates = No_of_candidate_pass + No_of_candidate_fail
-
-        chart_data = {
-            'labels': ['Total Candidates', 'No of Candidate Pass', 'No of Candidate Fail'],
-            'values': [total_candidates, No_of_candidate_pass, No_of_candidate_fail],
-        }
-
-   
-    candidate_name = request.GET.get('candidate_name', '')
-    number_of_top = request.GET.get('number_of_top', 5)
-    try:
-        number_of_top = int(number_of_top)
-    except ValueError:
-        number_of_top = 5
-
-    interview_history = InterviewScreeningHistory.objects.all().order_by('-screening_round')
-    if candidate_name:
-        interview_history = interview_history.filter(candidate__full_name__icontains=candidate_name)
-
-    paginator = Paginator(interview_history, 8)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
     form = ShortlistThresholdForm()
     return render(request, 'recruitment/cv/interview_screening.html', {
         'form': form,
@@ -1892,8 +1907,9 @@ def interview_screening(request):
 
 
 
+
 def selected_candidate(request):
-    candidates = Candidate.objects.none()
+    candidates = Candidate.objects.all()
     job_title=None
     total_selected_candidates=None
     total_candidates=None
@@ -1920,19 +1936,19 @@ def selected_candidate(request):
                 total_confirmed_candidates = candidates.filter(confirmation_status='accepted').count()
                 total_onboard_candidates = candidates.filter(onboard_status='onboard').count()
                                           
-                percentage_selected = (total_selected_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
-                percentage_offer = (total_offer_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
-                percentage_waitlist = (total_waitlist_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
-                percentage_confirmed = (total_confirmed_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
-                percentage_onboard = (total_onboard_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
+                Selected = (total_selected_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
+                Offerred = (total_offer_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
+                Waitlist = (total_waitlist_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
+                Confirmed = (total_confirmed_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
+                Onboarded = (total_onboard_candidates / total_candidates * 100.0) if total_candidates > 0 else 0
                 
                 
                 if candidate_name:
                     candidates = candidates.filter(full_name__icontains=candidate_name)
 
                 chart_data = {
-                    'labels': ['percentage_selected', 'percentage_offer', 'percentage_waitlist','percentage_confirmed','percentage_onboard'],
-                    'values': [percentage_selected, percentage_offer, percentage_waitlist,percentage_confirmed,percentage_onboard],
+                    'labels': ['Selected', 'Offerred', 'Waitlist','Confirmed','Onboarded'],
+                    'values': [Selected, Offerred, Waitlist,Confirmed,Onboarded],
                         }                     
             
             else:
@@ -2007,6 +2023,7 @@ def all_job_candidate_status(request):
     jobs = Job.objects.all()
     job_candidate_status = {}
     total_candidates = 0
+    project = None
 
     form = AllJobForm(request.GET)
     
@@ -2018,6 +2035,7 @@ def all_job_candidate_status(request):
                 jobs = jobs.filter(project__name__icontains=project_name)              
            
             for job in jobs:
+                project = job.project.name
                 candidates = Candidate.objects.filter(applied_job=job)
                 pass_count = candidates.filter(cv_screening_status='SHORT-LISTED').count()
                 fail_count = candidates.filter(cv_screening_status='REJECTED').count()
@@ -2034,10 +2052,106 @@ def all_job_candidate_status(request):
     return render(request, 'recruitment/all_job_candidate_status.html', {
         'job_candidate_status': job_candidate_status,
         'form': form,
-        'total_candidates':total_candidates
+        'total_candidates':total_candidates,
+        'project':project
     })
 
 
+
+def grand_summary(request):
+    form = ProjectReportForm(request.GET or None)
+    project = Project.objects.all()
+    project_name = None
+    project=None
+    job_title = None
+    job_instance=None
+    total_candidates_project=0
+    total_selected_project=0
+    total_offer_letter_project=0
+    total_waitlist_project =0
+    total_confirmation_project=0
+    total_onboard_project=0
+    job_reports = []  
+    candidates =None
+
+    if form.is_valid():
+        project_name = form.cleaned_data.get('project_name', None)
+        job_title = form.cleaned_data.get('job_title', None)
+
+        project_details = get_object_or_404(Project,name__icontains = project_name)
+
+        if project_name:
+            project = get_object_or_404(Project, name=project_name)            
+             
+        jobs = Job.objects.filter(project=project)
+
+        if job_title:
+            jobs = jobs.filter(title=job_title)
+           
+
+        if not jobs.exists():
+            messages.error(request, f"No jobs found for '{job_title}' in project '{project_name}'")
+            return render(request, 'recruitment/grand_summary.html', {'form': form})
+
+    
+        total_candidates_project = Candidate.objects.filter(applied_job__in=jobs).count()
+        total_selected_project = Candidate.objects.filter(applied_job__in=jobs, status='SELECTED').count()
+        total_offer_letter_project = Candidate.objects.filter(applied_job__in=jobs, offer_status='offered').count()
+        total_waitlist_project = Candidate.objects.filter(applied_job__in=jobs, offer_status='waitlist').count()
+        total_confirmation_project = Candidate.objects.filter(applied_job__in=jobs, confirmation_status='accepted').count()
+        total_onboard_project = Candidate.objects.filter(applied_job__in=jobs, onboard_status='onboard').count()
+
+            
+        for job in jobs:
+            candidates =job.candidates.all()
+            job_reports.append({
+                'job_title': job.title,
+                'job_id':job.id,
+                'total_candidates': Candidate.objects.filter(applied_job=job).count(),
+                'total_selected': Candidate.objects.filter(applied_job=job, status='SELECTED').count(),
+                'total_offer_letter': Candidate.objects.filter(applied_job=job, offer_status='offered').count(),
+                'total_waitlist': Candidate.objects.filter(applied_job=job, offer_status='waitlist').count(),
+                'total_confirmation': Candidate.objects.filter(applied_job=job, confirmation_status='accepted').count(),
+                'total_onboard': Candidate.objects.filter(applied_job=job, onboard_status='onboard').count(),
+            })
+
+        pie_labels = ["Selected", "Offer Letters", "Waitlisted", "Confirmed", "Onboarded"]
+        pie_data = [
+            total_selected_project,
+            total_offer_letter_project,
+            total_waitlist_project,
+            total_confirmation_project,
+            total_onboard_project
+        ]
+
+        pie_chart_data = {
+            'labels': pie_labels,
+            'data': pie_data
+        }
+
+        return render(request, 'recruitment/grand_summary.html',  {
+            'form': form,
+            'project_name': project_name,
+            'total_candidates_project': total_candidates_project,
+            'total_selected_project': total_selected_project,
+            'total_offer_letter_project': total_offer_letter_project,
+            'total_waitlist_project': total_waitlist_project,
+            'total_confirmation_project': total_confirmation_project,
+            'total_onboard_project': total_onboard_project,
+            'job_reports': job_reports,
+            'pie_chart_data': json.dumps(pie_chart_data), 
+            'project_name':project_name,
+            'job_title':job_title,
+            'job_instance':job_instance,
+            'project':project,
+            'candidates':candidates,
+            'project_details':project_details
+        })
+    else:
+        form = ProjectReportForm()
+        print(form.errors)
+    form = ProjectReportForm()
+    return render(request, 'recruitment/grand_summary.html', {'form': form})
 
 
 
@@ -2053,74 +2167,82 @@ def generate_offer_letter_pdf(candidate, employee):
     pdf_canvas.setFont("Helvetica", 12)
     current_date = datetime.now().strftime("%Y-%m-%d")
 
-    logo_path = employee.company.logo.path if employee.company.logo else None
+    if employee:
+        logo_path = employee.company.logo.path if employee.company and employee.company.logo else None
 
-    if logo_path:
-        logo_width = 80 
-        logo_height = 80  #
-        pdf_canvas.drawImage(logo_path, margin, y_position + 30, width=logo_width, height=logo_height)  # Adjust position
-   
-   
-    pdf_canvas.setFont("Helvetica-Bold", 14)  
-    y_position -= line_height
-    pdf_canvas.drawString(margin, y_position, employee.company.name)
-    y_position -= line_height
-    pdf_canvas.setFont("Helvetica", 10)
-    pdf_canvas.drawString(margin, y_position, employee.company.company_locations.first().address)
-    y_position -= line_height
-    pdf_canvas.drawString(margin, y_position, f"{employee.company.company_locations.first().phone} | {employee.company.company_locations.first().email}")
-    y_position -= 60  # Extra spacing
 
-    # Offer Letter Title
-    pdf_canvas.setFont("Helvetica-Bold", 12)
-    pdf_canvas.drawString(margin, y_position, f"Offer Letter for {candidate.full_name}")
-    y_position -= 40
-    pdf_canvas.drawString(margin, y_position, f"For the Position: {candidate.applied_job}")
-    y_position -= 40
-    pdf_canvas.drawString(margin, y_position, f"Date: {datetime.now().strftime('%Y-%m-%d')}")
-    y_position -=40
-
-    # Body
-    pdf_canvas.setFont("Helvetica", 11)
-    body_text = f"""
-Dear {candidate.full_name},
-
-We are pleased to offer you the position of {candidate.applied_job.title} at {employee.company.name}.
-We are impressed with your qualifications and believe you will be a valuable addition to our team.
-
-We are offering you a competitive salary, and we look forward to your joining us on {candidate.joining_deadline}.
-
-Your key remuneration is as follows:
-- Basic Salary: {(candidate.applied_job.salary_structure.basic_salary):.2f}
-- House Allowance: {(candidate.applied_job.salary_structure.hra):.2f}
-- Medical Allowance: {(candidate.applied_job.salary_structure.medical_allowance):.2f}
-- Conveyance Allowance: {(candidate.applied_job.salary_structure.conveyance_allowance):.2f}
-- Festival Bonus: {(candidate.applied_job.salary_structure.festival_allowance):.2f}
-- Performance Bonus: {(candidate.applied_job.salary_structure.performance_bonus):.2f}
-- Provident Fund: {(candidate.applied_job.salary_structure.provident_fund):.2f}
-- Professional Tax: {(candidate.applied_job.salary_structure.professional_tax):.2f}
-- Income Tax: {(candidate.applied_job.salary_structure.income_tax):.2f}
-
-Please review the terms and conditions of your employment and feel free to reach out if you have any questions.
-
-Best regards,
-{employee.name}
-{employee.position}
-{employee.company.name}
-"""
-    for line in body_text.strip().split("\n"):
-        pdf_canvas.drawString(margin, y_position, line.strip())
+        if logo_path:
+            logo_width = 80 
+            logo_height = 80  #
+            pdf_canvas.drawImage(logo_path, margin, y_position + 30, width=logo_width, height=logo_height)  # Adjust position
+    
+    
+        pdf_canvas.setFont("Helvetica-Bold", 14)  
         y_position -= line_height
+        pdf_canvas.drawString(margin, y_position, employee.company.name) if employee.company else None
+        y_position -= line_height
+        pdf_canvas.setFont("Helvetica", 10)
+        if employee.company and employee.company.company_locations.exists():
+            company_location = employee.company.company_locations.first()
+            pdf_canvas.drawString(margin, y_position, company_location.address)
+            y_position -= line_height
+            pdf_canvas.drawString(margin, y_position, f"{company_location.phone} | {company_location.email}")
 
-        if y_position < 100:  # New page if necessary
-            pdf_canvas.showPage()
-            pdf_canvas.setFont("Helvetica", 11)
-            y_position = 780
+        y_position -= 60  # Extra spacing
 
-    pdf_canvas.showPage()
-    pdf_canvas.save()
-    buffer.seek(0)
-    return buffer
+        # Offer Letter Title
+        pdf_canvas.setFont("Helvetica-Bold", 12)
+        pdf_canvas.drawString(margin, y_position, f"Offer Letter for {candidate.full_name}")
+        y_position -= 40
+        pdf_canvas.drawString(margin, y_position, f"For the Position: {candidate.applied_job}")
+        y_position -= 40
+        pdf_canvas.drawString(margin, y_position, f"Date: {datetime.now().strftime('%Y-%m-%d')}")
+        y_position -=40
+
+        # Body
+        pdf_canvas.setFont("Helvetica", 11)
+        company_name = employee.company.name if employee.company else "Company Name Not Available"
+        job_title = candidate.applied_job.title if candidate.applied_job else "Job Title Not Available"
+
+        body_text = f"""
+    Dear {candidate.full_name},    
+
+    We are pleased to offer you the position of { job_title} at {company_name}.
+    We are impressed with your qualifications and believe you will be a valuable addition to our team.
+
+    We are offering you a competitive salary, and we look forward to your joining us on {candidate.joining_deadline}.
+
+    Your key remuneration is as follows:
+    - Basic Salary: {(candidate.applied_job.salary_structure.basic_salary):.2f}
+    - House Allowance: {(candidate.applied_job.salary_structure.hra):.2f}
+    - Medical Allowance: {(candidate.applied_job.salary_structure.medical_allowance):.2f}
+    - Conveyance Allowance: {(candidate.applied_job.salary_structure.conveyance_allowance):.2f}
+    - Festival Bonus: {(candidate.applied_job.salary_structure.festival_allowance):.2f}
+    - Performance Bonus: {(candidate.applied_job.salary_structure.performance_bonus):.2f}
+    - Provident Fund: {(candidate.applied_job.salary_structure.provident_fund):.2f}
+    - Professional Tax: {(candidate.applied_job.salary_structure.professional_tax):.2f}
+    - Income Tax: {(candidate.applied_job.salary_structure.income_tax):.2f}
+
+    Please review the terms and conditions of your employment and feel free to reach out if you have any questions.
+
+    Best regards,
+    {employee.name}
+    {employee.position}
+    {company_name }
+    """
+        for line in body_text.strip().split("\n"):
+            pdf_canvas.drawString(margin, y_position, line.strip())
+            y_position -= line_height
+
+            if y_position < 100:  # New page if necessary
+                pdf_canvas.showPage()
+                pdf_canvas.setFont("Helvetica", 11)
+                y_position = 780
+
+        pdf_canvas.showPage()
+        pdf_canvas.save()
+        buffer.seek(0)
+        return buffer
 
 
 
@@ -2428,98 +2550,3 @@ def handle_onboard_declines_and_offer_next_candidates(request):
     return redirect('recruitment:selected_candidate')
 
 
-
-def grand_summary(request):
-    form = ProjectReportForm(request.GET or None)
-    project = Project.objects.all()
-    project_name = None
-    project=None
-    job_title = None
-    job_instance=None
-    total_candidates_project=0
-    total_selected_project=0
-    total_offer_letter_project=0
-    total_waitlist_project =0
-    total_confirmation_project=0
-    total_onboard_project=0
-    job_reports = []  
-    candidates =None
-
-    if form.is_valid():
-        project_name = form.cleaned_data.get('project_name', None)
-        job_title = form.cleaned_data.get('job_title', None)
-
-        project_details = get_object_or_404(Project,name__icontains = project_name)
-
-        if project_name:
-            project = get_object_or_404(Project, name=project_name)            
-             
-        jobs = Job.objects.filter(project=project)
-
-        if job_title:
-            jobs = jobs.filter(title=job_title)
-           
-
-        if not jobs.exists():
-            messages.error(request, f"No jobs found for '{job_title}' in project '{project_name}'")
-            return render(request, 'recruitment/grand_summary.html', {'form': form})
-
-    
-        total_candidates_project = Candidate.objects.filter(applied_job__in=jobs).count()
-        total_selected_project = Candidate.objects.filter(applied_job__in=jobs, status='SELECTED').count()
-        total_offer_letter_project = Candidate.objects.filter(applied_job__in=jobs, offer_status='offered').count()
-        total_waitlist_project = Candidate.objects.filter(applied_job__in=jobs, offer_status='waitlist').count()
-        total_confirmation_project = Candidate.objects.filter(applied_job__in=jobs, confirmation_status='accepted').count()
-        total_onboard_project = Candidate.objects.filter(applied_job__in=jobs, onboard_status='onboard').count()
-
-            
-        for job in jobs:
-            candidates =job.candidates.all()
-            job_reports.append({
-                'job_title': job.title,
-                'job_id':job.id,
-                'total_candidates': Candidate.objects.filter(applied_job=job).count(),
-                'total_selected': Candidate.objects.filter(applied_job=job, status='SELECTED').count(),
-                'total_offer_letter': Candidate.objects.filter(applied_job=job, offer_status='offered').count(),
-                'total_waitlist': Candidate.objects.filter(applied_job=job, offer_status='waitlist').count(),
-                'total_confirmation': Candidate.objects.filter(applied_job=job, confirmation_status='accepted').count(),
-                'total_onboard': Candidate.objects.filter(applied_job=job, onboard_status='onboard').count(),
-            })
-
-        pie_labels = ["Selected", "Offer Letters", "Waitlisted", "Confirmed", "Onboarded"]
-        pie_data = [
-            total_selected_project,
-            total_offer_letter_project,
-            total_waitlist_project,
-            total_confirmation_project,
-            total_onboard_project
-        ]
-
-        pie_chart_data = {
-            'labels': pie_labels,
-            'data': pie_data
-        }
-
-        return render(request, 'recruitment/grand_summary.html',  {
-            'form': form,
-            'project_name': project_name,
-            'total_candidates_project': total_candidates_project,
-            'total_selected_project': total_selected_project,
-            'total_offer_letter_project': total_offer_letter_project,
-            'total_waitlist_project': total_waitlist_project,
-            'total_confirmation_project': total_confirmation_project,
-            'total_onboard_project': total_onboard_project,
-            'job_reports': job_reports,
-            'pie_chart_data': json.dumps(pie_chart_data), 
-            'project_name':project_name,
-            'job_title':job_title,
-            'job_instance':job_instance,
-            'project':project,
-            'candidates':candidates,
-            'project_details':project_details
-        })
-    else:
-        form = ProjectReportForm()
-        print(form.errors)
-    form = ProjectReportForm()
-    return render(request, 'recruitment/grand_summary.html', {'form': form})

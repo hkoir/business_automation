@@ -18,12 +18,12 @@ from repairreturn.models import ReturnOrRefund
 from repairreturn.forms import ReturnOrRefundForm,RepairReturnCustomerFeedbackForm
 
 from recruitment.models import Job,Candidate,TakeExam,Exam
-from recruitment.forms import SearchApplicationForm,CandidateForm,TakeExamForm
+from recruitment.forms import SearchApplicationForm,TakeExamForm
 
 from tasks.forms import CustomerUpdateTicketForm,TicketForm
 from tasks.models import TeamMember,PerformanceEvaluation,TaskMessageReadStatus,Ticket,Task
 
-from.forms import QualityControlFormByCustomer
+from.forms import QualityControlFormByCustomer,CandidateForm
 from sales.models import SaleOrder,SaleOrderItem,SaleQualityControl
 
 from.forms import FilterForm,TicketCustomerFeedbackForm
@@ -918,15 +918,24 @@ def repair_return_customer_feedback(request,return_id):
         })
 
 
-
+####################  Job portal ##########################################################
 
 def job_list_candidate_view(request): 
-    jobs = Job.objects.all().order_by('-created_at')
+    
+    jobs = Job.objects.filter(is_active = True).order_by('-created_at')
     candidates = Candidate.objects.all()
     candidate = Candidate.objects.filter(candidate=request.user).first()   
     exam_start_time = None
     exam_end_time = None
+
     current_time = timezone.now() 
+    joining_deadline = candidate.joining_deadline.isoformat() if candidate.joining_deadline else None
+    expected_joining_date = candidate.expected_joining_date.isoformat() if candidate.expected_joining_date else None
+    confirmation_deadline = candidate.confirmation_deadline.isoformat() if candidate.confirmation_deadline else None
+
+    candidate_jobs = Job.objects.filter(
+        id__in=Candidate.objects.filter(candidate=request.user).values_list('applied_job_id', flat=True)
+    ).order_by('-created_at')
 
     applied_jobs = None
 
@@ -962,14 +971,14 @@ def job_list_candidate_view(request):
   
 
     form = SearchApplicationForm() 
-    paginator = Paginator(jobs, 5)
+    paginator = Paginator( candidate_jobs, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render (request,'customerportal/recruitment/job_list_candidate_view.html',{
         'jobs':jobs,
         'page_obj':page_obj,
-         'jobs': jobs,
+        'jobs': jobs,
         'candidates': candidates,
         'candidate': candidate,
         'applied_jobs': applied_jobs, 
@@ -978,6 +987,9 @@ def job_list_candidate_view(request):
         'exam_start_time':  exam_start_time,
         'exam_end_time':  exam_end_time,
         'current_time': localtime(current_time).isoformat(),
+        'joining_deadline': joining_deadline,
+        'expected_joining_date': expected_joining_date,
+        'confirmation_deadline': confirmation_deadline,
       
         })
 
@@ -988,6 +1000,7 @@ def position_details(request,id):
     return render(request,'customerportal/recruitment/position_details.html',{'position_instance':position_instance})
 
 
+from decimal import Decimal
 
 def job_application(request, id):
     job = get_object_or_404(Job, id=id)
@@ -999,9 +1012,10 @@ def job_application(request, id):
             candidate_instance.candidate = request.user  
             candidate_instance.applied_job = job       
             candidate_instance.save()                
-            form.save_m2m()             
+            form.save_m2m()   
+              
 
-            candidate_instance.cv_screening_score = candidate_instance.calculate_cv_screening_score()
+            candidate_instance.cv_screening_score = Decimal(candidate_instance.calculate_cv_screening_score())
             candidate_instance.save(update_fields=['cv_screening_score'])           
 
             messages.success(request, "Your job application has been submitted successfully.")
@@ -1026,8 +1040,8 @@ def pre_take_exam(request, exam_id, candidate_id):
     current_time = timezone.now()
     
     # If the exam is starting now, redirect to the exam page
-    if current_time <= exam.start_time:
-        return redirect('customerportal:take_exam', exam_id=exam.id, candidate_id=candidate.id)
+    # if current_time <= exam.start_time:
+    #     return redirect('customerportal:take_exam', exam_id=exam.id, candidate_id=candidate.id)
     
     return render(request, 'customerportal/recruitment/pre_take_exam.html', {
         'exam': exam,
@@ -1036,6 +1050,8 @@ def pre_take_exam(request, exam_id, candidate_id):
         'exam_end_time': localtime(exam.end_time).isoformat(),
         'current_time': localtime(current_time).isoformat(),
     })
+
+
 
 
 
@@ -1083,7 +1099,7 @@ def take_exam(request, exam_id, candidate_id):
             candidate.status = 'EXAM-PASS' if total_marks >= exam.pass_marks else 'EXAM-FAIL'
             candidate.exam_score = total_marks
             candidate.save()   
-            return redirect(reverse('customer_portal:job_list', kwargs={'exam_id': exam.id, 'candidate_id': candidate.id}))
+            return redirect(reverse('customerportal:pre_take_exam', kwargs={'exam_id': exam.id, 'candidate_id': candidate.id}))
     else:
         form = TakeExamForm(questions)
     return render(request, 'customerportal/recruitment/take_exam.html', {
@@ -1204,6 +1220,138 @@ def congratulations(request, candidate_id):
         "Complete your HR formalities and onboarding process.",
     ]
     return render(request, "customerportal/congratulations.html", {"candidate": candidate, "guidelines": guidelines})
+
+
+
+
+
+
+
+from io import BytesIO
+import base64
+from core.models import Employee
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4,letter
+
+def generate_offer_letter_pdf(candidate, employee):
+    buffer = BytesIO()
+    pdf_canvas = canvas.Canvas(buffer, pagesize=A4)
+
+    margin = 50
+    line_height = 15
+    y_position = 700  
+    pdf_canvas.setFont("Helvetica", 12)
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
+    if employee:
+        logo_path = employee.company.logo.path if employee.company and employee.company.logo else None
+
+
+        if logo_path:
+            logo_width = 80 
+            logo_height = 80  #
+            pdf_canvas.drawImage(logo_path, margin, y_position + 30, width=logo_width, height=logo_height)  # Adjust position
+    
+    
+        pdf_canvas.setFont("Helvetica-Bold", 14)  
+        y_position -= line_height
+        pdf_canvas.drawString(margin, y_position, employee.company.name) if employee.company else None
+        y_position -= line_height
+        pdf_canvas.setFont("Helvetica", 10)
+        if employee.company and employee.company.company_locations.exists():
+            company_location = employee.company.company_locations.first()
+            pdf_canvas.drawString(margin, y_position, company_location.address)
+            y_position -= line_height
+            pdf_canvas.drawString(margin, y_position, f"{company_location.phone} | {company_location.email}")
+
+        y_position -= 60  # Extra spacing
+
+        # Offer Letter Title
+        pdf_canvas.setFont("Helvetica-Bold", 12)
+        pdf_canvas.drawString(margin, y_position, f"Offer Letter for {candidate.full_name}")
+        y_position -= 40
+        pdf_canvas.drawString(margin, y_position, f"For the Position: {candidate.applied_job}")
+        y_position -= 40
+        pdf_canvas.drawString(margin, y_position, f"Date: {datetime.now().strftime('%Y-%m-%d')}")
+        y_position -=40
+
+        # Body
+        pdf_canvas.setFont("Helvetica", 11)
+        company_name = employee.company.name if employee.company else "Company Name Not Available"
+        job_title = candidate.applied_job.title if candidate.applied_job else "Job Title Not Available"
+
+        body_text = f"""
+    Dear {candidate.full_name},    
+
+    We are pleased to offer you the position of { job_title} at {company_name}.
+    We are impressed with your qualifications and believe you will be a valuable addition to our team.
+
+    We are offering you a competitive salary, and we look forward to your joining us on {candidate.joining_deadline}.
+
+    Your key remuneration is as follows:
+    - Basic Salary: {(candidate.applied_job.salary_structure.basic_salary):.2f}
+    - House Allowance: {(candidate.applied_job.salary_structure.hra):.2f}
+    - Medical Allowance: {(candidate.applied_job.salary_structure.medical_allowance):.2f}
+    - Conveyance Allowance: {(candidate.applied_job.salary_structure.conveyance_allowance):.2f}
+    - Festival Bonus: {(candidate.applied_job.salary_structure.festival_allowance):.2f}
+    - Performance Bonus: {(candidate.applied_job.salary_structure.performance_bonus):.2f}
+    - Provident Fund: {(candidate.applied_job.salary_structure.provident_fund):.2f}
+    - Professional Tax: {(candidate.applied_job.salary_structure.professional_tax):.2f}
+    - Income Tax: {(candidate.applied_job.salary_structure.income_tax):.2f}
+
+    Please review the terms and conditions of your employment and feel free to reach out if you have any questions.
+
+    Best regards,
+    {employee.name}
+    {employee.position}
+    {company_name }
+    """
+        for line in body_text.strip().split("\n"):
+            pdf_canvas.drawString(margin, y_position, line.strip())
+            y_position -= line_height
+
+            if y_position < 100:  # New page if necessary
+                pdf_canvas.showPage()
+                pdf_canvas.setFont("Helvetica", 11)
+                y_position = 780
+
+        pdf_canvas.showPage()
+        pdf_canvas.save()
+        buffer.seek(0)
+        return buffer
+
+
+
+
+
+
+@login_required
+def preview_offer_letter(request, candidate_id): 
+    selected_candidates = Candidate.objects.filter(interview_status='INTERVIEW-PASS')
+    candidate = get_object_or_404(Candidate, id=candidate_id)
+    employee = Employee.objects.filter(user_profile__user=request.user).first()
+    
+    if not employee:
+        messages.error(request, 'Employee profile not found.')
+        return redirect('recruitment:selected_candidate') 
+    
+    pdf_buffer = generate_offer_letter_pdf(candidate, employee)
+    pdf_base64 = base64.b64encode(pdf_buffer.getvalue()).decode('utf-8')
+
+    return render(request, "customerportal/recruitment/offer_letter_preview.html", {
+        "candidate": candidate,
+        "pdf_preview": pdf_base64,
+        "selected_candidates": selected_candidates
+    })
+
+
+
+
+
+
+
+
+
 
 
 from recruitment.models import CommonDocument,CandidateDocument

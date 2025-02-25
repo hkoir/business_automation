@@ -4,28 +4,31 @@
 
 {% block content %}
 
-  
+  <style>
+
+
+  </style>
                
 
 <div class="container-fluid main-content">   
-    <div class="row">         
-          
-         <div class="col-12">            
-            <table class="table table-hover">   
-                <div class="container-fluid">
-                    <div class="row">
-                        <form class="d-flex" method="GET" action="">
-                            {% csrf_token %}  
-                       <div class="col-8">                      
-                        {{ form.query }}
-                       </div>
-                       <div class="col-4">
-                        <button type="submit" class="btn btn-primary">Search</button>
-                       </div>
-                    </form>
-                    </div>
-                </div>            
-                    
+    <div class="row">          
+        <form class="d-flex" method="GET" action="">
+            {% csrf_token %}  
+            <div class="col-8">                      
+                {{ form.query }}
+            </div>
+            <div class="col-4">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+        
+        
+
+          {% if page_obj %}
+         <div class="col-12 table-responsive"> 
+
+            <table class="table table-hover">            
+                                                          
                 <thead class="table-dark">
                     
                     <tr>
@@ -57,20 +60,17 @@
                             <td class="text-center p-2" style="white-space: nowrap;">{{data.company.name}}</td>
                             <td class="text-center p-2" style="white-space: nowrap;">{{data.deadline}}</td>  
                                
-                            <td>
-                                {% if data.id in applied_jobs %}
-                                    <span class="text-danger"><i class="fas fa-times"></i> Already Applied</span>
-                                {% elif data.is_active %}
-                                    <a href="{% url 'customerportal:job_application' data.id %}" class="btn btn-primary">Apply Now</a>
-                                {% else %}
-                                    <span class="text-muted"><i class="fas fa-times text-danger fw-bold"></i> Expired</span>
-                                {% endif %}
-                            </td>
-                                                    
+                            <td >
+                                {% if data.candidates.first %}
+                                <span><i class="fas fa-check text-success fw-bold">Applied</i></span>
+                              {% else %}
+                                 <a href="{% url 'recruitment:job_application' data.id %}">Aply now</a>
+                                 {% endif %}                              
+                             </td>       
 
 
                             <td>
-                                {% if data.job_exam.first %}                               
+                                {% if data.job_exam.first and data.candidates.first %}                               
                                         
                                     <a href="{% url 'customerportal:pre_take_exam' data.job_exam.first.id data.candidates.first.id %}">
                                         {{ data.candidates.first.full_name }}, Please join
@@ -84,43 +84,54 @@
                        
                                 <td>
                                     {% if data.candidates.first %}
-                                   <i class="fas fa-user-circle"> {{ data.candidates.first.get_status_display }}</i>
+                                   <i class="fas fa-user-circle text-success fw-bold"> {{ data.candidates.first.get_status_display }}</i>
                                     {% else %}
                                     <span>Unknown</span>
                                     {% endif %}
                                 </td>
 
                                 <td>
-                                    {% if data.candidates.first %}
-
-                                        {% if data.candidates.first.confirmation_status == 'accepted' %}
-                                        <i class="fas fa-check text-success fw-bold">Confirmed</i>
-                                        {% elif data.candidates.first.confirmation_status == 'declined' %}
-                                        <i class="fas fa-times">Declined</i>
-                                        {% elif data.candidates %}
-                                        <a href="{% url 'customerportal:candidate_confirmation' candidate.id %}">Confirmation</a>
+                                    {% with data.candidates.first as candidate %}
+                                        {% if candidate %}
+                                            {% if candidate.confirmation_status == 'accepted' %}
+                                                <i class="fas fa-check text-success fw-bold">Confirmed</i>
+                                            {% elif candidate.confirmation_status == 'declined' %}
+                                                <i class="fas fa-times">Declined</i>
+                                            {% elif confirmation_deadline < current_time %}
+                                                <i class="fas fa-times">Expired</i>
+                                            {% elif confirmation_deadline > current_time %}
+                                                <a href="{% url 'customerportal:candidate_confirmation' candidate.id %}">Confirmation Pending</a>
+                                            {% else %}
+                                                <span>No record</span>
+                                            {% endif %}
                                         {% else %}
-                                        <span>No record</span>
+                                            <span>No record</span>
                                         {% endif %}
-                                    {% else %}
-                                    <span>No crecord</span>
-                                    {% endif %}
+                                    {% endwith %}
                                 </td>
-
+                        
                                 <td>
-                                    {% if data.candidates.first %}
-                                        {% if data.candidates.first.onboard_status == 'onboard' %}
-                                        <i class="fas fa-check">Onboard</i>
-                                        {% elif data.candidates.first.onboard_status == 'declined' %}
-                                        <i class="fas fa-times">Declined</i>
+                                    {% with data.candidates.first as candidate %}
+                                        {% if candidate %}
+                                                {% if candidate.onboard_status == 'onboard' %}
+                                                    <i class="fas fa-check">Onboard</i>
+                                                {% elif candidate.onboard_status == 'declined' %}
+                                                    <i class="fas fa-times">Declined</i>
+                                                {% elif candidate.confirmation_status == 'accepted' %}
+                                                        {% if joining_deadline < current_time and expected_joining_date < current_time %}
+                                                            <i class="fas fa-times">Expired</i>
+                                                        {% else %}
+                                                            <a href="{% url 'customerportal:candidate_joining' candidate.id %}">Onboard Pending</a>
+                                                        {% endif %}                                           
+                                                {% else %}
+                                                    <span>Onboard Pending</span>
+                                                {% endif %}
                                         {% else %}
-                                        <a href="{% url 'customerportal:candidate_joining' candidate.id %}">Join pending</a>
+                                            <span>No record</span>
                                         {% endif %}
-                                    {% else %}
-                                    <span>No record</span>
-                                    {% endif %}
+                                    {% endwith %}
                                 </td>
-
+                                
                                  
                                                    
                            
@@ -153,8 +164,11 @@
                     {% endif %}
                 </span>
             </div>
-        </div>
         
+        {% else %}
+        <span style="color:blue; font-weight: bold;justify-content: center;">Currently there are no jobs available</span>
+        {% endif %}
+         </div>
     </div>
     
 </div>

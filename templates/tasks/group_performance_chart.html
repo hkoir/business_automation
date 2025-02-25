@@ -92,6 +92,12 @@
         allScores = allScores.concat(dataset.data);
     });
     const maxYValue = Math.max(...allScores) * 1.4; 
+
+    chartData.datasets.forEach(dataset => {
+    dataset.tension = 0.5;  // Adjust this value for more or less curve
+    dataset.borderWidth = 2; // Optional: Set border width for better visibility
+        });
+
     
     const chart = new Chart(ctx, {
         type: 'line',

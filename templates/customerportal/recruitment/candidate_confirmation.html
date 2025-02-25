@@ -16,7 +16,7 @@
 </style>
 
 
-<div class="container-fluid my-5">
+<div class="container-fluid">
     <div class="row">
         <div class="col-12 col-md-2"></div>
         <div class="col-12 col-md-8">
@@ -28,10 +28,11 @@
                     <h3 class="mb-0"> Confirmation form</h3>
                 </div> 
 
+                     
                     <h2>Offer Confirmation for {{ candidate.full_name }}</h2>
                     <p>Please confirm whether you accept or decline the job offer.</p>
-                    <p><a href="{% url 'recruitment:preview_offer_letter' candidate.id %}">Offer letter</a></p>
-                    <form method="POST">
+                    <p><a href="{% url 'customerportal:preview_offer_letter' candidate.id %}">Offer letter</a></p>                  
+                    <form method="POST" class="p-4">
                         {% csrf_token %}
                     
                         <label class="radio-label">
@@ -55,16 +56,19 @@
                         </div>
                     
                         <br>
-                        <button type="submit" class="btn btn-success mt-3">Submit</button>
+                        <div class="d-grid">
+                        <button type="submit" class="btn btn-lg btn-success mt-3">Submit</button>
+                    </div>
                     </form>
                 </div>
             </div>
             
-            <a href="{% url 'recruitment:selected_candidate' %}" class="btn btn-secondary mt-3">Back</a>
+            <a href="{% url 'customerportal:job_list_candidate_view' %}" class="btn btn-secondary mt-3">Back</a>
         </div>
         <div class="col-12 col-md-2"></div>
        
             <div class="col-12">
+                {% if candidate %}
                 <h6> <img src="{{ candidate.applied_job.company.logo.url }}" style="width:60px;height:60px"></h6>          
                 <p class="mt-2">
                     <strong>Team HR</strong> <br>
@@ -73,7 +77,10 @@
                     <i class="fas fa-phone"></i>&nbsp; {{ candidate.applied_job.company.phone }} || &nbsp;<i class="fas fa-envelope"></i>&nbsp;{{ candidate.applied_job.company.email }}<br>
                     <i class="fas fa-globe"></i>&nbsp; {{ candidate.applied_job.company.website }}
                 </p>       
-                <h6 class="text-center">Be a proud member of our family</h6>         
+                <h6 class="text-center">Be a proud member of our family</h6>   
+                {% else %}    
+                <span>You don't have any candidature</span>  
+                {% endif %}
             </div>
     </div>
 </div>

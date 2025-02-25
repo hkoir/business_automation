@@ -407,6 +407,7 @@ def logged_out_view(request):
     plans = SubscriptionPlan.objects.all().order_by('duration')
     for plan in plans:
         plan.features_list = plan.features.split(',')
+        
     is_partner_job_seeker = False    
     is_public = False
 
@@ -414,12 +415,7 @@ def logged_out_view(request):
         is_partner_job_seeker = request.user.groups.filter(name__in=('partner','job_seeker')).exists()       
         is_public = request.user.groups.filter(name='public').exists()
        
-    logout(request)
-
-    if is_partner_job_seeker:
-        return render(request, 'accounts/registration/login_partner_job_seeker.html',{'plans':plans})
-    elif is_public:
-        return render(request, 'accounts/registration/login_public.html',{'plans':plans})
+    logout(request)   
    
     return render(request, 'accounts/registration/logged_out.html',{'plans':plans})
 

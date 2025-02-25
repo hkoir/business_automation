@@ -174,8 +174,7 @@ class PurchaseOrder(models.Model):
     Requester_remarks=models.TextField(null=True,blank=True)
     Reviewer_remarks=models.TextField(null=True,blank=True)
     Approver_remarks=models.TextField(null=True,blank=True)
-    
-
+      
     class Meta:
         permissions = [
             ("can_request", "can request"),

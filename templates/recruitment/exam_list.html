@@ -8,7 +8,7 @@
 <div class="container-fluid main-content">
     <div class="row">
        
-        <div class="col-12 col-md-12">
+        <div class="col-12 col-md-12 table-responsive">
             <table class="table table-hover">
                 <thead class="table-dark">
                     <tr>
@@ -71,7 +71,9 @@
                             </td>
 
                             <td>
+                                {% if data.job.candidates.first %}
                                 <a href="{% url 'recruitment:take_exam' data.id data.job.candidates.first.id %}">Start exam</a>
+                                {% endif %}
                             </td>
                             
                             

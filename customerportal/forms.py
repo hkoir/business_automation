@@ -63,3 +63,40 @@ class QualityControlFormByCustomer(forms.ModelForm):
            
 
         }
+
+
+from recruitment.models import Candidate
+
+class CandidateForm(forms.ModelForm):   
+    class Meta:
+        model = Candidate
+        exclude = ['candidate','total_score','cv_screening_score',
+                   'exam_score','interview_score','status','cv_screening_status',
+                   'exam_status','interview_status','hiring_status',
+                   'offer_status','confirmation_status','onboard_status','confirmation_deadline',
+                   'joining_date','expected_joining_date','manager_confirmation_of_joining','joining_deadline'
+                   ]
+        widgets = {                  
+           
+            'language_skill_level': forms.CheckboxSelectMultiple,            
+            'experience': forms.CheckboxSelectMultiple,
+            'certification': forms.CheckboxSelectMultiple,
+            'skills': forms.CheckboxSelectMultiple,
+            'education': forms.CheckboxSelectMultiple,
+            'subject': forms.CheckboxSelectMultiple,
+            'subject_of_education': forms.CheckboxSelectMultiple,
+            'institution_of_education': forms.CheckboxSelectMultiple,
+            
+            
+        }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs) 
+        self.fields['age'].required = False
+        self.fields['education'].required = False
+        self.fields['subject_of_education'].required = False
+        self.fields['institution_of_education'].required = False
+        self.fields['experience'].required = False
+        self.fields['certification'].required = False
+        self.fields['skills'].required = False
+        self.fields['language_skill_level'].required = False
+

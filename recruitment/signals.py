@@ -2,7 +2,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from .models import Candidate
 
-
+from decimal import Decimal
 
 @receiver(pre_save, sender=Candidate)
 def update_total_score(sender, instance, **kwargs):  
@@ -11,4 +11,4 @@ def update_total_score(sender, instance, **kwargs):
     exam_score = instance.exam_score if instance.exam_score is not None else 0
     interview_score = instance.interview_score if instance.interview_score is not None else 0
    
-    instance.total_score = cv_score + exam_score + interview_score 
+    instance.total_score = Decimal(cv_score) + Decimal(exam_score) + Decimal(interview_score)

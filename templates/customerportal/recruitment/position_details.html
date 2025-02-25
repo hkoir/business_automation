@@ -17,7 +17,7 @@
                 <div class="card-body m-4">
                     <h4 class="text-primary">{{ position_instance.name }}</h4>
                     
-                    <p><strong>Employee Level:</strong> {{ position_instance.employee_level }}</p>
+                    <p><strong>Employee Level:</strong> {{ position_instance.employee_position.first.employee_level }}</p>
                     <p><strong>Department:</strong> {{ position_instance.department }}</p>
                     
                     <!-- Job Descriptions -->
