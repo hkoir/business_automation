@@ -39,7 +39,13 @@
                     </div>
                 </div>                    
             </form>                         
-        
+            <form method="GET" action="{% url 'inventory:inventory_list' %}">
+                <label for="valuation_method">Choose Valuation Method:</label>
+                <select name="valuation_method" id="valuation_method" onchange="this.form.submit()">
+                    <option value="FIFO" {% if valuation_method == 'FIFO' %}selected{% endif %}>FIFO</option>
+                    <option value="LIFO" {% if valuation_method == 'LIFO' %}selected{% endif %}>LIFO</option>
+                </select>
+            </form>
         </div>
         <h6 class="text-center">  
                
@@ -80,7 +86,7 @@
                                
                 {% for warehouse, products, warehouse_total_stock_value in grouped_data %}
                 <div class="row mt-4">
-                    <div class="col-12">
+                    <div class="col-12 table-responsive">
                         <h6 style="font-weight: bold; color:blue">Warehouse: {{ warehouse }}</h6>
                         
                         <div>

@@ -1,7 +1,7 @@
 from django import forms
 from inventory.models import Warehouse,Location
 from product.models import Product
-
+from purchase.models import Batch
 
 
 class SummaryReportChartForm(forms.Form):
@@ -24,6 +24,7 @@ class SummaryReportChartForm(forms.Form):
 
     warehouse_name = forms.ModelChoiceField(queryset=Warehouse.objects.all(),required=False)
     product_name = forms.ModelChoiceField(queryset=Product.objects.all(),required=False)
+    batch = forms.ModelChoiceField(queryset=Batch.objects.all(),required=False)
 
 
 

@@ -128,6 +128,42 @@ class PurchaseRequestItem(models.Model):
 
 from django.db.models import Q
 
+
+
+
+import uuid
+from django.utils.timezone import now
+
+
+class Batch(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='batch_user')
+    batch_number = models.CharField(max_length=50, unique=True, editable=False)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    manufacture_date = models.DateField()
+    expiry_date = models.DateField()
+    quantity = models.PositiveIntegerField()
+    remaining_quantity = models.PositiveIntegerField(null=True, blank=True)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs): 
+        if not self.batch_number:
+            timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+            unique_id = str(uuid.uuid4().hex)[:6]  
+            self.batch_number = f"BATCH-{timestamp}-{unique_id}"
+
+        if not self.id:
+            self.remaining_quantity = self.quantity
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.batch_number}-{self.product}'
+
+
+
+
 class PurchaseOrder(models.Model):
     order_id = models.CharField(max_length=20)
     purchase_request_order = models.ForeignKey(PurchaseRequestOrder, 
@@ -218,6 +254,7 @@ class PurchaseOrderItem(models.Model):
     order_item_id = models.ForeignKey(PurchaseRequestItem,on_delete=models.CASCADE,related_name='order_request_item',null=True,blank=True)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_order_item_user')
     purchase_order = models.ForeignKey(PurchaseOrder, related_name='purchase_order_item', on_delete=models.CASCADE)
+    batch = models.ForeignKey(Batch,on_delete=models.CASCADE,related_name='batch_purchase_order_item',null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='purchases', null=True, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)  # Total quantity ordered
     total_price = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)

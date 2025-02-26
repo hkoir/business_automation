@@ -2172,6 +2172,8 @@ def increment_promotion_final_data(request):
     paginator = Paginator(data, 10)  
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    if not page_obj:
+        messages.info(request,'No data found within selected criteria')
 
     form = IncrementPromotionFinalDataForm() 
     return render(request, 'tasks/increment_promotion_final_data.html', {

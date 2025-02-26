@@ -6,12 +6,12 @@ from inventory.models import Warehouse,Location
 from customer.models import Customer
 
 
-
+from purchase.models import Batch
 
 class SaleRequestForm(forms.ModelForm):
     class Meta:
         model = SaleRequestOrder 
-        fields = ['category','product', 'product_type', 'quantity','customer' ]  
+        fields = ['category','product','product_type', 'quantity','customer' ]  
 
     category = forms.ModelChoiceField(
         queryset=Category.objects.all(),
@@ -21,6 +21,12 @@ class SaleRequestForm(forms.ModelForm):
     product = forms.ModelChoiceField(
         queryset=Product.objects.all(),
         label="Product",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    batch = forms.ModelChoiceField(
+        queryset=Batch.objects.all(),
+        label="Batch",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     product_type = forms.ChoiceField(

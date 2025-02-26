@@ -8,7 +8,10 @@ app_name = 'purchase'
 
 urlpatterns = [    
 
-    
+  path('create_batch/', views.manage_batch, name='create_batch'),
+  path('update_batch/<int:id>/', views.manage_batch, name='update_batch'),
+  path('delete_batch/<int:id>/', views.delete_batch, name='delete_batch'),
+  
   path('purchase_dashboard/', views.purchase_dashboard, name='purchase_dashboard'),
   path('create_purchase_request/', views.create_purchase_request, name='create_purchase_request'),
   path('cconfirm_purchase_request/', views.confirm_purchase_request, name='confirm_purchase_request'),

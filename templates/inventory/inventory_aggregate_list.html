@@ -35,7 +35,14 @@
                         </div>
                     </div>
                 </div>                    
-            </form>           
+            </form>   
+            <form method="GET" action="{% url 'inventory:inventory_list' %}">
+                <label for="valuation_method">Choose Valuation Method:</label>
+                <select name="valuation_method" id="valuation_method" onchange="this.form.submit()">
+                    <option value="FIFO" {% if valuation_method == 'FIFO' %}selected{% endif %}>FIFO</option>
+                    <option value="LIFO" {% if valuation_method == 'LIFO' %}selected{% endif %}>LIFO</option>
+                </select>
+            </form>        
           </div>
           <span class="text-center"> 
            
@@ -73,18 +80,13 @@
 
                 </div>
             </div>      
-        </div>
-      
+        </div>      
         
-        <hr style="height:5px">
-
-
-        <div class="col-12">
+          
             <div class="col-12 mt-4">
                 <div class="container-fluid">
-                    <div class="row">
-                        <div class="col"></div>
-                        <div class="col">                           
+                    <div class="row">                      
+                        <div class="col-12 table-responsive">                           
                             <table class="table table-hover">
                                 <thead class="table-dark">                                 
                                        
@@ -145,10 +147,10 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="col"></div>
+                     
                     </div>
                 </div>
-            </div>
+          
         </div>
         {% else %}
         <span class="text-center" style="color:blue;font-weight:bold ;">No record found. Please choose filter</span>

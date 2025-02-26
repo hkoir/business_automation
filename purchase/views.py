@@ -20,8 +20,8 @@ from purchase.models import PurchaseOrder,PurchaseOrderItem,PurchaseRequestOrder
 from core.forms import CommonFilterForm
 from django.core.paginator import Paginator
 from utils import create_notification
-
-
+from.models import Batch
+from.forms import BatchForm
 
 
 @login_required
@@ -29,6 +29,66 @@ def purchase_dashboard(request):
     return render(request,'purchase/purchase_dashboard.html')
 
  
+
+@login_required
+def manage_batch(request, id=None):  
+    instance = get_object_or_404(Batch, id=id) if id else None
+    message_text = "updated successfully!" if id else "added successfully!"  
+    form = BatchForm(request.POST or None, request.FILES or None, instance=instance)
+
+    if request.method == 'POST' and form.is_valid():
+        form_intance=form.save(commit=False)
+        form_intance.user = request.user
+        form_intance.save()        
+        messages.success(request, message_text)
+        return redirect('purchase:create_batch')  
+
+    datas = Batch.objects.all().order_by('-created_at')
+    paginator = Paginator(datas, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'purchase/manage_batch.html', {
+        'form': form,
+        'instance': instance,
+        'datas': datas,
+        'page_obj': page_obj
+    })
+
+
+
+@login_required
+def delete_batch(request, id):
+    instance = get_object_or_404(Batch, id=id)
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, "Deleted successfully!")
+        return redirect('purchase:create_batch')      
+
+    messages.warning(request, "Invalid delete request!")
+    return redirect('purchase:create_batch') 
+
+
+
+from datetime import timedelta
+from inventory.models import InventoryTransaction,Inventory
+
+def calculate_average_usage(product, warehouse=None, days=30):
+    start_date = timezone.now() - timedelta(days=days)
+    filters = {
+        'product': product,
+        'transaction_type': 'OUTBOUND',
+        'created_at__gte': start_date
+    }
+    if warehouse:
+        filters['warehouse'] = warehouse
+    
+    usage = InventoryTransaction.objects.filter(**filters).aggregate(
+        total_usage=Sum('quantity')
+    )['total_usage'] or 0
+
+    return usage / days if usage else 0
+
 
 @login_required
 def create_purchase_request(request):
@@ -43,6 +103,28 @@ def create_purchase_request(request):
                 category = form.cleaned_data['category']
                 product_obj = form.cleaned_data['product']
                 quantity = form.cleaned_data['quantity']
+
+                product_stocks = Inventory.objects.filter(product=product_obj)
+
+                total_available_stock = sum(stock.quantity for stock in product_stocks)
+                product_average_usage = calculate_average_usage(product_obj)  
+                product_required_stock = product_average_usage * product_obj.lead_time  
+
+                if total_available_stock > product_required_stock:
+                    messages.info(request, f'There is enough total stock for {product_obj.name}')
+                    return redirect('purchase:create_purchase_request')
+
+                warehouse_messages = []
+                for stock in product_stocks:
+                    warehouse_avg_usage = calculate_average_usage(product_obj, stock.warehouse)
+                    warehouse_required_stock = warehouse_avg_usage * product_obj.lead_time
+
+                    if stock.quantity > warehouse_required_stock:
+                        warehouse_messages.append(f"{stock.product.name} in {stock.warehouse.name}")
+              
+                if warehouse_messages:
+                    messages.info(request, f'There is enough stock in these warehouses: {", ".join(warehouse_messages)}')
+                    return redirect('purchase:create_purchase_request')
 
                 basket = request.session.get('basket', [])
                 product_in_basket = next((item for item in basket if item['id'] == product_obj.id), None)

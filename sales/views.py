@@ -717,7 +717,7 @@ def qc_dashboard(request, sale_order_id=None):
 
 
 @login_required
-def qc_inspect_item(request, item_id):
+def qc_inspect_item2(request, item_id):
     sale_dispatch_item = get_object_or_404(SaleDispatchItem, id=item_id)
     sale_order = sale_dispatch_item.dispatch_item.sale_order
     sale_request_order = sale_order.sale_request_order
@@ -852,6 +852,152 @@ def qc_inspect_item(request, item_id):
 
 
 
+from purchase.models import Batch
+@login_required
+def qc_inspect_item(request, item_id):
+    sale_dispatch_item = get_object_or_404(SaleDispatchItem, id=item_id)
+    sale_order = sale_dispatch_item.dispatch_item.sale_order
+    sale_request_order = sale_order.sale_request_order
+    shipment = sale_dispatch_item.sale_shipment   
+    sale_order_item = sale_dispatch_item.dispatch_item
+    sale_request_item = sale_order_item.sale_request_item
+    batch = sale_dispatch_item.batch  
+
+    if request.method == 'POST':
+        form = QualityControlForm(request.POST,initial_warehouse=sale_dispatch_item.warehouse,initial_location=sale_dispatch_item.location)
+
+        if form.is_valid():
+            qc_entry = form.save(commit=False)
+            qc_entry.sale_dispatch_item = sale_dispatch_item
+            qc_entry.user = request.user
+            qc_entry.quality_checked_by = 'BY-EMPLOYEE'
+            qc_entry.inspection_date = timezone.now()
+            qc_entry.save()
+
+            sale_dispatch_item.status = 'DISPATCHED' 
+            sale_dispatch_item.save()
+
+            good_quantity = qc_entry.good_quantity
+            warehouse = sale_dispatch_item.warehouse
+            location = sale_dispatch_item.location
+            qty_to_deduct = good_quantity  
+           
+            if InventoryTransaction.objects.filter(
+                sales_order=sale_order,
+                transaction_type='OUTBOUND',
+                product=qc_entry.product
+            ).exists():
+                messages.error(request, "This transaction has already been recorded.")
+                return redirect('sales:qc_dashboard')
+
+            if warehouse and location:
+                try:
+                    with transaction.atomic():                 
+                        if batch.remaining_quantity >= qty_to_deduct:
+                            batch.remaining_quantity -= qty_to_deduct
+                            qty_to_deduct = 0  
+                        else:
+                            qty_to_deduct -= batch.remaining_quantity
+                            batch.remaining_quantity = 0  
+                        batch.save()
+
+                        inventory, created = Inventory.objects.get_or_create(
+                            warehouse=warehouse,
+                            location=location,
+                            product=qc_entry.product,
+                            batch=batch,
+                            defaults={'quantity': 0} 
+                        )
+
+                        if not created:
+                            if inventory.quantity >= good_quantity:
+                                inventory.quantity -= good_quantity
+                                inventory.save()
+                                messages.success(request, "Inventory updated successfully.")
+                            else:
+                                messages.error(request, "Not enough stock in inventory.")
+                                return redirect('sales:qc_dashboard')
+                        else:
+                            messages.warning(request, "Inventory entry created but quantity is zero.")
+
+                        # Record the transaction
+                        inventory_transaction = InventoryTransaction.objects.create(
+                            user=request.user,
+                            warehouse=warehouse,
+                            location=location,
+                            product=qc_entry.product,
+                            batch=batch,
+                            transaction_type='OUTBOUND',
+                            quantity=good_quantity,
+                            sales_order=sale_order
+                        )
+
+                        inventory_transaction.inventory_transaction = inventory
+                        inventory_transaction.save()
+
+                except Inventory.DoesNotExist:
+                    messages.error(request, f"Product {qc_entry.product.name} not found in {warehouse.name} at {location.name}.")
+                    return redirect('sales:qc_dashboard')
+                except ValueError as ve:
+                    messages.error(request, str(ve))
+                    return redirect('sales:qc_dashboard')
+                except Exception as e:
+                    messages.error(request, f"Unexpected error: {e}")
+                    return redirect('sales:qc_dashboard')
+
+            sale_order.status = 'DISPATCHED'
+            sale_order.save()
+
+            sale_order_item.status ='DISPATCHED'
+            sale_order_item.save()
+
+            sale_request_order.status ='DISPATCHED'
+            sale_request_order.save()
+
+            sale_request_item.status = 'DISPATCHED'
+            sale_request_item.save()
+
+            all_items_delivered = sale_order.sale_order.filter(status='DELIVERED').count() == sale_order.sale_order.count()
+            if all_items_delivered:
+                sale_order.status = 'DELIVERED'
+                sale_order.save()
+
+            total_requested_quantity = sale_request_order.sale_request_order.aggregate(Sum('quantity'))['quantity__sum']
+            total_ordered_quantity = SaleOrderItem.objects.filter(
+                sale_request_item__sale_request_order=sale_request_order
+            ).aggregate(total_ordered=Sum('quantity'))['total_ordered']
+
+            if total_ordered_quantity >= total_requested_quantity:
+                sale_request_order.status = 'DELIVERED'
+                sale_request_order.save()
+
+            update_sale_order(sale_order.id)          
+            update_sale_request_order(sale_request_order.id)
+
+            create_notification(request.user, message=f'Sale request order number: {sale_request_order} has been dispatched', notification_type='SALES-NOTIFICATION')
+
+            messages.success(request, "Quality control inspection recorded and inventory updated successfully.")
+            return redirect('sales:qc_dashboard')
+        else:  
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
+    else:
+        form = QualityControlForm(
+            initial={
+                'total_quantity': sale_dispatch_item.dispatch_quantity,
+                'warehouse': sale_dispatch_item.warehouse,
+                'location': sale_dispatch_item.location,
+            },
+            initial_warehouse=sale_dispatch_item.warehouse,
+            initial_location=sale_dispatch_item.location
+        )
+
+    return render(request, 'sales/qc_inspect_item.html', {
+        'form': form,
+        'sale_dispatch_item': sale_dispatch_item
+    })
+
 
 
 def product_sales_report(request):
@@ -860,6 +1006,7 @@ def product_sales_report(request):
     products = set()
     dates = set()
     product_name = None
+    sales_data={}
    
 
     form=SalesReportForm(request.GET or None)
@@ -867,16 +1014,11 @@ def product_sales_report(request):
         start_date = form.cleaned_data['start_date']
         end_date = form.cleaned_data['end_date']
         product_name = form.cleaned_data.get('product_name')
-
         sales_data = SaleOrderItem.objects.all()
-
         if start_date and end_date:
-            sales_data = sales_data.filter(sale_order__order_date__range=(start_date,end_date))
-        
+            sales_data = sales_data.filter(sale_order__order_date__range=(start_date,end_date))        
         if product_name:
             sales_data = sales_data.filter(product=product_name)
-
-
         sales_data = (
             sales_data.annotate(order_date=TruncDate(F('sale_order__order_date')))
             .values('order_date', 'product__name')
@@ -884,31 +1026,22 @@ def product_sales_report(request):
             .order_by('order_date', 'product__name')
         )
 
-
-
         sales_dict = defaultdict(lambda: defaultdict(int))
-
         for sale in sales_data:
             product_name = sale['product__name']
             order_date = sale['order_date'].strftime('%Y-%m-%d')
             total_sold = sale['total_sold']
-
             products.add(product_name)
             dates.add(order_date)
             sales_dict[product_name][order_date] = total_sold
-
         products = sorted(products)
-        dates = sorted(dates)
-
-        
+        dates = sorted(dates)        
         for product in products:
             product_sales = [sales_dict[product].get(date, 0) for date in dates]
             sales_table_data.append({
                 'product': product,
                 'sales': product_sales
             })
-
-
         chart_data = {
             'labels': dates,
             'datasets': []
@@ -920,9 +1053,7 @@ def product_sales_report(request):
                 'backgroundColor': f'rgba({hash(product) % 255}, {hash(product) // 255 % 255}, 150, 0.6)',
                 'borderColor': f'rgba({hash(product) % 255}, {hash(product) // 255 % 255}, 150, 1)',
                 'borderWidth': 2
-            })
-
-       
+            })       
     else:
         print('form is invalid',form.errors)
         form=SalesReportForm()

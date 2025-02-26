@@ -125,18 +125,169 @@ def product_list(request):
 
 
 
+from purchase.models import Batch
+from django.db.models import Sum, F
+from django.http import JsonResponse
+from inventory.models import Inventory
+
+def get_batch_warehouse_data(request):
+    batch_id = request.GET.get('batch_id', '').strip() 
+    if not batch_id.isdigit():
+        return JsonResponse({'error': 'Invalid batch ID'}, status=400)
+    try:
+        warehouses = Inventory.objects.filter(batch__id=batch_id).values(
+            'warehouse__name', 'quantity'
+        )
+        warehouses_list = list(warehouses)     
+        if not warehouses_list:
+            return JsonResponse([], safe=False) 
+        return JsonResponse(warehouses_list, safe=False)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return JsonResponse({'error': 'Server error'}, status=500)
+
+
+def batchwise_product_status(request):
+    product_id = request.GET.get('product') 
+    products = Product.objects.all()  
+    batchs_in_product = Batch.objects.all()
+    batch_data = []
+    batch_price_data=[]
+    total_remaining_stock_value = 0
+    total_purchase_stock_value = 0
+
+    if product_id:
+        batchs_in_product =  batchs_in_product.filter(product_id=product_id)
+
+        selected_product = Product.objects.filter(id=product_id).first()
+        if selected_product:
+            batch_transactions = (
+                InventoryTransaction.objects.filter(batch__product=selected_product)
+                .values('batch__batch_number','batch_id', 'transaction_type',)
+                .annotate(
+                    total_quantity=Sum('quantity'),
+                    remaining_quantity=Sum('batch__remaining_quantity'),
+                    unit_price=F('batch__unit_price')
+                )
+                .order_by('batch__batch_number')
+            )
+            batch_summary = {}           
+
+            for batch in batch_transactions:
+                batch_number = batch['batch__batch_number']
+                batch_id = batch['batch_id']
+                transaction_type = batch['transaction_type']
+                quantity = batch['total_quantity']
+                remaining = batch['remaining_quantity']
+                unit_price = batch['unit_price'] or 0              
+
+                total_remaining_stock_value += remaining * unit_price
+
+                if batch_number not in batch_summary:
+                    batch_summary[batch_number] = {
+                        "inbound": 0,
+                        "outbound": 0,
+                        "manufacture_in": 0,
+                        "manufacture_out": 0,
+                        "replacement_in": 0,
+                        "replacement_out": 0,
+                        "transfer_in": 0,
+                        "transfer_out": 0,
+                        "scrapped_out": 0,
+                        "operations_out": 0,
+                        "remaining": 0
+                    }
+
+                if transaction_type == "INBOUND":
+                    batch_summary[batch_number]["inbound"] = quantity
+                    total_purchase_stock_value += quantity * unit_price
+                elif transaction_type == "OUTBOUND":
+                    batch_summary[batch_number]["outbound"] = quantity
+                elif transaction_type == "MANUFACTURE_IN":
+                    batch_summary[batch_number]["manufacture_in"] = quantity
+                elif transaction_type == "MANUFACTURE_OUT":
+                    batch_summary[batch_number]["manufacture_out"] = quantity
+                elif transaction_type == "REPLACEMENT_OUT":
+                    batch_summary[batch_number]["replacement_out"] = quantity
+                elif transaction_type == "REPLACEMENT_IN":
+                    batch_summary[batch_number]["replacement_in"] = quantity
+                elif transaction_type == "SRAPPED_OUT":
+                    batch_summary[batch_number]["scrapped_out"] = quantity
+                elif transaction_type == "OPERATIONS_OUT":
+                    batch_summary[batch_number]["operations_out"] = quantity
+                elif transaction_type == "TRANSFER_IN":
+                    batch_summary[batch_number]["transfer_in"] = quantity
+                elif transaction_type == "TRANSFER_OUT":
+                    batch_summary[batch_number]["transfer_out"] = quantity
+
+                batch_summary[batch_number]["remaining"] = remaining  # Store remaining quantity
+
+            batch_data = [
+                {
+                    "batch_id":batch_id,
+                    "batch": batch_number,
+                    "inbound": values["inbound"],
+                    "outbound": values["outbound"],
+                    "manufacture_in": values["manufacture_in"],
+                    "manufacture_out": values["manufacture_out"],
+                    "replacement_in": values["replacement_in"],
+                    "replacement_out": values["replacement_out"],
+                    "transfer_in": values["transfer_in"],
+                    "operations_out": values["operations_out"],
+                    "scrapped_out": values["scrapped_out"],
+                    "remaining": values["remaining"]
+                }
+                for batch_number, values in batch_summary.items()
+            ]       
+       
+        batch_price_data = [
+        {
+            "batch_number": batch.batch_number,
+            "unit_price": float(batch.unit_price),
+            "created_at": batch.created_at.strftime('%Y-%m-%d'),
+        }
+        for batch in batchs_in_product
+    ]
+
+    return render(request, 'report/batch_wise_product.html', {
+        'products': products,
+        'batch_data':batch_data,
+        'batch_data_json': json.dumps(batch_data),  
+        'batch_price_data': json.dumps(batch_price_data), 
+        'selected_product_id': product_id,
+        "total_remaining_stock_value": total_remaining_stock_value,
+        "total_purchase_stock_value": total_purchase_stock_value,
+    })
+
+
+
 @login_required
 def product_report(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     warehouses = Warehouse.objects.all()
     grand_total_stock =0
+    valuation_method = request.GET.get(valuation_method='FIFO')
+
+    form = SummaryReportChartForm(request.GET or {'days': 60}) 
+
+    if form.is_valid():
+        batch = form.cleaned_data['batch']
 
     warehouse_data = []
     for warehouse in warehouses:
         stock_data = calculate_stock_value2(product=product, warehouse=warehouse)
 
-        stock_value = stock_data['total_available'] * float(product.unit_price)
+        order_by = "created_at" if valuation_method == "FIFO" else "-created_at"
+        latest_transaction = InventoryTransaction.objects.filter(
+            product=product,
+            warehouse=warehouse,
+            transaction_type='INBOUND'
+        ).order_by(order_by).first()
+        unit_cost = latest_transaction.batch.unit_price if latest_transaction and latest_transaction.batch and latest_transaction.batch.unit_price is not None else 0
+
+        stock_value = stock_data['total_available'] * float( unit_cost)
         grand_total_stock += stock_value
+
         inventory = Inventory.objects.filter(product=product, warehouse=warehouse).first()
         warehouse_reorder_level = inventory.reorder_level if inventory else 0
 

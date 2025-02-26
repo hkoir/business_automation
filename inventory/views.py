@@ -561,7 +561,7 @@ def inventory_list(request):
     page_obj = None
     warehouse_json={}
   
-
+    valuation_method = request.GET.get("valuation_method", "FIFO")
     form = SummaryReportChartForm(request.GET or None)
 
     if form.is_valid():
@@ -571,11 +571,9 @@ def inventory_list(request):
         warehouse_name = form.cleaned_data.get('warehouse_name')
         product_name = form.cleaned_data.get('product_name')
 
-        # Get all products and warehouses if no filter is applied
         products = Product.objects.all() if not product_name else Product.objects.filter(id=product_name.id)
         warehouses = Warehouse.objects.all() if not warehouse_name else Warehouse.objects.filter(id=warehouse_name.id)
-
-        # Define date range filtering
+  
         date_filter = {}
         if start_date and end_date:
             date_filter = {'created_at__range': (start_date, end_date)}
@@ -586,21 +584,30 @@ def inventory_list(request):
 
         stock_results = []
         data = []
-        grand_total_stock_value = 0  # Ensure this variable is initialized
+        grand_total_stock_value = 0 
 
-        # Loop through products to get inventory data
+
         for product in products:
-            inventories = product.product_inventories.filter(**date_filter)  # Apply date filter
+            inventories = product.product_inventories.filter(**date_filter) 
 
             if warehouse_name:
                 inventories = inventories.filter(warehouse__in=warehouses)
 
             for inventory in inventories:
-                stock_data = calculate_stock_value(product, inventory.warehouse)
+                stock_data = calculate_batch_stock_value(product, inventory.warehouse,valuation_method)
                 stock_results.append(stock_data)
 
+                order_by = "created_at" if valuation_method == "FIFO" else "-created_at"
+                latest_transaction = InventoryTransaction.objects.filter(
+                    product=product,
+                    warehouse=warehouse_name,
+                    transaction_type='INBOUND'
+                ).order_by(order_by).first()
+
+                unit_cost = latest_transaction.batch.unit_price if latest_transaction and latest_transaction.batch and latest_transaction.batch.unit_price is not None else 0
+
                 total_available = stock_data['total_available']
-                total_stock_value = total_available * float(product.unit_price)
+                total_stock_value = total_available * float(unit_cost)
                 grand_total_stock_value += total_stock_value
 
                 # Get reorder level
@@ -698,7 +705,7 @@ def inventory_aggregate_list(request):
     chart_data = {}
     product_name=None
     warehouse_name=None
-
+    valuation_method = request.GET.get("valuation_method", "FIFO")
     form = SummaryReportChartForm(request.GET or None)
 
     if form.is_valid():
@@ -735,9 +742,17 @@ def inventory_aggregate_list(request):
             elif days:
                 inventories = inventories.filter(created_at__range=(start_date, end_date))
 
+            order_by = "created_at" if valuation_method == "FIFO" else "-created_at"
+            latest_transaction = InventoryTransaction.objects.filter(
+                    product=product,                    
+                    transaction_type='INBOUND'
+                ).order_by(order_by).first()
+
+            unit_cost = latest_transaction.batch.unit_price if latest_transaction and latest_transaction.batch and latest_transaction.batch.unit_price is not None else 0
+
             stock_data = calculate_stock_value2(product)
             total_available = stock_data['total_available']
-            total_stock_value = total_available * float(product.unit_price)
+            total_stock_value = total_available * float(unit_cost)
             grand_total_stock_value += total_stock_value
 
           
@@ -805,13 +820,17 @@ def inventory_aggregate_list(request):
 
 
 
+from utils import calculate_batch_stock_value
 
-def inventory_executive_sum(request):
+
+
+def inventory_executive_sum2(request):
     products = Product.objects.all()
  
     warehouse_data = {}
     grand_total_stock_value = 0
     chart_data = []  
+    valuation_method = request.GET.get('valuation_method', 'FIFO')
 
     for product in products:
         inventories = product.product_inventories.all()
@@ -819,7 +838,7 @@ def inventory_executive_sum(request):
             stock = calculate_stock_value(product, inventory.warehouse)
             stock_value = float(stock['total_available'] * product.unit_price)
             grand_total_stock_value += stock_value
-
+         
             if inventory.warehouse.name not in warehouse_data:
                 warehouse_data[inventory.warehouse.name] = 0
             warehouse_data[inventory.warehouse.name] += stock_value
@@ -829,6 +848,44 @@ def inventory_executive_sum(request):
             'warehouse': warehouse,
             'stock_value': float(stock_value), 
         })
+
+    chart_data_json = json.dumps(chart_data)
+
+    context = {
+        'chart_data': chart_data,
+        'chart_data_json': chart_data_json,
+        'grand_total_stock_value': grand_total_stock_value,
+        'valuation_method': valuation_method,
+    }
+    return render(request, 'inventory/inventory_executive_sum.html', context)
+
+
+
+
+def inventory_executive_sum(request):
+    products = Product.objects.all()
+    warehouse_data = {}
+    grand_total_stock_value = 0
+    chart_data = []  
+    valuation_method = request.GET.get("valuation_method", "FIFO")
+
+    for product in products:   
+        inventories = product.product_inventories.all()
+
+        for inventory in inventories:
+            stock_data = calculate_batch_stock_value(product, inventory.warehouse,valuation_method)
+            stock_value = stock_data['total_stock_value']
+            grand_total_stock_value += stock_value
+
+            if inventory.warehouse.name not in warehouse_data:
+                warehouse_data[inventory.warehouse.name] = 0
+            warehouse_data[inventory.warehouse.name] += stock_value
+  
+    for warehouse, stock_value in warehouse_data.items():
+        chart_data.append({
+            'warehouse': warehouse,
+            'stock_value': float(stock_value),
+        })   
 
     chart_data_json = json.dumps(chart_data)
 

@@ -234,15 +234,20 @@ class SaleShipment(models.Model):
         return self.shipment_id
 
 
+from purchase.models import Batch
+
 class SaleDispatchItem(models.Model):
     dispatch_id=models.CharField(max_length=20,null=True,blank=True)
     sale_shipment = models.ForeignKey(SaleShipment,on_delete=models.CASCADE,
         related_name='sale_shipment_dispatch',null=True, blank=True
     )
     dispatch_item = models.ForeignKey(SaleOrderItem,on_delete=models.CASCADE,
-        related_name='sale_dispatch_item',null=True, blank=True
-    )    
+        related_name='sale_dispatch_item',null=True, blank=True)    
+
+    batch = models.ForeignKey(Batch,on_delete=models.CASCADE,related_name='batch_sale_dispatch',null=True, blank=True)  
+    unit_selling_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     dispatch_quantity = models.PositiveIntegerField(null=True, blank=True)
+
     warehouse = models.ForeignKey(Warehouse,on_delete=models.CASCADE,related_name='dispatch_warehouse',null=True,blank=True)
     location = models.ForeignKey(Location,on_delete=models.CASCADE,related_name='dispatch_location',null=True,blank=True)
     dispatch_date = models.DateField(null=True, blank=True) 

@@ -10,6 +10,19 @@ from purchase.models import PurchaseRequestOrder,PurchaseOrder
 from django.contrib.auth.models import User
 
 from accounts.models import CustomUser
+from.models import Batch
+
+
+class BatchForm(forms.ModelForm):
+    class Meta:
+        model = Batch
+        exclude=['user','remaining_quantity']
+
+        widgets={
+            'manufacture_date':forms.DateInput(attrs={'type':'date'}),
+            'expiry_date':forms.DateInput(attrs={'type':'date'})
+        }
+
 
 
 class AssignRolesForm(forms.Form):

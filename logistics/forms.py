@@ -70,37 +70,50 @@ class PurchaseDispatchItemForm(forms.ModelForm):
             'style': 'max-width: 200px; word-wrap: break-word; overflow: hidden; text-overflow: ellipsis;'
         })
 
-
+from purchase.models import Batch
+from django import forms
+from .models import SaleDispatchItem, SaleShipment, SaleOrderItem, Batch
 
 class SaleDispatchItemForm(forms.ModelForm):
-    dispatch_date=forms.DateField(
-        widget=forms.DateInput(attrs={'type':'date'}),
-        required=False
-    )
-    delivery_date=forms.DateField(
-        widget=forms.DateInput(attrs={'type':'date'}),
-        required=False
+    DISPATCH_STRATEGY_CHOICES = [
+        ('FIFO', 'First In, First Out'),
+        ('LIFO', 'Last In, First Out'),
+    ]
+    dispatch_strategy = forms.ChoiceField(
+        choices=DISPATCH_STRATEGY_CHOICES, 
+        required=True,
+        widget=forms.Select(attrs={'style': 'max-width: 200px;'})
     )
 
     class Meta:
         model = SaleDispatchItem
-        exclude=['dispatch_id','user']
+        exclude = ['dispatch_id', 'user']
+        widgets = {
+            'dispatch_date': forms.DateInput(attrs={'type': 'date'}),
+            'delivery_date': forms.DateInput(attrs={'type': 'date'}),
+        }
 
-
-    def __init__(self, *args, sale_shipment=None, **kwargs):
+    def __init__(self, *args, sale_shipment=None, dispatch_strategy='FIFO', **kwargs):
         super(SaleDispatchItemForm, self).__init__(*args, **kwargs)
 
+        # Set dispatch strategy dynamically
+        self.fields['dispatch_strategy'].initial = dispatch_strategy
+
         if sale_shipment:
-            self.fields['sale_shipment'].queryset = SaleShipment.objects.filter(id=sale_shipment.id)            
+            self.fields['sale_shipment'].queryset = SaleShipment.objects.filter(id=sale_shipment.id)
             self.fields['dispatch_item'].queryset = SaleOrderItem.objects.filter(sale_order__sale_shipment=sale_shipment)
+            if 'batch' in self.fields:
+                self.fields['batch'].queryset = Batch.objects.filter(sale_shipment=sale_shipment)
         else:
             self.fields['sale_shipment'].queryset = SaleShipment.objects.all()
             self.fields['dispatch_item'].queryset = SaleOrderItem.objects.all()
-         
+            if 'batch' in self.fields:
+                self.fields['batch'].queryset = Batch.objects.all()
+
+        # Styling for dropdowns
         self.fields['sale_shipment'].widget.attrs.update({
             'style': 'max-width: 200px; word-wrap: break-word; overflow: hidden; text-overflow: ellipsis;'
         })
-          
         self.fields['dispatch_item'].widget.attrs.update({
             'style': 'max-width: 200px; word-wrap: break-word; overflow: hidden; text-overflow: ellipsis;'
         })

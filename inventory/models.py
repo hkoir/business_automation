@@ -62,7 +62,7 @@ class Location(models.Model):
 
 from operations.models import ExistingOrder,OperationsRequestOrder
 from repairreturn.models import ScrappedOrder
-
+from purchase.models import Batch
 
 class Inventory(models.Model):
     inventory_id = models.CharField(max_length=30,null=True,blank=True) 
@@ -73,6 +73,7 @@ class Inventory(models.Model):
         blank=True,
         related_name='inventory_user'
     )
+    batch = models.ForeignKey(Batch,on_delete=models.CASCADE,related_name='batch_inventory',null=True,blank=True)
     warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.CASCADE,
@@ -109,10 +110,14 @@ class Inventory(models.Model):
     def __str__(self):
         return f"{self.warehouse}--{self.location}--{self.product.name}--{self.quantity}"
 
+
+
 class InventoryTransaction(models.Model):  
     inventory_transaction=models.ForeignKey(Inventory,on_delete=models.CASCADE,null=True, blank=True,related_name='inventory_transaction') 
     transaction_id = models.CharField(max_length=30,null=True,blank=True)    
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='inventory_transaction_user')
+    batch = models.ForeignKey(Batch, on_delete=models.CASCADE, related_name='batch_inventory_transaction',null=True, blank=True)  # NEW
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # NEW
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE,null=True, blank=True)
     location = models.ForeignKey(Location, on_delete=models.CASCADE,null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE,null=True, blank=True)
@@ -210,6 +215,7 @@ class TransferItem(models.Model):
     user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True, blank=True,related_name='transfer_user')
     transfer_order = models.ForeignKey(TransferOrder, related_name='transfers', on_delete=models.CASCADE, null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    batch=models.ForeignKey(Batch,on_delete=models.CASCADE,null=True,blank=True,related_name='batch_transfer')
     source_warehouse = models.ForeignKey(Warehouse, related_name='source_transfers', on_delete=models.CASCADE, null=True, blank=True)
     target_warehouse = models.ForeignKey(Warehouse, related_name='target_transfers', on_delete=models.CASCADE, null=True, blank=True)
     source_location = models.ForeignKey(Location, related_name='source_locations', on_delete=models.CASCADE, null=True, blank=True)

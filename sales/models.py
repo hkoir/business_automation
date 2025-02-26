@@ -73,6 +73,7 @@ class SaleRequestOrder(models.Model):
         return self.order_id
 
 
+from purchase.models import Batch
 
 class SaleRequestItem(models.Model):
     request_id = models.CharField(max_length=20,null=True,blank=True)
@@ -80,6 +81,8 @@ class SaleRequestItem(models.Model):
     sale_request_order=models.ForeignKey(SaleRequestOrder,related_name='sale_request_order',on_delete=models.CASCADE,null=True, blank=True)
     product = models.ForeignKey(Product,related_name='sale_request_item', on_delete=models.CASCADE,null=True, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)   
+    batch = models.ForeignKey(Batch,on_delete=models.CASCADE,related_name='batch_sale_request_item',null=True, blank=True)
+    unit_selling_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     priority = models.CharField(max_length=20, choices=[('LOW', 'Low'), ('MEDIUM', 'Medium'), ('HIGH', 'High')],null=True, blank=True)
     STATUS_CHOICES = [
         ('PENDING', 'PENDING'),

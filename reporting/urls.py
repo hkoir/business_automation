@@ -14,6 +14,8 @@ urlpatterns = [
   path('notification_list/', views.notification_list, name='notification_list'),
   
   path('product_list/', views.product_list, name='product_list'),
+  path('batchwise_product_status/', views.batchwise_product_status, name='batchwise_product_status'),
+  path("get-batch-warehouse-data/", views.get_batch_warehouse_data, name="get_batch_warehouse_data"),
   path('product_report/<int:product_id>/', views.product_report, name='product_report'),
   path('', views.warehouse_report, name='warehouse_report'),
 
